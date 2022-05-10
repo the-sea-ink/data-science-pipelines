@@ -1,0 +1,10 @@
+astunparse==1.6.3
+pandas==1.2.4
+numpy==1.20.1
+networkx==2.5
+astpretty==2.1.0
+matplotlib==3.3.4
+dill==0.3.4
+dataclasses==0.8
+fastapi==0.77.1
+scikit_learn==1.0.2
