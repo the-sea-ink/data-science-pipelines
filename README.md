@@ -10,7 +10,7 @@ To start a test server
 uvicorn main:app --reload
 ```
 
-To compile a frontend
+To compile a frontend, `npm install` once from the project folder, then
 ```
 npm run build
 ```
