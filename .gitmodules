@@ -1,0 +1,9 @@
+[submodule "playground/parsers/tree-sitter-ebnf-generator"]
+	path = playground/parsers/tree-sitter-ebnf-generator
+	url = https://github.com/eatkins/tree-sitter-ebnf-generator.git
+[submodule "playground/parsers/tree-sitter-python"]
+	path = playground/parsers/tree-sitter-python
+	url = https://github.com/tree-sitter/tree-sitter-python.git
+[submodule "playground/parsers/tree-sitter-r"]
+	path = playground/parsers/tree-sitter-r
+	url = https://github.com/r-lib/tree-sitter-r.git
