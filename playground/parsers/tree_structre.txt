@@ -1,0 +1,16 @@
+(module 
+	(import_statement name: (aliased_import name: (dotted_name (identifier)) alias: (identifier))) 
+	(function_definition 
+		name: (identifier) 
+		parameters: (parameters (identifier) (identifier)) 
+		(comment) 
+		body: (block (expression_statement (assignment left: (identifier) right: (integer))) 
+		(comment) 
+		(for_statement left: (identifier) right: (call function: (identifier) arguments: (argument_list (identifier))) 
+			(comment) 
+			body: (block (expression_statement (assignment left: (identifier) right: (call function: (attribute object: (attribute object: (identifier) attribute: (identifier)) attribute: (identifier)) arguments: (argument_list)))) 
+			(comment) 
+			(if_statement condition: (comparison_operator (identifier) (identifier)) 
+				consequence: (block (expression_statement (augmented_assignment left: (identifier) right: (integer))))))) 
+
+		(return_statement (identifier)))))
