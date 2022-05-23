@@ -45,8 +45,7 @@ def parse_py(code):
     nodes, edges = [], []
     node = tree.root_node
     nodes, edges = tree_traverser(node)
-    print(nodes)
-    return
+    return nodes, edges
 
 
 def parse_r(code):
@@ -58,6 +57,7 @@ def parse_r(code):
     r_parser = Parser()
     r_parser.set_language(R_LANGUAGE)
     tree = r_parser.parse(bytes(code, "utf8"))
+
     print(tree.root_node.sexp())
     return
 
@@ -101,5 +101,5 @@ code = b''
 with open("bernoulli.py", "rb") as file:
     code += file.read()  # async read chunk
 
-# print(code.decode('utf-8'))
+print(code.decode('utf-8'))
 parse_py(code.decode('utf-8'))

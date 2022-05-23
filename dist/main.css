@@ -2,3 +2,7 @@ body {
   color: darkblue;
 }
 
+.cm-theme {
+  overflow-y: auto;
+}
+
