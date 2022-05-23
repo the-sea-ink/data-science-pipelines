@@ -4,9 +4,36 @@ from tree_sitter import Language, Parser
 from parser import ASTVisitor, graph
 
 
+def py_init():
+    Language.build_library(
+        # Store the library in the `build` directory
+        'build/my-languages.so',
+
+        # Include one or more languages
+        [
+            'tree-sitter-python'
+        ]
+    )
+
+
+def r_init():
+    Language.build_library(
+        # Store the library in the `build` directory
+        'build/my-languages.so',
+
+        # Include one or more languages
+        [
+            'tree-sitter-r'
+        ]
+    )
+
+
 def parse_py(code):
     # TODO language check
     # language init
+    # call this if you still need to add the language to the build directory:
+    # py_init()
+
     PY_LANGUAGE = Language('./build/my-languages.so', 'python')
     python_parser = Parser()
     python_parser.set_language(PY_LANGUAGE)
@@ -23,6 +50,10 @@ def parse_py(code):
 
 
 def parse_r(code):
+    # language init
+    # call this if you still need to add the language to the build directory:
+    # r_init()
+
     R_LANGUAGE = Language('./build/my-languages.so', 'r')
     r_parser = Parser()
     r_parser.set_language(R_LANGUAGE)
