@@ -1,13 +1,14 @@
 from tree_sitter import Language, Parser
 import networkx as nx
+from regraph import NXGraph, Rule, plot_rule
 
 def parse(prog_language, code):
 
-    if prog_language != "python" and prog_language != "r":
-        print("Currently only Python and R are supported.")
-        return
+    #if prog_language != "python" and prog_language != "r":
+     #   print("Currently only Python and R are supported.")
+      #  return
 
-    language = Language('./build/my-languages.so', prog_language.lower)
+    language = Language('./build/my-languages.so', prog_language)
     parser = Parser()
     parser.set_language(language)
     tree = parser.parse(bytes(code, "utf8"))
@@ -50,3 +51,10 @@ def bfs_tree_traverser(root_node, G):
         parent_id = parent_id + 1
 
     return G
+
+
+code = b''
+with open("bernoulli.py", "rb") as file:
+    code += file.read()  # async read chunk
+
+parse('python', code.decode('utf-8'))
