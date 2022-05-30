@@ -7,3 +7,6 @@
 [submodule "playground/parsers/tree-sitter-r"]
 	path = playground/parsers/tree-sitter-r
 	url = https://github.com/r-lib/tree-sitter-r.git
+[submodule "third_party/ReGraph"]
+	path = third_party/ReGraph
+	url = https://github.com/Kappa-Dev/ReGraph.git
