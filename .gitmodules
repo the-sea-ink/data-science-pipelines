@@ -10,3 +10,4 @@
 [submodule "third_party/ReGraph"]
 	path = third_party/ReGraph
 	url = https://github.com/sergred/ReGraph.git
+	branch = main
