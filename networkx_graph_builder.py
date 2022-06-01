@@ -199,9 +199,6 @@ def nx2gt(nxG):
 
 
 
-
-
-
 # read code
 code = b''
 with open("bernoulli.py", "rb") as file:
