@@ -6,6 +6,7 @@
     <mapping directory="$PROJECT_DIR$/playground/parsers/tree-sitter-r" vcs="Git" />
     <mapping directory="$PROJECT_DIR$/playground/parsers/tree-sitter-r/tree-sitter-r" vcs="Git" />
     <mapping directory="$PROJECT_DIR$/third_party/ReGraph" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/third_party/ReGraph/ReGraph" vcs="Git" />
     <mapping directory="$PROJECT_DIR$/tree-sitter-python" vcs="Git" />
     <mapping directory="$PROJECT_DIR$/tree-sitter-r" vcs="Git" />
   </component>
