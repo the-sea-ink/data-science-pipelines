@@ -1,0 +1,37 @@
+{
+    "name": "best_pipeline_ever_test",
+    "pipelineId": "-1",
+    "versionId": "-1",
+    "reportingEndpoint": "http://localhost:8081",
+    "externalUrl": null,
+    "continuous": false,
+    "delayInSeconds": 0,
+    "plantId": "-1",
+    "steps": [
+        {
+            "id": 6,
+            "type": "ReadFile",
+            "frontendName": "Read file",
+            "parameters": {
+                "file_name": "../aitools/tests/resources/PowerPlant.csv",
+                "optional_csv_delimiter": "tab"
+            },
+            "inputs": {},
+            "webserver": false
+        },
+        {
+            "id": 0,
+            "type": "ReadS3",
+            "frontendName": "Read S3",
+            "parameters": {
+                "bucket": "data-crafts-resources",
+                "id": "",
+                "key": "",
+                "object_name": "powerplant2.h5",
+                "token": ""
+            },
+            "inputs": {},
+            "webserver": false
+        }
+    ]
+}

@@ -1,0 +1,143 @@
+{
+    "name": "best_pipeline_ever_test",
+    "pipelineId": "-1",
+    "versionId": "-1",
+    "reportingEndpoint": "http://localhost:8081",
+    "externalUrl": null,
+    "continuous": false,
+    "delayInSeconds": 0,
+    "plantId": "-1",
+    "steps": [
+        {
+            "id": 6,
+            "type": "ReadFile",
+            "frontendName": "Read file",
+            "parameters": {
+                "file_name": "../aitools/tests/resources/PowerPlant.csv",
+                "optional_csv_delimiter": "tab"
+            },
+            "inputs": {},
+            "webserver": false
+        },
+        {
+            "id": 0,
+            "type": "ReadS3",
+            "frontendName": "Read S3",
+            "parameters": {
+                "bucket": "data-crafts-resources",
+                "id": "",
+                "key": "",
+                "object_name": "powerplant2.h5",
+                "token": ""
+            },
+            "inputs": {},
+            "webserver": false
+        },
+        {
+            "id": 1,
+            "type": "Normalize",
+            "frontendName": "Normalize",
+            "parameters": {
+                "mode": "minmax"
+            },
+            "inputs": {
+                "data": {
+                    "step": "ReadS3_0",
+                    "output_name": "data",
+                    "data_type": "DataFrame"
+                }
+            },
+            "webserver": false
+        },
+        {
+            "id": 2,
+            "type": "TrainGmm",
+            "frontendName": "Gaussian Mixture Model",
+            "parameters": {
+                "covariance_type": "diag",
+                "maximal_epochs": "200",
+                "n_components": "10"
+            },
+            "inputs": {
+                "training_data": {
+                    "step": "Normalize_1",
+                    "output_name": "normalized_data",
+                    "data_type": "DataFrame"
+                }
+            },
+            "webserver": false
+        },
+        {
+            "id": 3,
+            "type": "ApplyModel",
+            "frontendName": "Apply Model",
+            "parameters": {},
+            "inputs": {
+                "trained_model": {
+                    "step": "TrainGmm_2",
+                    "output_name": "trained_model",
+                    "data_type": "ModelInterface"
+                },
+                "data": {
+                    "step": "Normalize_1",
+                    "output_name": "normalized_data",
+                    "data_type": "DataFrame"
+                }
+            },
+            "webserver": false
+        },
+        {
+            "id": 5,
+            "type": "PlotTrend",
+            "frontendName": "Plot Trend",
+            "parameters": {
+                "file_name": "gmm_results.png",
+                "grouping": "Together"
+            },
+            "inputs": {
+                "data": {
+                    "step": "ApplyModel_3",
+                    "output_name": "result",
+                    "data_type": "DataFrame"
+                }
+            },
+            "webserver": false
+        },
+        {
+            "id": 7,
+            "type": "WriteFile",
+            "frontendName": "Write File",
+            "parameters": {
+                "file_name": "test.h5"
+            },
+            "inputs": {
+                "data": {
+                    "step": "ReadFile_6",
+                    "output_name": "data",
+                    "data_type": "Any"
+                }
+            },
+            "webserver": false
+        },
+        {
+            "id": 4,
+            "type": "WriteS3",
+            "frontendName": "Write S3",
+            "parameters": {
+                "bucket": "exdraplus",
+                "id": "",
+                "key": "",
+                "object_name": "gmm_dummy_result.h5",
+                "token": ""
+            },
+            "inputs": {
+                "data": {
+                    "step": "ApplyModel_3",
+                    "output_name": "result",
+                    "data_type": "DataFrame"
+                }
+            },
+            "webserver": false
+        }
+    ]
+}

@@ -9,7 +9,8 @@ Language.build_library(
   # Include one or more languages
   [
     'tree-sitter-r',
-    'tree-sitter-python'
+    'tree-sitter-python',
+    'tree-sitter-json'
   ]
 )
 

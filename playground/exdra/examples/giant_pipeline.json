@@ -1,0 +1,290 @@
+{
+    "name": "giant_pipeline",
+    "pipelineId": "-1",
+    "versionId": "-1",
+    "reportingEndpoint": null,
+    "continuous": false,
+    "delayInSeconds": 0,
+    "plantId": "-1",
+    "steps": [
+        {
+            "id": 0,
+            "type": "ReadFile",
+            "frontendName": "Read file",
+            "parameters": {
+                "file_name": "aitools/tests/resources/PowerPlant.csv",
+                "optional_csv_delimiter": "tab"
+            },
+            "inputs": {}
+        },
+        {
+            "id": 1,
+            "type": "SetIndex",
+            "frontendName": "Set Index",
+            "parameters": {
+                "index_column_name": "",
+                "index_column_number": "0"
+            },
+            "inputs": {
+                "data": {
+                    "step": "ReadFile_0",
+                    "output_name": "data",
+                    "data_type": "any"
+                }
+            }
+        },
+        {
+            "id": 2,
+            "type": "Subsample",
+            "frontendName": "Subsample",
+            "parameters": {
+                "random": "False",
+                "target_number": "100"
+            },
+            "inputs": {
+                "data": {
+                    "step": "SetIndex_1",
+                    "output_name": "data",
+                    "data_type": "DataFrame"
+                }
+            }
+        },
+        {
+            "id": 3,
+            "type": "WriteFile",
+            "frontendName": "Write File",
+            "parameters": {
+                "file_name": "aitools/tests/output/PowerPlant.h5"
+            },
+            "inputs": {
+                "data": {
+                    "step": "Subsample_2",
+                    "output_name": "subsampled_data",
+                    "data_type": "DataFrame"
+                }
+            }
+        },
+        {
+            "id": 4,
+            "type": "Normalize",
+            "frontendName": "Normalize",
+            "parameters": {
+                "mode": "minmax"
+            },
+            "inputs": {
+                "data": {
+                    "step": "Subsample_2",
+                    "output_name": "subsampled_data",
+                    "data_type": "DataFrame"
+                }
+            }
+        },
+        {
+            "id": 5,
+            "type": "TrainGmm",
+            "frontendName": "Gaussian Mixture Model",
+            "parameters": {
+                "covariance_type": "diag",
+                "maximal_epochs": "200",
+                "n_components": "10"
+            },
+            "inputs": {
+                "training_data": {
+                    "step": "Normalize_4",
+                    "output_name": "normalized_data",
+                    "data_type": "DataFrame"
+                }
+            }
+        },
+        {
+            "id": 6,
+            "type": "ApplyModel",
+            "frontendName": "Apply Model",
+            "parameters": {},
+            "inputs": {
+                "trained_model": {
+                    "step": "TrainGmm_5",
+                    "output_name": "trained_model",
+                    "data_type": "Model"
+                },
+                "data": {
+                    "step": "Normalize_4",
+                    "output_name": "normalized_data",
+                    "data_type": "DataFrame"
+                }
+            }
+        },
+        {
+            "id": 7,
+            "type": "PlotTrend",
+            "frontendName": "Plot Trend",
+            "parameters": {
+                "file_name": "aitools/tests/output/gmm_results.png",
+                "grouping": "Together",
+                "height": "850",
+                "start_empty": "True",
+                "width": "1650"
+            },
+            "inputs": {
+                "data": {
+                    "step": "ApplyModel_6",
+                    "output_name": "result",
+                    "data_type": "DataFrame"
+                }
+            }
+        },
+        {
+            "id": 8,
+            "type": "ReadFile",
+            "frontendName": "Read file",
+            "parameters": {
+                "file_name": "aitools/tests/output/PowerPlant.h5",
+                "optional_csv_delimiter": ","
+            },
+            "inputs": {}
+        },
+        {
+            "id": 9,
+            "type": "FilterByValue",
+            "frontendName": "Filter Values",
+            "parameters": {
+                "operation": ">",
+                "target_column": "MW",
+                "target_value": "100.0"
+            },
+            "inputs": {
+                "data": {
+                    "step": "ReadFile_8",
+                    "output_name": "data",
+                    "data_type": "any"
+                }
+            }
+        },
+        {
+            "id": 10,
+            "type": "PlotTrend",
+            "frontendName": "Plot Trend",
+            "parameters": {
+                "file_name": "aitools/tests/output/filtered_data.png",
+                "grouping": "Together",
+                "height": "850",
+                "start_empty": "True",
+                "width": "1650"
+            },
+            "inputs": {
+                "data": {
+                    "step": "FilterByValue_9",
+                    "output_name": "filtered_data",
+                    "data_type": "DataFrame"
+                }
+            }
+        },
+        {
+            "id": 11,
+            "type": "SelectTimeRange",
+            "frontendName": "Select Time Range",
+            "parameters": {
+                "end_time": "2017-06-24 11:34:00",
+                "start_time": "YYYY-MM-DD HH:MM:SS"
+            },
+            "inputs": {
+                "data": {
+                    "step": "FilterByValue_9",
+                    "output_name": "filtered_data",
+                    "data_type": "DataFrame"
+                }
+            }
+        },
+        {
+            "id": 12,
+            "type": "SelectColumns",
+            "frontendName": "Select Columns",
+            "parameters": {
+                "column_names": [
+                    "MW",
+                    "Airflow",
+                    "AmbientTemperature",
+                    "Temperature2A",
+                    "Temperature4A",
+                    "Temperature6A",
+                    "Temperature8A",
+                    "Temperature10A",
+                    "Temperature12A",
+                    "Temperature14A"
+                ]
+            },
+            "inputs": {
+                "data": {
+                    "step": "SelectTimeRange_11",
+                    "output_name": "filtered_data",
+                    "data_type": "DataFrame"
+                }
+            }
+        },
+        {
+            "id": 13,
+            "type": "PlotTrend",
+            "frontendName": "Plot Trend",
+            "parameters": {
+                "file_name": "aitools/tests/output/gmm_temperatures.png",
+                "grouping": "Together",
+                "height": "850",
+                "start_empty": "True",
+                "width": "1650"
+            },
+            "inputs": {
+                "data": {
+                    "step": "SelectColumns_12",
+                    "output_name": "Selection",
+                    "data_type": "DataFrame"
+                }
+            }
+        },
+        {
+            "id": 14,
+            "type": "Normalize",
+            "frontendName": "Normalize",
+            "parameters": {
+                "mode": "minmax"
+            },
+            "inputs": {
+                "data": {
+                    "step": "Subsample_2",
+                    "output_name": "subsampled_data",
+                    "data_type": "DataFrame"
+                }
+            }
+        },
+        {
+            "id": 15,
+            "type": "DimensionalityReduction",
+            "frontendName": "Dimensionality Reduction",
+            "parameters": {
+                "method": "PCA",
+                "number_dimensions": "2"
+            },
+            "inputs": {
+                "data": {
+                    "step": "Normalize_14",
+                    "output_name": "normalized_data",
+                    "data_type": "DataFrame"
+                }
+            }
+        },
+        {
+            "id": 16,
+            "type": "Clustering",
+            "frontendName": "Clustering",
+            "parameters": {
+                "method": "kmeans"
+            },
+            "inputs": {
+                "data": {
+                    "step": "DimensionalityReduction_15",
+                    "output_name": "dim_reduced_data",
+                    "data_type": "DataFrame"
+                }
+            }
+        }
+    ]
+}
