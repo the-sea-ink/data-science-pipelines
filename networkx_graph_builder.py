@@ -3,6 +3,8 @@ from tree_sitter import Language, Parser
 import networkx as nx
 from regraph import NXGraph, Rule, plot_rule
 import graph_tools as gt
+import numpy
+import pattern_builder
 
 
 def parse(prog_language, code):
@@ -27,7 +29,7 @@ def parse(prog_language, code):
 # returns the resulting networkx graph
 def bfs_tree_traverser(tree):
     """
-    Traverses a tree-sitter and converts it into an NXGraph
+    Traverses a tree-sitter with Breadth-first search algorithm and converts it into an NXGraph
     :param tree: tree-sitter to be traversed
     :return: NXGraph after traversal of a tree-sitter tree
     """
@@ -53,7 +55,7 @@ def bfs_tree_traverser(tree):
             if child_node not in visited:
                 node_id += 1
                 # add child node to graph
-                G.add_node(node_id, attrs={"type": child_node.type, "text": child_node.text, "parent_id":parent_id})
+                G.add_node(node_id, attrs={"type": child_node.type, "text": child_node.text, "parent_id": parent_id})
                 # add edge between parent_node and child_node
                 G.add_edge(parent_id, node_id)
 
@@ -64,11 +66,12 @@ def bfs_tree_traverser(tree):
         parent_id = parent_id + 1
 
     # access children example
-    #root_id = 2
-    #for child_id in G.successors(root_id):
+    # id = 2
+    # for child_id in G.successors(id):
     #    print(child_id, G.get_node(child_id))
 
     return G
+
 
 def convert_nxgraph_to_graph(NXGraph):
     """
@@ -78,6 +81,7 @@ def convert_nxgraph_to_graph(NXGraph):
     """
     nxGraph = nx.Graph(NXGraph._graph)
     return nxGraph
+
 
 def get_prop_type(value, key=None):
     """
@@ -113,6 +117,7 @@ def get_prop_type(value, key=None):
 
     return tname, value, key
 
+
 def nx2gt(nxG):
     """
     Converts a networkx graph to a graph-tool graph.
@@ -125,25 +130,25 @@ def nx2gt(nxG):
         # Convert the value and key into a type for graph-tool
         tname, value, key = get_prop_type(value, key)
 
-        prop = gtG.new_graph_property(tname) # Create the PropertyMap
-        gtG.graph_properties[key] = prop     # Set the PropertyMap
-        gtG.graph_properties[key] = value    # Set the actual value
+        prop = gtG.new_graph_property(tname)  # Create the PropertyMap
+        gtG.graph_properties[key] = prop  # Set the PropertyMap
+        gtG.graph_properties[key] = value  # Set the actual value
 
     # Phase 1: Add the vertex and edge property maps
     # Go through all nodes and edges and add seen properties
     # Add the node properties first
-    nprops = set() # cache keys to only add properties once
+    nprops = set()  # cache keys to only add properties once
     for node, data in nxG.nodes(data=True):
 
         # Go through all the properties if not seen and add them.
         for key, val in data.items():
-            if key in nprops: continue # Skip properties already added
+            if key in nprops: continue  # Skip properties already added
 
             # Convert the value and key into a type for graph-tool
-            tname, _, key  = get_prop_type(val, key)
+            tname, _, key = get_prop_type(val, key)
 
-            prop = gtG.new_vertex_property(tname) # Create the PropertyMap
-            gtG.vertex_properties[key] = prop     # Set the PropertyMap
+            prop = gtG.new_vertex_property(tname)  # Create the PropertyMap
+            gtG.vertex_properties[key] = prop  # Set the PropertyMap
 
             # Add the key to the already seen properties
             nprops.add(key)
@@ -154,25 +159,25 @@ def nx2gt(nxG):
     gtG.vertex_properties['id'] = gtG.new_vertex_property('string')
 
     # Add the edge properties second
-    eprops = set() # cache keys to only add properties once
+    eprops = set()  # cache keys to only add properties once
     for src, dst, data in nxG.edges_iter(data=True):
 
         # Go through all the edge properties if not seen and add them.
         for key, val in data.items():
-            if key in eprops: continue # Skip properties already added
+            if key in eprops: continue  # Skip properties already added
 
             # Convert the value and key into a type for graph-tool
             tname, _, key = get_prop_type(val, key)
 
-            prop = gtG.new_edge_property(tname) # Create the PropertyMap
-            gtG.edge_properties[key] = prop     # Set the PropertyMap
+            prop = gtG.new_edge_property(tname)  # Create the PropertyMap
+            gtG.edge_properties[key] = prop  # Set the PropertyMap
 
             # Add the key to the already seen properties
             eprops.add(key)
 
     # Phase 2: Actually add all the nodes and vertices with their properties
     # Add the nodes
-    vertices = {} # vertex mapping for tracking edges later
+    vertices = {}  # vertex mapping for tracking edges later
     for node, data in nxG.nodes(data=True):
 
         # Create the vertex and annotate for our edges later
@@ -182,7 +187,7 @@ def nx2gt(nxG):
         # Set the vertex properties, not forgetting the id property
         data['id'] = str(node)
         for key, value in data.items():
-            gtG.vp[key][v] = value # vp is short for vertex_properties
+            gtG.vp[key][v] = value  # vp is short for vertex_properties
 
     # Add the edges
     for src, dst, data in nxG.edges_iter(data=True):
@@ -192,11 +197,18 @@ def nx2gt(nxG):
 
         # Add the edge properties
         for key, value in data.items():
-            gtG.ep[key][e] = value # ep is short for edge_properties
+            gtG.ep[key][e] = value  # ep is short for edge_properties
 
     # Done, finally!
     return gtG
 
+
+def find_pattern():
+    return
+
+
+def match_pattern():
+    return
 
 
 # read code
@@ -211,8 +223,18 @@ tree_sitter = parse('python', code)
 # traverse tree-sitter -> get NXGraph
 nxgraph = bfs_tree_traverser(tree_sitter)
 
+# create a regraph rule out of the graph
+rule = Rule.from_transform(nxgraph)
+pattern_builder.print_graph(nxgraph)
+patterns = pattern_builder.create_patterns()
+pattern_builder.match_patterns(nxgraph, rule, patterns)
+plot_rule(rule)
+
 # convert NXGraph -> get nx.Graph
-graph = convert_nxgraph_to_graph(nxgraph)
+#graph = convert_nxgraph_to_graph(nxgraph)
 
 # nx.Graph -> gt.Graph, WiP
-#gtG = nx2gt(graph)
+# gtG = nx2gt(graph)
+
+
+

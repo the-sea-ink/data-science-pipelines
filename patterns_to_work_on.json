@@ -1,0 +1,8 @@
+{
+  "function_def" : "function_definition",
+  "first_node" : "module",
+  "code_block" : "code_block",
+  "if" : "if_statement",
+  "for" : "for_statement",
+
+}

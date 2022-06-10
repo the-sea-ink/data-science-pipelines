@@ -1,0 +1,7 @@
+{
+  "import": "import_statement",
+  "var_assignment" : "assignment",
+  "function_call": "call",
+  "expr_statement" : "expression_statement"
+
+}
