@@ -223,12 +223,13 @@ tree_sitter = parse('python', code)
 # traverse tree-sitter -> get NXGraph
 nxgraph = bfs_tree_traverser(tree_sitter)
 
-# create a regraph rule out of the graph
-rule = Rule.from_transform(nxgraph)
-pattern_builder.print_graph(nxgraph)
+# rewrite graph
+pattern_builder.rewrite_graph(nxgraph)
+"""
 patterns = pattern_builder.create_patterns()
 pattern_builder.match_patterns(nxgraph, rule, patterns)
 plot_rule(rule)
+"""
 
 # convert NXGraph -> get nx.Graph
 #graph = convert_nxgraph_to_graph(nxgraph)

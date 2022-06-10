@@ -6,6 +6,11 @@ from regraph import plot_graph, plot_instance, plot_rule
 import json
 
 
+def remove_nodes(node_type, nodes_num, rule):
+
+    return
+
+
 def remove_descendants(G, node_type, instances, rule):
     print(node_type)
     for ins in instances:
@@ -18,6 +23,8 @@ def remove_descendants(G, node_type, instances, rule):
     return rule
 
 
+# removes all the nodes and edges of all nodes in rule whose ids
+# are not in the list
 def remove_everything_else(ids, rule, num_nodes):
     for i in range(num_nodes):
         if i not in ids:
@@ -25,6 +32,7 @@ def remove_everything_else(ids, rule, num_nodes):
     return rule
 
 
+# gets the ids of all of the nodes of a certain "type" in an instance of a graph
 def get_ids(node_type, instances):
     ids = []
     for ins in instances:
@@ -33,6 +41,9 @@ def get_ids(node_type, instances):
     return ids
 
 
+# creates a pattern to filter a graph based on "node type"
+# attr_name -> name given to the variable used to identify this node type
+# node_type -> the type of node that wants to be filtered
 def create_simple_pattern(attr_name, node_type):
     pattern = NXGraph()
     pattern.add_node(attr_name)
@@ -40,6 +51,8 @@ def create_simple_pattern(attr_name, node_type):
     return pattern
 
 
+# creates a subgraph of the nodes given in ids, searches for their descendants that match the different given patterns
+# and adds the text attribute of nodes that match those patterns as an attribute to the ascendant node
 def add_attrs_from_patterns(G, ids, patterns, is_import):
     for id in ids:
         subg_nodes = list(G.descendants(id)) if is_import else list(G.successors(id))
@@ -53,12 +66,15 @@ def add_attrs_from_patterns(G, ids, patterns, is_import):
             G.add_node_attrs(id, attrs={patt[0]: subgraph.get_node(sub_id[0])["text"]})
 
 
+# adds an edge between the parent of a node and all the children of that same node (grandparent - grandchildren connection)
+# this is necessary in order to later be able to remove those nodes that only serve as connectors
 def connect_parent_and_children(G, ids, rule):
     for id in ids:
         parent_id = list(G.predecessors(id))[0]
         for child_id in list(G.successors(id)):
             rule.inject_add_edge(parent_id, child_id)
     return rule
+
 
 def print_graph(G):
     print("List of nodes: ")
@@ -67,6 +83,7 @@ def print_graph(G):
     print("List of edges: ")
     for s, t, attrs in G.edges(data=True):
         print("\t{}->{}".format(s, t), attrs)
+
 
 def create_patterns():
     # read json file with patterns
@@ -83,6 +100,7 @@ def create_patterns():
     return patterns
 
 
+"""
 def match_patterns(G, rule, patterns):
 
     i = 0
@@ -94,5 +112,26 @@ def match_patterns(G, rule, patterns):
         i += 1
 
     return rule
+"""
 
 
+def rewrite_graph(G):
+    # create rule
+    rule = Rule.from_transform(G)
+
+    # print graph
+    print_graph(G)
+
+    # read json file
+    f = open('patterns.json', "r")
+    json_data = json.loads(f.read())
+
+    # find redundancies
+    redundand_nodes = []
+    for data in json_data["redundancies"]:
+        # find nodes with necessary attributes in the graph
+        redundand_nodes.append()
+    for node in redundand_nodes:
+        rule.inject_remove_node(node)
+
+    return

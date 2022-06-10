@@ -1,7 +1,32 @@
 {
-  "import": "import_statement",
-  "var_assignment" : "assignment",
-  "function_call": "call",
-  "expr_statement" : "expression_statement"
+  "redundancies" : {
+    "," : ",",
+    "." : ".",
+    ")" : ")",
+    "(" : "(",
+    "[" : "[",
+    "]" : "]",
+    ":" : ":",
+    "*" : "*",
+    "+" : "+",
+    "=" : "=",
+    "-" : "-"
+  },
+  "simple_nodes_with_children" : {
+    "import_statement": {
+    "dotted_name" : "dotted_name",
+    "identifier" : "identifier"
+  },
+  "function_definition" : {
+    "identifier" : "identifier",
+    "parameters" : "parameters"
+  },
+  "call": {
+    "argument_list" : "argument_list"
+  }
+  },
+
+  "assignment" : "assignment",
+  "expression_statement" : "expression_statement"
 
 }
