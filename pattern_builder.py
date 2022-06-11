@@ -13,14 +13,14 @@ def remove_descendants(G, node_type, instances, rule):
         desc = G.descendants(node_id)
         print(desc)
         for id in list(desc):
-            rule.inject_remove_node(id)
+            G.remove_node(id)
     return rule
 
 
-def remove_nodes(rule, ids):
+def remove_nodes(G, ids):
     for id in ids:
-        rule.inject_remove_node(id)
-    return rule
+        G.remove_node(id)
+    return
 
 # removes all the nodes and edges of all nodes in rule whose ids
 # are not in the list
@@ -56,17 +56,17 @@ def create_pattern_with_descendants(pattern_dict):
 
 # creates a subgraph of the nodes given in ids, searches for their descendants that match the different given patterns
 # and adds the text attribute of nodes that match those patterns as an attribute to the ascendant node
-def add_attrs_from_patterns(G, ids, patterns, is_import):
+def add_attrs_from_patterns(ids, patterns, is_import, G):
     for id in ids:
         subg_nodes = list(G.descendants(id)) if is_import else list(G.successors(id))
         subg_nodes.append(id)
         subgraph = G.generate_subgraph(G, subg_nodes)
 
-        for patt in patterns:
-            instances = subgraph.find_matching(patt[1])
-            sub_id = get_ids(patt[0], instances)
-
-            G.add_node_attrs(id, attrs={patt[0]: subgraph.get_node(sub_id[0])["text"]})
+        for pattern in patterns:
+            instances = subgraph.find_matching(pattern)
+            sub_id = get_ids(list(pattern._graph.nodes._nodes)[0], instances)
+            node_attributes = {list(pattern._graph.nodes._nodes)[0] : subgraph.get_node(sub_id[0])["text"]}
+            G.add_node_attrs(id, attrs=node_attributes)
 
 
 # adds an edge between the parent of a node and all the children of that same node (grandparent - grandchildren connection)
@@ -132,6 +132,7 @@ def rewrite_graph(G):
     # find redundancies
     redundand_patterns = []
     for key in json_data["redundancies"]:
+
         # find nodes with necessary attributes in the graph
         value = json_data["redundancies"][key]
         pattern = create_simple_pattern(key, value)
@@ -147,8 +148,34 @@ def rewrite_graph(G):
             redundand_id = get_ids(pattern_name, instances)
             redundand_ids += redundand_id
         i += 1
-    rule = remove_nodes(rule, redundand_ids)
-    plot_rule(rule)
+    remove_nodes(G, redundand_ids)
+    #plot_rule(rule)
 
-    # find nodes with descendants (eg import statements, function call etc),
+    # find nodes with descendants
+    parent_patterns = []
+    for node in json_data["nodes_with_descendants"]:
+        # find parent node
+        parent_pattern = create_simple_pattern(node, node)
+        instances = G.find_matching(parent_pattern)
+
+        # get ids of all parent occurrences in the graph
+        if len(instances) != 0:
+            parent_type = list(parent_pattern._graph.nodes._nodes)[0]
+            parent_ids = get_ids(parent_type, instances)
+
+            # find its children names in json
+            descendants_patterns = []
+            for descendant_node in json_data["nodes_with_descendants"][node]:
+                descendant_pattern = create_simple_pattern(descendant_node, descendant_node)
+                descendants_patterns.append(descendant_pattern)
+
+            # get attributes of children
+            if parent_type == "import_statement":
+                add_attrs_from_patterns(parent_ids, descendants_patterns, True, G)
+            else:
+                add_attrs_from_patterns(parent_ids, descendants_patterns, False, G)
+            remove_descendants(G, parent_type, instances, rule)
+
+    #G.rewrite(rule, rule.p)
+    print_graph(G)
     return
