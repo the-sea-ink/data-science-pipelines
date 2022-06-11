@@ -18,6 +18,10 @@
       "dotted_name" : "dotted_name",
       "identifier" : "identifier"
     },
+    "import_from_statement" : {
+      "dotted_name" : "dotted_name",
+      "identifier" : "identifier"
+    },
     "function_definition" : {
       "identifier" : "identifier",
       "parameters" : "parameters"
@@ -26,8 +30,8 @@
       "argument_list" : "argument_list"
     }
   },
-
-  "assignment" : "assignment",
-  "expression_statement" : "expression_statement"
-
+  "simple_nodes" :{
+    "assignment" : "assignment",
+    "expression_statement" : "expression_statement"
+  }
 }
