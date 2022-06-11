@@ -5,12 +5,6 @@ from regraph import NXGraph, Rule
 from regraph import plot_graph, plot_instance, plot_rule
 import json
 
-
-def remove_nodes(node_type, nodes_num, rule):
-
-    return
-
-
 def remove_descendants(G, node_type, instances, rule):
     print(node_type)
     for ins in instances:
@@ -22,6 +16,11 @@ def remove_descendants(G, node_type, instances, rule):
             rule.inject_remove_node(id)
     return rule
 
+
+def remove_nodes(rule, ids):
+    for id in ids:
+        rule.inject_remove_node(id)
+    return rule
 
 # removes all the nodes and edges of all nodes in rule whose ids
 # are not in the list
@@ -50,6 +49,10 @@ def create_simple_pattern(attr_name, node_type):
     pattern.add_node_attrs(attr_name, {"type": node_type})
     return pattern
 
+def create_pattern_with_descendants(pattern_dict):
+    pattern = NXGraph()
+
+    return
 
 # creates a subgraph of the nodes given in ids, searches for their descendants that match the different given patterns
 # and adds the text attribute of nodes that match those patterns as an attribute to the ascendant node
@@ -127,11 +130,25 @@ def rewrite_graph(G):
     json_data = json.loads(f.read())
 
     # find redundancies
-    redundand_nodes = []
-    for data in json_data["redundancies"]:
+    redundand_patterns = []
+    for key in json_data["redundancies"]:
         # find nodes with necessary attributes in the graph
-        redundand_nodes.append()
-    for node in redundand_nodes:
-        rule.inject_remove_node(node)
+        value = json_data["redundancies"][key]
+        pattern = create_simple_pattern(key, value)
+        redundand_patterns.append(pattern)
 
+    # remove redundancies
+    i = 0
+    redundand_ids = []
+    for pattern in redundand_patterns:
+        instances = G.find_matching(pattern)
+        if len(instances) != 0:
+            pattern_name = list(redundand_patterns[i]._graph.nodes._nodes)[0]
+            redundand_id = get_ids(pattern_name, instances)
+            redundand_ids += redundand_id
+        i += 1
+    rule = remove_nodes(rule, redundand_ids)
+    plot_rule(rule)
+
+    # find nodes with descendants (eg import statements, function call etc),
     return

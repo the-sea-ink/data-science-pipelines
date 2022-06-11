@@ -10,20 +10,21 @@
     "*" : "*",
     "+" : "+",
     "=" : "=",
-    "-" : "-"
+    "-" : "-",
+    "\"" : "\""
   },
-  "simple_nodes_with_children" : {
+  "nodes_with_descendants" : {
     "import_statement": {
-    "dotted_name" : "dotted_name",
-    "identifier" : "identifier"
-  },
-  "function_definition" : {
-    "identifier" : "identifier",
-    "parameters" : "parameters"
-  },
-  "call": {
-    "argument_list" : "argument_list"
-  }
+      "dotted_name" : "dotted_name",
+      "identifier" : "identifier"
+    },
+    "function_definition" : {
+      "identifier" : "identifier",
+      "parameters" : "parameters"
+    },
+    "call": {
+      "argument_list" : "argument_list"
+    }
   },
 
   "assignment" : "assignment",

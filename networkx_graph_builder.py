@@ -212,10 +212,15 @@ def match_pattern():
 
 
 # read code
-code = b''
-with open("bernoulli.py", "rb") as file:
-    code += file.read()  # async read chunk
-    code = code.decode('utf-8')
+code = """
+import numpy as np
+n_success = 0
+print("Python is great!")
+"""
+
+#with open("bernoulli.py", "rb") as file:
+ #   code += file.read()  # async read chunk
+  #  code = code.decode('utf-8')
 
 # parse code -> get tree-sitter
 tree_sitter = parse('python', code)
