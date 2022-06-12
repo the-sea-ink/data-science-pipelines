@@ -219,6 +219,7 @@ print("Python is great!")
 """
 
 code = """
+import numpy as np
 from sklearn.svm import SVC
 from sklearn.preprocessing import StandardScaler
 from sklearn.datasets import make_classification
@@ -244,7 +245,7 @@ tree_sitter = parse('python', code)
 nxgraph = bfs_tree_traverser(tree_sitter)
 
 # rewrite graph
-pattern_builder.rewrite_graph(nxgraph)
+G = pattern_builder.clear_graph(nxgraph)
 
 # convert NXGraph -> get nx.Graph
 #graph = convert_nxgraph_to_graph(nxgraph)

@@ -91,7 +91,7 @@ def print_graph(G):
         print("\t{}->{}".format(s, t), attrs)
 
 
-def rewrite_graph(G):
+def clear_graph(G):
     # create rule
     rule = Rule.from_transform(G)
 
@@ -99,7 +99,7 @@ def rewrite_graph(G):
     print_graph(G)
 
     # read json file
-    f = open('patterns.json', "r")
+    f = open('graph_clearing_patterns.json', "r")
     json_data = json.loads(f.read())
 
     # find & remove redundancies
@@ -155,5 +155,21 @@ def rewrite_graph(G):
             pattern_type = list(pattern._graph.nodes._nodes)[0]
             remove_descendants(G, pattern_type, instances, rule)
 
+    for node in json_data["nodes_to_completely_remove"]:
+        patterns_to_remove = create_simple_pattern(node, node)
+        instances = G.find_matching(patterns_to_remove)
+        if len(instances) != 0:
+            node_type = list(patterns_to_remove._graph.nodes._nodes)[0]
+            node_ids = get_ids(node_type, instances)
+            remove_nodes(G, node_ids)
+
     print_graph(G)
-    return
+    return G
+
+
+def rewrite_graph(G):
+    # read json file
+    f = open('rewrite_patterns.json.json', "r")
+    json_data = json.loads(f.read())
+
+    return G
