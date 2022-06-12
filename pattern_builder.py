@@ -169,7 +169,7 @@ def clear_graph(G):
 
 def rewrite_graph(G):
     # read json file
-    f = open('rewrite_patterns.json.json', "r")
+    f = open('rewrite_rules.json', "r")
     json_data = json.loads(f.read())
 
     return G
