@@ -7,16 +7,16 @@ import json
 
 
 def remove_descendants(G, node_type, instances, rule):
-    print(node_type)
+    #print(node_type)
     removed_nodes = []
     for ins in instances:
         node_id = ins[node_type]
-        print(str(node_id) + ":")
+        #print(str(node_id) + ":")
         # handling nested function calls;
         # checking if we deleted a subgraph of a nested function yet
         if node_id not in removed_nodes:
             desc = G.descendants(node_id)
-            print(desc)
+            #print(desc)
             for id in list(desc):
                 G.remove_node(id)
                 removed_nodes.append(id)
@@ -60,17 +60,36 @@ def create_simple_pattern(attr_name, node_type):
 # creates a subgraph of the nodes given in ids, searches for their descendants that match the different given patterns
 # and adds the text attribute of nodes that match those patterns as an attribute to the ascendant node
 def add_attrs_from_patterns(ids, patterns, is_import, G):
+    """
+
+    :param ids: parent IDs with important descendant nodes
+    :param patterns: patterns of descendant nodes
+    :param is_import:
+    :param G: graph
+    :return:
+    """
     for id in ids:
         subg_nodes = list(G.descendants(id)) if is_import else list(G.successors(id))
         subg_nodes.append(id)
         subgraph = G.generate_subgraph(G, subg_nodes)
-
+        #print_graph(subgraph)
         for pattern in patterns:
             instances = subgraph.find_matching(pattern)
-            sub_id = get_ids(list(pattern._graph.nodes._nodes)[0], instances)
-            node_attributes = {list(pattern._graph.nodes._nodes)[0]: subgraph.get_node(sub_id[0])["text"]}
-            G.add_node_attrs(id, attrs=node_attributes)
+            if len(instances) > 0:
+                sub_id = get_ids(list(pattern._graph.nodes._nodes)[0], instances)
+                #print(sub_id)
+                for i in range(len(sub_id)):
+                    node_attributes = {list(pattern._graph.nodes._nodes)[0]: subgraph.get_node(sub_id[i])["text"]}
+                    #print(node_attributes)
+                    G.add_node_attrs(id, attrs=node_attributes)
 
+def create_subgraph(G, node_id):
+    subg_nodes = list(G.descendants(node_id))
+    subgraph = G.generate_subgraph(G, subg_nodes)
+    print_graph(subgraph)
+    rule = Rule.from_transform(subgraph)
+    #plot_rule(rule)
+    return subgraph
 
 # adds an edge between the parent of a node and all the children of that same node (grandparent - grandchildren
 # connection) this is necessary in order to later be able to remove those nodes that only serve as connectors
@@ -96,7 +115,9 @@ def clear_graph(G):
     rule = Rule.from_transform(G)
 
     # print graph
-    print_graph(G)
+    #print_graph(G)
+    subgraph = create_subgraph(G, 5)
+    #print_graph(subgraph)
 
     # read json file
     f = open('graph_clearing_patterns.json', "r")
@@ -131,6 +152,7 @@ def clear_graph(G):
         # get ids of all parent occurrences in the graph
         if len(instances) != 0:
             parent_type = list(parent_pattern._graph.nodes._nodes)[0]
+            #print(parent_type)
             parent_ids = get_ids(parent_type, instances)
 
             # find its children names in json
@@ -140,7 +162,7 @@ def clear_graph(G):
                 descendants_patterns.append(descendant_pattern)
 
             # get attributes of children
-            if parent_type == "import_statement" or parent_type == "import_from_statement":
+            if parent_type == "import_statement" or parent_type == "import_from_statement" or parent_type == "expression_statement":
                 add_attrs_from_patterns(parent_ids, descendants_patterns, True, G)
             else:
                 add_attrs_from_patterns(parent_ids, descendants_patterns, False, G)

@@ -218,7 +218,7 @@ n_success = 0
 print("Python is great!")
 """
 
-code = """
+code2 = """
 import numpy as np
 from sklearn.svm import SVC
 from sklearn.preprocessing import StandardScaler
@@ -232,6 +232,30 @@ pipe = Pipeline([('scaler', StandardScaler()), ('svc', SVC())])
 # and avoids leaking the test set into the train set
 pipe.fit(X_train, y_train)
 pipe.score(X_test, y_test)
+"""
+
+code = """
+import pandas as pd
+import matplotlib.pyplot as plt
+import numpy as np
+dataset = pd.read_csv('../input/Position_Salaries.csv')
+X = dataset.iloc[:, 1:2].values
+y = dataset.iloc[:, -1].values
+from sklearn.preprocessing import StandardScaler
+sc_X = StandardScaler()
+sc_Y = StandardScaler()
+X = sc_X.fit_transform(X)
+y = np.squeeze(sc_Y.fit_transform(y.reshape(-1, 1)))
+# the feature scaling will be done to both X and Y and still Y will remain the Vector
+from sklearn.svm import SVR
+regressor = SVR(kernel = 'rbf')
+regressor.fit(X, y)
+SVR(C=1.0, cache_size=200, coef0=0.0, degree=3, epsilon=0.1,
+    gamma='auto_deprecated', kernel='rbf', max_iter=-1, shrinking=True,
+    tol=0.001, verbose=False)
+y_pred = regressor.predict([[6.5]])
+y_pred = sc_Y.inverse_transform(y_pred)
+print(y_pred)
 """
 
 #with open("bernoulli.py", "rb") as file:

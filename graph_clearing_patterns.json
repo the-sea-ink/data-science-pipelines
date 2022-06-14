@@ -22,6 +22,11 @@
       "dotted_name" : "dotted_name",
       "identifier" : "identifier"
     },
+    "expression_statement" : {
+      "call" : "call",
+      "identifier" : "identifier",
+      "argument_list" : "argument_list"
+    },
     "function_definition" : {
       "identifier" : "identifier",
       "parameters" : "parameters"
@@ -30,9 +35,9 @@
       "argument_list" : "argument_list"
     }
   },
-  "simple_nodes" :{
-    "assignment" : "assignment",
-    "expression_statement" : "expression_statement"
+  "simple_nodes" : {
+    "assignment" : "assignment"
+
   },
   "nodes_to_completely_remove" : {
     "comment" : "comment"
