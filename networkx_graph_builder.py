@@ -270,6 +270,7 @@ nxgraph = bfs_tree_traverser(tree_sitter)
 
 # rewrite graph
 G = pattern_builder.clear_graph(nxgraph)
+G = pattern_builder.rewrite_graph(G)
 
 # convert NXGraph -> get nx.Graph
 #graph = convert_nxgraph_to_graph(nxgraph)

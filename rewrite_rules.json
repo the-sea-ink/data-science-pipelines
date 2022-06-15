@@ -1,6 +1,5 @@
 {
-  "Libraries Import" : {
-    "import_statement" : "import",
-    "import_from_statement" : "import"
+  "expression_statement" : {
+    "identifier" : "identifier"
   }
 }

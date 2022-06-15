@@ -1,8 +1,7 @@
-from tree_sitter import Language, Parser
-import networkx as nx
-import matplotlib.pyplot as plt
+import collections
+import csv
+import pandas as pd
 from regraph import NXGraph, Rule
-from regraph import plot_graph, plot_instance, plot_rule
 import json
 
 
@@ -86,7 +85,7 @@ def add_attrs_from_patterns(ids, patterns, is_import, G):
 def create_subgraph(G, node_id):
     subg_nodes = list(G.descendants(node_id))
     subgraph = G.generate_subgraph(G, subg_nodes)
-    print_graph(subgraph)
+    #print_graph(subgraph)
     rule = Rule.from_transform(subgraph)
     #plot_rule(rule)
     return subgraph
@@ -190,8 +189,28 @@ def clear_graph(G):
 
 
 def rewrite_graph(G):
+    # read data from knowledge base
+    df = pd.read_csv("signatures.csv")
+    mapping = dict(zip(df.long_name, df.category))
+    print(mapping)
+
     # read json file
     f = open('rewrite_rules.json', "r")
     json_data = json.loads(f.read())
+
+    # prepare nodes from graph for rewrite rules to be applied
+    # e.g. replace aliases with library names
+    imported_libraries = []
+
+    # replace function calls
+    for node in json_data:
+        # find parent node
+        pattern = create_simple_pattern(node, node)
+        instances = G.find_matching(pattern)
+        if len(instances) != 0:
+            pattern_type = list(pattern._graph.nodes._nodes)[0]
+            pattern_ids = get_ids(pattern_type, instances)
+            print(pattern_ids)
+            # find identifiers
 
     return G
