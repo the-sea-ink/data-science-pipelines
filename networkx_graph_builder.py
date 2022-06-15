@@ -263,7 +263,7 @@ print(y_pred)
   #  code = code.decode('utf-8')
 
 # parse code -> get tree-sitter
-tree_sitter = parse('python', code)
+tree_sitter = parse('python', code2)
 
 # traverse tree-sitter -> get NXGraph
 nxgraph = bfs_tree_traverser(tree_sitter)

@@ -104,9 +104,11 @@ def print_graph(G):
     print("List of nodes: ")
     for n, attrs in G.nodes(data=True):
         print("\t", n, attrs)
+    """
     print("List of edges: ")
     for s, t, attrs in G.edges(data=True):
         print("\t{}->{}".format(s, t), attrs)
+    """
 
 
 def clear_graph(G):
@@ -191,26 +193,38 @@ def clear_graph(G):
 def rewrite_graph(G):
     # read data from knowledge base
     df = pd.read_csv("signatures.csv")
-    mapping = dict(zip(df.long_name, df.category))
-    print(mapping)
+    mapping = dict(zip(df.name, df.category))
+    #print(mapping)
 
     # read json file
     f = open('rewrite_rules.json', "r")
     json_data = json.loads(f.read())
 
-    # prepare nodes from graph for rewrite rules to be applied
-    # e.g. replace aliases with library names
-    imported_libraries = []
-
     # replace function calls
     for node in json_data:
-        # find parent node
+        # get one node type from the rewrite rules file (loop 1)
         pattern = create_simple_pattern(node, node)
         instances = G.find_matching(pattern)
+        # For this specific node, find attribute type to read
+        # acc. to rewrite rules (loop 2 if there is more than one)
+        attr_type = list(json_data[node].keys())[0]
+        #print(attr_type)
+        # for this node type, find all graph nodes
         if len(instances) != 0:
             pattern_type = list(pattern._graph.nodes._nodes)[0]
             pattern_ids = get_ids(pattern_type, instances)
-            print(pattern_ids)
-            # find identifiers
-
+            #print(pattern_ids)
+            # read attribute type for each node in pattern_ids
+            for pattern_id in pattern_ids:
+                node_attributes = G.get_node(pattern_id).get(attr_type)
+                #print(node_attributes)
+                # compare each attribute text with signatures (loop 3)
+                if len(node_attributes) != 0:
+                    for attribute_bytes in node_attributes:
+                        attribute = attribute_bytes.decode("utf-8")
+                        for name in mapping:
+                            if attribute == name:
+                                new_attribute = {'type': mapping[name]}
+                                G.update_node_attrs(pattern_id, new_attribute)
+    print_graph(G)
     return G
