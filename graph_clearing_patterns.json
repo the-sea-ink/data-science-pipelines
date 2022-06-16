@@ -7,11 +7,16 @@
     "[" : "[",
     "]" : "]",
     ":" : ":",
+    ";" : ";",
     "*" : "*",
     "+" : "+",
     "=" : "=",
     "-" : "-",
-    "\"" : "\""
+    "\"" : "\"",
+    "$" : "$",
+    "<-" : "<-",
+    "\n" : "\n",
+    "null" : "null"
   },
   "nodes_with_descendants" : {
     "import_statement": {
@@ -32,7 +37,12 @@
       "parameters" : "parameters"
     },
     "call": {
-      "argument_list" : "argument_list"
+      "identifier" : "identifier",
+      "argument_list" : "argument_list",
+      "arguments" : "arguments"
+    },
+    "left_assignment" : {
+      "identifier" : "identifier"
     }
   },
   "simple_nodes" : {

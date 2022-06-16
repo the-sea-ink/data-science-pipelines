@@ -68,7 +68,7 @@ def add_attrs_from_patterns(ids, patterns, is_import, G):
     :return:
     """
     for id in ids:
-        subg_nodes = list(G.descendants(id)) if is_import else list(G.successors(id))
+        subg_nodes = list(G.descendants(id)) #if is_import else list(G.successors(id))
         subg_nodes.append(id)
         subgraph = G.generate_subgraph(G, subg_nodes)
         #print_graph(subgraph)
@@ -116,9 +116,9 @@ def clear_graph(G):
     rule = Rule.from_transform(G)
 
     # print graph
-    # print_graph(G)
-    # subgraph = create_subgraph(G, 5)
-    # print_graph(subgraph)
+    print_graph(G)
+    subgraph = create_subgraph(G, 15)
+    print_graph(subgraph)
 
     # read json file
     f = open('graph_clearing_patterns.json', "r")
@@ -197,6 +197,9 @@ def rewrite_graph(G):
     f = open('rewrite_rules.json', "r")
     json_data = json.loads(f.read())
 
+    variable_list = []
+
+
     # replace function calls
     for node in json_data:
         # get one node type from the rewrite rules file (loop 1)
@@ -223,5 +226,6 @@ def rewrite_graph(G):
                             if attribute == name:
                                 new_attribute = {'type': mapping[name]}
                                 G.update_node_attrs(pattern_id, new_attribute)
-    print_graph(G)
+
+    #print_graph(G)
     return G

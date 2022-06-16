@@ -258,12 +258,53 @@ y_pred = sc_Y.inverse_transform(y_pred)
 print(y_pred)
 """
 
+# source: https://www.kaggle.com/code/monkeyorman/simple-linear-regression-in-r-0-0648835
+rcode = """
+library(ggplot2) # Data visualization
+library(readr) # CSV file I/O, e.g. the read_csv function
+library(sqldf)
+list.files("../input")
+print('Total runtime is ~2 mins')
+print('Importing train_2016 ... should be 90275')
+train_2016 <- read_csv("../input/train_2016_v2.csv", col_types = cols(transactiondate = col_skip(), parcelid = col_integer())); nrow(train_2016)
+print('Combining dupes (taking average) ... should be 90150')
+train_2016 <- sqldf('SELECT parcelid, avg(logerror) as logerror FROM train_2016 GROUP BY parcelid'); nrow(train_2016)
+print('Importing properties_2016 ... should be 2,985,217')
+properties_2016 <- read_csv("../input/properties_2016.csv", col_types = cols(parcelid = col_integer())); nrow(properties_2016)
+print('Combining train_2016 and properties_2016 ... should be 2,985,217')
+#alldata <- sqldf("SELECT * FROM properties_2016 LEFT JOIN train_2016 USING(parcelid)"); nrow(alldata)
+alldata <- merge(x = properties_2016, y = train_2016, by = "parcelid", all.x = TRUE)
+print('Building model ...')
+lr1 <- lm(logerror ~ fullbathcnt + calculatedfinishedsquarefeet + parcelid, data=alldata);
+summary(lr1) # view the model
+print('Making predictions ...')
+predictions <- data.frame(predict(lr1, alldata))
+print('Appending predictions to alldata ...')
+alldata$p_lr1 <- predictions$predict.lr1..alldata.
+alldata$p_lr1[is.na(alldata$p_lr1)] <- mean(alldata$logerror, na.rm = TRUE)  # Replace missing with average
+print('Average prediction value is ...')
+mean(alldata$p_lr1)
+print('Creating submission file')
+submit <- data.frame(alldata[,c("parcelid", "p_lr1")])
+              submit$"201610" <- round(submit$p_lr1,4)
+              submit$"201611" <- round(submit$p_lr1,4)
+              submit$"201612" <- round(submit$p_lr1,4)
+              submit$"201710" <- 0
+              submit$"201711" <- 0
+              submit$"201712" <- 0
+submit$p_lr1<- NULL # remove the original prediction from the submit file
+write.csv(submit, file = "submit_1.csv", row.names = FALSE, na="") # export the file for submission
+print('Done!')
+"""
+
 #with open("bernoulli.py", "rb") as file:
  #   code += file.read()  # async read chunk
   #  code = code.decode('utf-8')
 
 # parse code -> get tree-sitter
-tree_sitter = parse('python', code2)
+#tree_sitter = parse('python', code)
+tree_sitter= parse('r', rcode)
+
 
 # traverse tree-sitter -> get NXGraph
 nxgraph = bfs_tree_traverser(tree_sitter)
