@@ -515,4 +515,4 @@ id,name,long_name,package_id,url,category
 514,DataFrame,pandas.DataFrame,https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.html,2,datasets
 515,DatFrame,pandas.core.frame.DataFrame,https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.html,2,datasets
 516,seed,numpy.random.seed,https://docs.scipy.org/doc/numpy-1.15.1/reference/generated/numpy.random.seed.html,3,configuration
-517,print,print,output,output,user_output
+517,print,print,output,user_output,user_output
