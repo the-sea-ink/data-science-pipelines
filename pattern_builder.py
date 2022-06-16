@@ -116,18 +116,17 @@ def clear_graph(G):
     rule = Rule.from_transform(G)
 
     # print graph
-    #print_graph(G)
-    subgraph = create_subgraph(G, 5)
-    #print_graph(subgraph)
+    # print_graph(G)
+    # subgraph = create_subgraph(G, 5)
+    # print_graph(subgraph)
 
     # read json file
     f = open('graph_clearing_patterns.json', "r")
     json_data = json.loads(f.read())
 
-    # find & remove redundancies
+    # handle redundancies
     redundand_patterns = []
     for key in json_data["redundancies"]:
-        # find nodes with necessary attributes in the graph
         value = json_data["redundancies"][key]
         pattern = create_simple_pattern(key, value)
         redundand_patterns.append(pattern)
@@ -141,10 +140,8 @@ def clear_graph(G):
             redundand_ids += redundand_id
         i += 1
     remove_nodes(G, redundand_ids)
-    # plot_rule(rule)
 
-    # find & handle nodes with descendants that contain neccesary attributes
-    parent_patterns = []
+    # handle nodes with descendants that contain necessary attributes
     for node in json_data["nodes_with_descendants"]:
         # find parent node
         parent_pattern = create_simple_pattern(node, node)
@@ -170,7 +167,7 @@ def clear_graph(G):
             # clear descendants
             remove_descendants(G, parent_type, instances, rule)
 
-    # find & remove descendants of simple nodes
+    # handle simple nodes
     for node in json_data["simple_nodes"]:
         pattern = create_simple_pattern(json_data["simple_nodes"][node], json_data["simple_nodes"][node])
         instances = G.find_matching(pattern)
@@ -178,6 +175,7 @@ def clear_graph(G):
             pattern_type = list(pattern._graph.nodes._nodes)[0]
             remove_descendants(G, pattern_type, instances, rule)
 
+    # handle comments
     for node in json_data["nodes_to_completely_remove"]:
         patterns_to_remove = create_simple_pattern(node, node)
         instances = G.find_matching(patterns_to_remove)
@@ -194,7 +192,6 @@ def rewrite_graph(G):
     # read data from knowledge base
     df = pd.read_csv("signatures.csv")
     mapping = dict(zip(df.name, df.category))
-    #print(mapping)
 
     # read json file
     f = open('rewrite_rules.json', "r")
@@ -208,16 +205,16 @@ def rewrite_graph(G):
         # For this specific node, find attribute type to read
         # acc. to rewrite rules (loop 2 if there is more than one)
         attr_type = list(json_data[node].keys())[0]
-        #print(attr_type)
+        # print(attr_type)
         # for this node type, find all graph nodes
         if len(instances) != 0:
             pattern_type = list(pattern._graph.nodes._nodes)[0]
             pattern_ids = get_ids(pattern_type, instances)
-            #print(pattern_ids)
+            # print(pattern_ids)
             # read attribute type for each node in pattern_ids
             for pattern_id in pattern_ids:
                 node_attributes = G.get_node(pattern_id).get(attr_type)
-                #print(node_attributes)
+                # print(node_attributes)
                 # compare each attribute text with signatures (loop 3)
                 if len(node_attributes) != 0:
                     for attribute_bytes in node_attributes:
