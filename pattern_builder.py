@@ -224,8 +224,9 @@ def rewrite_graph(G):
                         attribute = attribute_bytes.decode("utf-8")
                         for name in mapping:
                             if attribute == name:
-                                new_attribute = {'type': mapping[name]}
-                                G.update_node_attrs(pattern_id, new_attribute)
+                                new_attributes = G.get_node(pattern_id)
+                                new_attributes["type"] = mapping[name]
+                                G.update_node_attrs(pattern_id, new_attributes)
 
-    #print_graph(G)
+    print_graph(G)
     return G

@@ -302,8 +302,8 @@ print('Done!')
   #  code = code.decode('utf-8')
 
 # parse code -> get tree-sitter
-#tree_sitter = parse('python', code)
-tree_sitter= parse('r', rcode)
+tree_sitter = parse('python', code)
+#tree_sitter= parse('r', rcode)
 
 
 # traverse tree-sitter -> get NXGraph
