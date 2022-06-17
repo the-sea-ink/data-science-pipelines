@@ -116,9 +116,9 @@ def clear_graph(G):
     rule = Rule.from_transform(G)
 
     # print graph
-    print_graph(G)
+    #print_graph(G)
     subgraph = create_subgraph(G, 15)
-    print_graph(subgraph)
+    #print_graph(subgraph)
 
     # read json file
     f = open('graph_clearing_patterns.json', "r")
@@ -184,13 +184,16 @@ def clear_graph(G):
             node_ids = get_ids(node_type, instances)
             remove_nodes(G, node_ids)
 
-    print_graph(G)
+    #print_graph(G)
     return G
 
 
-def rewrite_graph(G):
+def rewrite_graph(G, language):
     # read data from knowledge base
-    df = pd.read_csv("signatures.csv")
+    if language == 'python':
+        df = pd.read_csv("signatures_p.csv")
+    elif language == 'r':
+        df = pd.read_csv("signatures_r.csv")
     mapping = dict(zip(df.name, df.category))
 
     # read json file
@@ -217,7 +220,6 @@ def rewrite_graph(G):
             # read attribute type for each node in pattern_ids
             for pattern_id in pattern_ids:
                 node_attributes = G.get_node(pattern_id).get(attr_type)
-                # print(node_attributes)
                 # compare each attribute text with signatures (loop 3)
                 if len(node_attributes) != 0:
                     for attribute_bytes in node_attributes:

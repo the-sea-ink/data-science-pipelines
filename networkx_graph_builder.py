@@ -302,8 +302,10 @@ print('Done!')
   #  code = code.decode('utf-8')
 
 # parse code -> get tree-sitter
-tree_sitter = parse('python', code)
-#tree_sitter= parse('r', rcode)
+#language = 'python'
+language = 'r'
+#tree_sitter = parse(language, code)
+tree_sitter= parse(language, rcode)
 
 
 # traverse tree-sitter -> get NXGraph
@@ -311,7 +313,7 @@ nxgraph = bfs_tree_traverser(tree_sitter)
 
 # rewrite graph
 G = pattern_builder.clear_graph(nxgraph)
-G = pattern_builder.rewrite_graph(G)
+G = pattern_builder.rewrite_graph(G, language)
 
 # convert NXGraph -> get nx.Graph
 #graph = convert_nxgraph_to_graph(nxgraph)
