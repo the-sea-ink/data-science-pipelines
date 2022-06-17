@@ -19,6 +19,12 @@
     "null" : "null"
   },
   "nodes_with_descendants" : {
+    "left_assignment" : {
+      "identifier" : "identifier"
+    },
+    "equals_assignment" : {
+      "identifier" : "identifier"
+    },
     "import_statement": {
       "dotted_name" : "dotted_name",
       "identifier" : "identifier"
@@ -40,10 +46,8 @@
       "identifier" : "identifier",
       "argument_list" : "argument_list",
       "arguments" : "arguments"
-    },
-    "left_assignment" : {
-      "identifier" : "identifier"
     }
+
   },
   "simple_nodes" : {
     "assignment" : "assignment"

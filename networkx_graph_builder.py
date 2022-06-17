@@ -259,7 +259,7 @@ print(y_pred)
 """
 
 # source: https://www.kaggle.com/code/monkeyorman/simple-linear-regression-in-r-0-0648835
-rcode = """
+rcode2 = """
 library(ggplot2) # Data visualization
 library(readr) # CSV file I/O, e.g. the read_csv function
 library(sqldf)
@@ -295,6 +295,24 @@ submit <- data.frame(alldata[,c("parcelid", "p_lr1")])
 submit$p_lr1<- NULL # remove the original prediction from the submit file
 write.csv(submit, file = "submit_1.csv", row.names = FALSE, na="") # export the file for submission
 print('Done!')
+"""
+
+# source: https://www.kaggle.com/code/renaudgendron/simple-linear-regression-r-2-0-9683
+rcode = """
+library(tidyverse)
+list.files(path = "../input")
+#1-Import the data
+library(tidyverse)
+salary_data=read_csv("../input/salary-data-simple-linear-regression/Salary_Data.csv")
+#2-Summary and plot the data
+summary.data.frame(salary_data)
+plot(salary_data$YearsExperience,salary_data$Salary,xlab="Salary",ylab="Years of experience",main="Salary with respect to years of experience",col="blue")
+#3-Run the regression
+plot(salary_data$YearsExperience,salary_data$Salary, pch=16,cex=1.3, col="green",xlab="Years of experience",ylab="Salary",main="linear regression training set")
+lm=lm(Salary~YearsExperience,salary_data)
+summary(lm)
+abline(lm)
+plot(lm)
 """
 
 #with open("bernoulli.py", "rb") as file:

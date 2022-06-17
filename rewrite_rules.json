@@ -3,6 +3,13 @@
     "identifier" : "identifier"
   },
   "call" : {
+    "identifier" : "identifier",
+    "call" : "call"
+  },
+  "left_assignment" : {
+    "identifier" : "identifier"
+  },
+  "equals_assignment" : {
     "identifier" : "identifier"
   }
 }
