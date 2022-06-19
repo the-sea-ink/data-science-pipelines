@@ -39,7 +39,7 @@ def parse(prog_language, code):
         print("Currently only Python and R are supported.")
         return
 
-    language = Language('build/my-languages.so', prog_language)
+    language = Language('./build/my-languages.so', prog_language)
     parser = Parser()
     parser.set_language(language)
     tree = parser.parse(bytes(code, "utf8"))
@@ -79,11 +79,3 @@ def tree_traverser(node):
 
     result_nodes.append(node)
     return result_nodes, result_edges
-
-
-# code = b''
-# with open("bernoulli.py", "rb") as file:
-#     code += file.read()  # async read chunk
-#
-# print(code.decode('utf-8'))
-# parse_py(code.decode('utf-8'))
