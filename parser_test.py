@@ -28,38 +28,22 @@ def r_init():
     )
 
 
-def parse_py(code):
-    # TODO language check
-    # language init
-    # call this if you still need to add the language to the build directory:
-    # py_init()
+def parse(prog_language, code):
+    """
+    Parses given code into a tree
+    :param prog_language: code language
+    :param code: code to parse
+    :return: tree-sitter
+    """
+    if prog_language != "python" and prog_language != "r":
+        print("Currently only Python and R are supported.")
+        return
 
-    PY_LANGUAGE = Language('./build/my-languages.so', 'python')
-    python_parser = Parser()
-    python_parser.set_language(PY_LANGUAGE)
-
-    # get a tree
-    tree = python_parser.parse(bytes(code, "utf8"))
-
-    # traverse tree to get nodes & edges
-    nodes, edges = [], []
-    node = tree.root_node
-    nodes, edges = tree_traverser(node)
-    return nodes, edges
-
-
-def parse_r(code):
-    # language init
-    # call this if you still need to add the language to the build directory:
-    # r_init()
-
-    R_LANGUAGE = Language('./build/my-languages.so', 'r')
-    r_parser = Parser()
-    r_parser.set_language(R_LANGUAGE)
-    tree = r_parser.parse(bytes(code, "utf8"))
-
-    print(tree.root_node.sexp())
-    return
+    language = Language('build/my-languages.so', prog_language)
+    parser = Parser()
+    parser.set_language(language)
+    tree = parser.parse(bytes(code, "utf8"))
+    return tree
 
 
 def parse_sm(code):
@@ -97,9 +81,9 @@ def tree_traverser(node):
     return result_nodes, result_edges
 
 
-code = b''
-with open("bernoulli.py", "rb") as file:
-    code += file.read()  # async read chunk
-
-print(code.decode('utf-8'))
-parse_py(code.decode('utf-8'))
+# code = b''
+# with open("bernoulli.py", "rb") as file:
+#     code += file.read()  # async read chunk
+#
+# print(code.decode('utf-8'))
+# parse_py(code.decode('utf-8'))
