@@ -18,7 +18,7 @@ def parse(prog_language, code):
         print("Currently only Python and R are supported.")
         return
 
-    language = Language('./build/my-languages.so', prog_language)
+    language = Language('build/my-languages.so', prog_language)
     parser = Parser()
     parser.set_language(language)
     tree = parser.parse(bytes(code, "utf8"))
@@ -321,17 +321,17 @@ plot(lm)
 
 # parse code -> get tree-sitter
 #language = 'python'
-language = 'r'
+#language = 'r'
 #tree_sitter = parse(language, code)
-tree_sitter= parse(language, rcode)
+#tree_sitter= parse(language, rcode)
 
 
 # traverse tree-sitter -> get NXGraph
-nxgraph = bfs_tree_traverser(tree_sitter)
+#nxgraph = bfs_tree_traverser(tree_sitter)
 
 # rewrite graph
-G = pattern_builder.clear_graph(nxgraph)
-G = pattern_builder.rewrite_graph(G, language)
+#G = pattern_builder.clear_graph(nxgraph)
+#G = pattern_builder.rewrite_graph(G, language)
 
 # convert NXGraph -> get nx.Graph
 #graph = convert_nxgraph_to_graph(nxgraph)

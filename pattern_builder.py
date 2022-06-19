@@ -192,9 +192,9 @@ def clear_graph(G):
 def rewrite_graph(G, language):
     # read data from knowledge base
     if language == 'python':
-        df = pd.read_csv("signatures_p.csv")
+        df = pd.read_csv("knowledge_base/signatures_p.csv")
     elif language == 'r':
-        df = pd.read_csv("signatures_r.csv")
+        df = pd.read_csv("knowledge_base/signatures_r.csv")
     mapping = dict(zip(df.name, df.category))
 
     # read json file
