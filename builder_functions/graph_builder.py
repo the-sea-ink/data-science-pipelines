@@ -1,10 +1,8 @@
 from pyparsing import unicode
-from tree_sitter import Language, Parser
 import networkx as nx
-from regraph import NXGraph, Rule, plot_rule
+from regraph import NXGraph
 import graph_tools as gt
-import numpy
-import pattern_builder
+
 
 # traverses parsed nodes with Breadth-first search algorithm and
 # returns the resulting networkx graph

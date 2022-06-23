@@ -39,7 +39,7 @@ def parse(prog_language, code):
         print("Currently only Python and R are supported.")
         return
 
-    language = Language('./build/my-languages.so', prog_language)
+    language = Language('build/my-languages.so', prog_language)
     parser = Parser()
     parser.set_language(language)
     tree = parser.parse(bytes(code, "utf8"))

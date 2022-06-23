@@ -31,8 +31,10 @@ class Python:
         """
 
     code_3 = """
+        from sklearn.preprocessing import StandardScaler, OneHotEncoder
+        import matplotlib.pyplot as plt
         import numpy as np
-        import libs as l
+        import lib
         
         def perform_bernoulli_trials(n, p):
         
@@ -54,6 +56,7 @@ class Python:
         """
 
     code_5 = """
+        import matplotlib
         import numpy as np
         from sklearn.svm import SVC
         from sklearn.preprocessing import StandardScaler
@@ -67,6 +70,7 @@ class Python:
         # and avoids leaking the test set into the train set
         pipe.fit(X_train, y_train)
         pipe.score(X_test, y_test)
+        score(X_test, y_test)
         """
 
     code_6 = """

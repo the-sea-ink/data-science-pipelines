@@ -104,14 +104,126 @@ def connect_parent_and_children(G, ids, rule):
 
 
 def print_graph(G):
+    # print clear view of all nodes and their edges
     print("List of nodes: ")
     for n, attrs in G.nodes(data=True):
         print("\t", n, attrs)
-    """
+    print()
     print("List of edges: ")
     for s, t, attrs in G.edges(data=True):
         print("\t{}->{}".format(s, t), attrs)
+
+
+def rename_node_type(graph, all_instances, parent_type, child_index, old_type_name, new_type_name, which="="):
     """
+    Gives a new name to the the type of the node with the index "child_index", of the list of all the
+    children with the same node type.
+
+    :params:
+        - all_instances : instances returned from pattern matching a graph
+        - parent_type : node type of the parent node
+        - child_index : index of the child node that wants to be changed. Ex: If a node has 4 children with the same node type
+            "dotted_name", and you want to change the type for the first child, the index is 0. If you want to change the type
+            of the fourth child, the index is 3.
+        - old_type_name : the current name given to the node's type
+        - new_type_name : the new name that will replace the current one
+        - which : if which is "=" then only the child_index is changed, if it is "<" then all below the child_index are also changed,
+            if it is ">" then all above the child_index are also changed.
+
+    :return:
+        - changed_nodes : list with the ids of the nodes that were affected by the name change
+    """
+
+    counter = 0
+    last_parent_id = 0
+    changed_nodes = []
+
+    for instance in all_instances:
+
+        if last_parent_id != instance[parent_type]:
+            counter = 0
+
+        if counter == child_index and which == "=":
+            node_id = instance[old_type_name]
+            node = graph.get_node(node_id)
+            node["type"] = {new_type_name}
+            changed_nodes.append(node_id)
+        elif counter <= child_index and which == "<":
+            node_id = instance[old_type_name]
+            node = graph.get_node(node_id)
+            node["type"] = {new_type_name}
+            changed_nodes.append(node_id)
+        elif counter >= child_index and which == ">":
+            node_id = instance[old_type_name]
+            node = graph.get_node(node_id)
+            node["type"] = {new_type_name}
+            changed_nodes.append(node_id)
+
+        last_parent_id = instance[parent_type]
+        counter += 1
+
+    return changed_nodes
+
+
+def create_linear_pattern(ordered_node_types):
+    """
+    Creates a linear pattern. We call a linear pattern a graph formation that only has parent-child edges and
+    no siblings.
+    :params: ordered_node_types -> is a list with the node types in the order that the edges should be created
+                in the pattern. Ex: [x, y, z] will create these 3 nodes and the edges [(x, y), (y,z)]
+    """
+    pattern = NXGraph()
+    pattern.add_nodes_from(ordered_node_types)
+
+    for i, node_type in enumerate(ordered_node_types):
+        pattern.add_node_attrs(node_type, {"type": node_type})
+
+        if ((i + 1) < len(ordered_node_types)):
+            pattern.add_edge(ordered_node_types[i], ordered_node_types[i + 1])
+
+    return pattern
+
+
+def sort_instances(all_instances, last_node_type):
+    """
+    Sorts all the instances, by the index of the last node's type. Since the initial parsed tree is traversed using
+    breadth-first-search, by sorting by the last index in the tree you are also sorting the indexes of all the other
+    node's types.
+    """
+    return sorted(all_instances, key=lambda x: (x[last_node_type]))
+
+
+def print_nodes(graph, node_ids):
+    for id in node_ids:
+        print(graph.get_node(id))
+
+
+def renaming_pipeline(graph, ordered_node_types, old_type_name, new_type_name, child_index, which="="):
+    first_node = ordered_node_types[0]
+    pattern = create_linear_pattern(ordered_node_types)
+    all_instances = graph.find_matching(pattern)
+    sorted_instances = sort_instances(all_instances, old_type_name)
+    changed_nodes = rename_node_type(graph, sorted_instances, first_node, child_index, old_type_name, new_type_name, which)
+    return changed_nodes
+
+
+def rename_graph_types(graph):
+    f = open('graph_clearing_patterns.json', "r")
+    json_data = json.loads(f.read())
+    changed_nodes = []
+
+    for new_type in json_data["renaming_patterns"]:
+        for patt in json_data["renaming_patterns"][new_type]:
+            patt_data = json_data["renaming_patterns"][new_type][patt]
+            linear_pattern = patt_data["linear_pattern"]
+            old_type_name = patt_data["old_type_name"]
+            new_type_name = patt_data["new_type_name"]
+            child_index = patt_data["child_index"]
+            which = patt_data["which"]
+
+            changed_nodes.extend(renaming_pipeline(graph, linear_pattern, old_type_name, new_type_name, child_index, which))
+
+    return list(set(changed_nodes))
 
 
 def clear_graph(G):
@@ -120,29 +232,29 @@ def clear_graph(G):
 
     # print graph
     # print_graph(G)
-    subgraph = create_subgraph(G, 11)
-    print_graph(subgraph)
+    # subgraph = create_subgraph(G, 11)
+    # print_graph(subgraph)
 
     # read json file
     f = open('graph_clearing_patterns.json', "r")
     json_data = json.loads(f.read())
 
     # handle redundancies
-    redundand_patterns = []
+    redundant_patterns = []
     for key in json_data["redundancies"]:
         value = json_data["redundancies"][key]
         pattern = create_simple_pattern(key, value)
-        redundand_patterns.append(pattern)
+        redundant_patterns.append(pattern)
     i = 0
-    redundand_ids = []
-    for pattern in redundand_patterns:
+    redundant_ids = []
+    for pattern in redundant_patterns:
         instances = G.find_matching(pattern)
         if len(instances) != 0:
-            pattern_name = list(redundand_patterns[i]._graph.nodes._nodes)[0]
-            redundand_id = get_ids(pattern_name, instances)
-            redundand_ids += redundand_id
+            pattern_name = list(redundant_patterns[i]._graph.nodes._nodes)[0]
+            redundant_id = get_ids(pattern_name, instances)
+            redundant_ids += redundant_id
         i += 1
-    remove_nodes(G, redundand_ids)
+    remove_nodes(G, redundant_ids)
 
     # handle nodes with descendants that contain necessary attributes
     for node in json_data["nodes_with_descendants"]:
@@ -185,7 +297,6 @@ def clear_graph(G):
             node_ids = get_ids(node_type, instances)
             remove_nodes(G, node_ids)
 
-    # print_graph(G)
     return G
 
 

@@ -18,6 +18,98 @@
     "\n" : "\n",
     "null" : "null"
   },
+  "renaming_patterns" : {
+    "import_path" : {
+      "1" : {
+        "linear_pattern" : ["import_from_statement", "dotted_name"],
+        "old_type_name" : "dotted_name",
+        "new_type_name" : "import_path",
+        "child_index" : 0,
+        "which" : "="
+
+      },
+      "2" : {
+        "linear_pattern" : ["aliased_import", "dotted_name"],
+        "old_type_name" : "dotted_name",
+        "new_type_name" : "import_path",
+        "child_index" : 0,
+        "which" : "="
+      }
+    },
+    "imported" :  {
+      "1" : {
+        "linear_pattern" : ["import_from_statement", "dotted_name"],
+        "old_type_name" : "dotted_name",
+        "new_type_name" : "imported",
+        "child_index" : 0,
+        "which" : ">"
+      },
+      "2" : {
+        "linear_pattern": ["import_statement", "dotted_name"],
+        "old_type_name": "dotted_name",
+        "new_type_name": "imported",
+        "child_index": 0,
+        "which" : "="
+      }
+    },
+    "alias" : {
+      "1": {
+        "linear_pattern": ["aliased_import", "identifier"],
+        "old_type_name": "identifier",
+        "new_type_name": "alias",
+        "child_index": 0,
+        "which" : "="
+      }
+    },
+    "variable_list" : {
+      "1": {
+        "linear_pattern": ["assignment", "pattern_list"],
+        "old_type_name": "pattern_list",
+        "new_type_name": "variable_list",
+        "child_index": 0,
+        "which" : "="
+      },
+      "2" : {
+        "linear_pattern": ["assignment", "identifier"],
+        "old_type_name": "identifier",
+        "new_type_name": "variable_list",
+        "child_index": 0,
+        "which" : "="
+      }
+    },
+    "argument_function" : {
+      "1" : {
+        "linear_pattern": ["call", "attribute"],
+        "old_type_name": "attribute",
+        "new_type_name": "function",
+        "child_index": 0,
+        "which" : "="
+      },
+      "2" : {
+        "linear_pattern": ["call", "identifier"],
+        "old_type_name": "identifier",
+        "new_type_name": "function",
+        "child_index": 0,
+        "which" : "="
+      }
+    },
+    "caller_function": {
+      "1" : {
+        "linear_pattern": ["expression_statement", "call", "function"],
+        "old_type_name": "function",
+        "new_type_name": "caller_function",
+        "child_index": 0,
+        "which" : "="
+      },
+      "2" : {
+        "linear_pattern": ["assignment", "call", "function"],
+        "old_type_name": "function",
+        "new_type_name": "caller_function",
+        "child_index": 0,
+        "which" : "="
+      }
+    }
+  },
   "nodes_with_descendants" : {
     "left_assignment" : {
       "identifier" : "identifier"
@@ -26,26 +118,23 @@
       "identifier" : "identifier"
     },
     "import_statement": {
-      "dotted_name" : "dotted_name",
-      "identifier" : "identifier"
+      "imported" : "imported",
+      "import_path" : "import_path",
+      "alias" : "alias"
     },
     "import_from_statement" : {
-      "dotted_name" : "dotted_name",
-      "identifier" : "identifier"
+      "import_path" : "import_path",
+      "imported" : "imported"
     },
     "expression_statement" : {
-      "call" : "call",
-      "identifier" : "identifier",
+      "variable_list" : "variable_list",
+      "caller_function" : "caller_function",
+      "function" : "function",
       "argument_list" : "argument_list"
     },
     "function_definition" : {
-      "identifier" : "identifier",
+      "identifier" : "function",
       "parameters" : "parameters"
-    },
-    "call": {
-      "identifier" : "identifier",
-      "argument_list" : "argument_list",
-      "arguments" : "arguments"
     }
 
   },
