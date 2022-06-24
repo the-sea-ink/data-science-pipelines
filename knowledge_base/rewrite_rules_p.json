@@ -1,0 +1,9 @@
+{
+  "expression_statement" : {
+    "identifier" : "identifier"
+  },
+  "call" : {
+    "identifier" : "identifier",
+    "call" : "call"
+  }
+}

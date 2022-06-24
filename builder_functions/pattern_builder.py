@@ -236,7 +236,7 @@ def clear_graph(G):
     # print_graph(subgraph)
 
     # read json file
-    f = open('graph_clearing_patterns.json', "r")
+    f = open('knowledge_base/graph_clearing_patterns.json', "r")
     json_data = json.loads(f.read())
 
     # handle redundancies
@@ -302,6 +302,7 @@ def clear_graph(G):
 
 def rewrite_graph(G, language):
     # read data from knowledge base
+    print_graph(G)
     if language == 'python':
         df = pd.read_csv("knowledge_base/signatures_p.csv")
     elif language == 'r':
@@ -309,19 +310,22 @@ def rewrite_graph(G, language):
     mapping = dict(zip(df.name, df.category))
 
     # read json file
-    f = open('rewrite_rules.json', "r")
+    f = open('knowledge_base/rewrite_rules_p.json', "r")
     json_data = json.loads(f.read())
 
     variable_list = []
 
     # replace function calls
     for node in json_data:
+        print(node)
         # get one node type from the rewrite rules file (loop 1)
         pattern = create_simple_pattern(node, node)
         instances = G.find_matching(pattern)
         # For this specific node, find attribute type to read
         # acc. to rewrite rules (loop 2 if there is more than one)
         attr_type = list(json_data[node].keys())[0]
+        print(attr_type)
+        print("---")
         # print(attr_type)
         # for this node type, find all graph nodes
         if len(instances) != 0:
@@ -331,8 +335,9 @@ def rewrite_graph(G, language):
             # read attribute type for each node in pattern_ids
             for pattern_id in pattern_ids:
                 node_attributes = G.get_node(pattern_id).get(attr_type)
+                print(node_attributes)
                 # compare each attribute text with signatures (loop 3)
-                if len(node_attributes) != 0:
+                if bool(node_attributes) != 0:
                     for attribute_bytes in node_attributes:
                         attribute = attribute_bytes.decode("utf-8")
                         for name in mapping:
