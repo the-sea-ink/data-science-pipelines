@@ -1,6 +1,50 @@
-from parser_test import parse
 from builder_functions.graph_builder import bfs_tree_traverser
 from builder_functions.pattern_builder import rewrite_graph, clear_graph
+from tree_sitter import Language, Parser
+
+
+def py_init():
+    Language.build_library(
+        # Store the library in the `build` directory
+        'build/my-languages.so',
+
+        # Include one or more languages
+        [
+            'tree-sitter-python'
+        ]
+    )
+
+
+def r_init():
+    Language.build_library(
+        # Store the library in the `build` directory
+        'build/my-languages.so',
+
+        # Include one or more languages
+        [
+            'tree-sitter-r'
+        ]
+    )
+
+
+def parse(prog_language, code):
+    """
+    Parses given code into a tree
+    :param prog_language: code language
+    :param code: code to parse
+    :return: tree-sitter
+    """
+    if prog_language != "python" and prog_language != "r":
+        print("Currently only Python and R are supported.")
+        return
+
+    language = Language('build/my-languages.so', prog_language)
+    parser = Parser()
+    parser.set_language(language)
+    tree = parser.parse(bytes(code, "utf8"))
+    return tree
+
+
 
 # read code
 code1 = """
@@ -114,7 +158,7 @@ plot(lm)
 #language = 'python'
 language = 'r'
 #tree_sitter = parse(language, code)
-tree_sitter= parse(language, rcode)
+tree_sitter = parse(language, rcode)
 
 
 # traverse tree-sitter -> get NXGraph
