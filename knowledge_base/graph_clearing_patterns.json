@@ -144,5 +144,24 @@
   },
   "nodes_to_completely_remove" : {
     "comment" : "comment"
+  },
+  "import_save": {
+    "import_statement" : {
+      "text" : "text",
+      "import_path" : "import_path",
+      "alias" : "alias"
+    },
+    "import_from_statement" : {
+      "text" : "text",
+      "import_path" : "import_path",
+      "alias" : "alias",
+      "imported" : "imported"
+    }
+
+  },
+  "nested_function_calls" : {
+    "expression_statement" : {
+      "function" : "function"
+    }
   }
 }

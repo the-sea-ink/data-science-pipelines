@@ -1,5 +1,5 @@
 from builder_functions.graph_builder import bfs_tree_traverser
-from builder_functions.pattern_builder import rewrite_graph, clear_graph
+from builder_functions.pattern_builder import rewrite_graph, clear_graph, rename_graph_types, arrange_graph
 from tree_sitter import Language, Parser
 import test_scripts
 
@@ -61,8 +61,10 @@ tree_sitter = parse(language, code)
 nxgraph = bfs_tree_traverser(tree_sitter)
 
 # rewrite graph
+G = rename_graph_types(nxgraph)
 G = clear_graph(nxgraph)
 G = rewrite_graph(G, language)
+G = arrange_graph(G)
 
 # convert NXGraph -> get nx.Graph
 #graph = convert_nxgraph_to_graph(nxgraph)

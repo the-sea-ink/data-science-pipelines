@@ -28,6 +28,14 @@ def remove_nodes(G, ids):
     return
 
 
+def save_imports(G, node_ids):
+    import_dict = []
+    for id in node_ids:
+        node_attributes = G.get_node(id)
+        import_dict.append(node_attributes)
+    return import_dict
+
+
 # removes all the nodes and edges of all nodes in rule whose ids
 # are not in the list
 def remove_everything_else(ids, rule, num_nodes):
@@ -40,8 +48,8 @@ def remove_everything_else(ids, rule, num_nodes):
 # gets the ids of all of the nodes of a certain "type" in an instance of a graph
 def get_ids(node_type, instances):
     ids = []
-    for ins in instances:
-        node_id = ins[node_type]
+    for instance in instances:
+        node_id = instance[node_type]
         ids.append(node_id)
     return ids
 
@@ -87,10 +95,14 @@ def create_subgraph(G, node_id):
     subg_nodes = list(G.descendants(node_id))
     subg_nodes.append(id)
     subgraph = G.generate_subgraph(G, subg_nodes)
-    # print_graph(subgraph)
+    print_graph(subgraph)
     rule = Rule.from_transform(subgraph)
     # plot_rule(rule)
     return subgraph
+
+def create_node_from_attr():
+    return
+
 
 
 # adds an edge between the parent of a node and all the children of that same node (grandparent - grandchildren
@@ -207,8 +219,16 @@ def renaming_pipeline(graph, ordered_node_types, old_type_name, new_type_name, c
     return changed_nodes
 
 
+def trim(attribute):
+    pos = attribute.find(".")
+    attribute = attribute[pos+1:]
+    return attribute
+
+
 def rename_graph_types(graph):
-    f = open('graph_clearing_patterns.json', "r")
+    #print_graph(graph)
+    #create_subgraph(graph, 13)
+    f = open('knowledge_base/graph_clearing_patterns.json', "r")
     json_data = json.loads(f.read())
     changed_nodes = []
 
@@ -296,13 +316,44 @@ def clear_graph(G):
             node_type = list(patterns_to_remove._graph.nodes._nodes)[0]
             node_ids = get_ids(node_type, instances)
             remove_nodes(G, node_ids)
+    import_dict = []
+    for node in json_data["import_save"]:
+        imports_to_save = create_simple_pattern(node, node)
+        instances = G.find_matching(imports_to_save)
+        if len(instances) != 0:
+            node_type = list(imports_to_save._graph.nodes._nodes)[0]
+            node_ids = get_ids(node_type, instances)
+            import_dict.append(save_imports(G, node_ids))
+            remove_nodes(G, node_ids)
+
+    # rearrange initially present nodes
+    G.remove_node(0)
+    current_node_list = []
+    for n, attr in G.nodes(data=True):
+        current_node_list.append(int(n))
+    i = 0
+    for n in current_node_list:
+        if n != current_node_list[-1]:
+            G.add_edge(n, current_node_list[i + 1])
+            i += 1
+
+    # add nodes from nested functions
+    for node in json_data["nested_function_calls"]:
+        nested_calls = create_simple_pattern(node, node)
+        instances = G.find_matching(nested_calls)
+        if len(instances) != 0:
+            node_type = list(nested_calls._graph.nodes._nodes)[0]
+            node_ids = get_ids(node_type, instances)
+            print(node_ids)
+            for node in json_data["nested_function_calls"][node]:
+                print(node)
 
     return G
 
 
 def rewrite_graph(G, language):
     # read data from knowledge base
-    print_graph(G)
+    #print_graph(G)
     if language == 'python':
         df = pd.read_csv("knowledge_base/signatures_p.csv")
     elif language == 'r':
@@ -317,15 +368,15 @@ def rewrite_graph(G, language):
 
     # replace function calls
     for node in json_data:
-        print(node)
-        # get one node type from the rewrite rules file (loop 1)
+        #print(node)
+        # get one node type from the rewrite rules file
         pattern = create_simple_pattern(node, node)
         instances = G.find_matching(pattern)
         # For this specific node, find attribute type to read
-        # acc. to rewrite rules (loop 2 if there is more than one)
+        # acc. to rewrite rules
         attr_type = list(json_data[node].keys())[0]
-        print(attr_type)
-        print("---")
+        #print(attr_type)
+        #print("---")
         # print(attr_type)
         # for this node type, find all graph nodes
         if len(instances) != 0:
@@ -335,16 +386,25 @@ def rewrite_graph(G, language):
             # read attribute type for each node in pattern_ids
             for pattern_id in pattern_ids:
                 node_attributes = G.get_node(pattern_id).get(attr_type)
-                print(node_attributes)
-                # compare each attribute text with signatures (loop 3)
+                #print(node_attributes)
+                # compare each attribute text with signatures
                 if bool(node_attributes) != 0:
                     for attribute_bytes in node_attributes:
                         attribute = attribute_bytes.decode("utf-8")
+                        dot = "."
+                        if dot in attribute:
+                            attribute = trim(attribute)
                         for name in mapping:
                             if attribute == name:
                                 new_attributes = G.get_node(pattern_id)
                                 new_attributes["type"] = mapping[name]
                                 G.update_node_attrs(pattern_id, new_attributes)
+
+    #print_graph(G)
+    return G
+
+
+def arrange_graph(G):
 
     print_graph(G)
     return G

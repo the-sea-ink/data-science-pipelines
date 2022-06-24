@@ -70,7 +70,6 @@ class Python:
         # and avoids leaking the test set into the train set
         pipe.fit(X_train, y_train)
         pipe.score(X_test, y_test)
-        score(X_test, y_test)
         """
 
     code_6 = """
