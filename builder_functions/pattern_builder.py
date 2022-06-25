@@ -5,8 +5,7 @@ from regraph import NXGraph, Rule
 import json
 
 
-def remove_descendants(G, node_type, instances, rule):
-    # print(node_type)
+def remove_descendants(G, node_type, instances):
     removed_nodes = []
     for ins in instances:
         node_id = ins[node_type]
@@ -93,7 +92,7 @@ def add_attrs_from_patterns(ids, patterns, is_import, G):
 
 def create_subgraph(G, node_id):
     subg_nodes = list(G.descendants(node_id))
-    subg_nodes.append(id)
+    subg_nodes.append(node_id)
     subgraph = G.generate_subgraph(G, subg_nodes)
     print_graph(subgraph)
     rule = Rule.from_transform(subgraph)
@@ -226,8 +225,10 @@ def trim(attribute):
     return attribute
 
 
-def rename_graph_types(graph):
-    # print_graph(graph)
+def rename_graph_types(graph, language):
+    if language != "python":
+        return
+    #print_graph(graph)
     # create_subgraph(graph, 13)
     f = open('knowledge_base/graph_clearing_patterns.json', "r")
     json_data = json.loads(f.read())
@@ -253,8 +254,8 @@ def clear_graph(G):
     rule = Rule.from_transform(G)
 
     # print graph
-    # print_graph(G)
-    # subgraph = create_subgraph(G, 11)
+    #print_graph(G)
+    #subgraph = create_subgraph(G, 1)
     # print_graph(subgraph)
 
     # read json file
@@ -300,7 +301,7 @@ def clear_graph(G):
             add_attrs_from_patterns(parent_ids, descendants_patterns, True, G)
 
             # clear descendants
-            remove_descendants(G, parent_type, instances, rule)
+            remove_descendants(G, parent_type, instances)
 
     # handle simple nodes
     for node in json_data["simple_nodes"]:
@@ -334,10 +335,19 @@ def clear_graph(G):
     for n, attr in G.nodes(data=True):
         current_node_list.append(int(n))
     i = 0
+    parent_id = 0
     for n in current_node_list:
+        node_attrs = G.get_node(n)
         if n != current_node_list[-1]:
             G.add_edge(n, current_node_list[i + 1])
+            node_attrs["child_id"] = current_node_list[i + 1]
             i += 1
+        if parent_id != 0:
+            node_attrs.update({"parent_id": parent_id})
+        else:
+            node_attrs.update({"parent_id": -1})
+        G.update_node_attrs(n, node_attrs)
+        parent_id = n
 
     # add nodes from nested functions
     for node in json_data["nested_function_calls"]:
@@ -355,7 +365,7 @@ def clear_graph(G):
                         new_nodes = (nested_function[nested_function_call])
                         i = 1
                         for node in new_nodes:
-                            node_dict = {"type": "call", "identifier": node}
+                            node_dict = {"type": "call", "identifier": node, "parent_id" : -1 ,"child_id" : id}
                             new_node_id = id * 10 + i
                             i += 1
                             G.add_node(new_node_id, node_dict)
@@ -374,7 +384,11 @@ def rewrite_graph(G, language):
     mapping = dict(zip(df.name, df.category))
 
     # read json file
-    f = open('knowledge_base/rewrite_rules_p.json', "r")
+    if language == 'python':
+        f = open('knowledge_base/rewrite_rules_p.json', "r")
+    elif language == 'r':
+        f = open('knowledge_base/rewrite_rules_r.json', "r")
+
     json_data = json.loads(f.read())
 
     variable_list = []
@@ -405,7 +419,7 @@ def rewrite_graph(G, language):
                     for attribute_bytes in node_attributes:
                         attribute = attribute_bytes.decode("utf-8")
                         dot = "."
-                        if dot in attribute:
+                        if dot in attribute and language == "python":
                             attribute = trim(attribute)
                         for name in mapping:
                             if attribute == name:

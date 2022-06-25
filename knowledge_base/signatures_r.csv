@@ -11,3 +11,4 @@ id,name,long_name,package_id,url,category
 10,predict,predict,10,https://www.rdocumentation.org/packages/stats/versions/3.6.2/topics/predict,model_prediction
 11,plot,plot,11,https://www.rdocumentation.org/packages/graphics/versions/3.6.2/topics/plot,data_plotting
 12,abline,abline,12,https://www.rdocumentation.org/packages/graphics/versions/3.6.2/topics/abline,data_plotting
+13,list.files,list.files,13,https://www.rdocumentation.org/packages/base/versions/3.6.2/topics/list.files,user_output

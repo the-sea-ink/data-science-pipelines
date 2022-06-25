@@ -5,6 +5,7 @@
   },
   "call" : {
     "identifier" : "identifier",
-    "call" : "call"
+    "call" : "call",
+    "function" : "function"
   }
 }

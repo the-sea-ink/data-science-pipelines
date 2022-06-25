@@ -135,6 +135,9 @@
     "function_definition" : {
       "identifier" : "function",
       "parameters" : "parameters"
+    },
+    "call" : {
+      "identifier" : "identifier"
     }
 
   },

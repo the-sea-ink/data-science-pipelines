@@ -139,7 +139,6 @@ class R:
         library(tidyverse)
         list.files(path = "../input")
         #1-Import the data
-        library(tidyverse)
         salary_data=read_csv("../input/salary-data-simple-linear-regression/Salary_Data.csv")
         #2-Summary and plot the data
         summary.data.frame(salary_data)

@@ -53,9 +53,11 @@ def parse(prog_language, code):
   #  code = code.decode('utf-8')
 
 # parse code -> get tree-sitter
-language = 'python'
-code = test_scripts.Python.code_5
-#language = 'r'
+language = 'r'
+code = test_scripts.R.code_2
+#language = 'python'
+#code = test_scripts.Python.code_5
+#language = 'python'
 #tree_sitter = parse(language, code)
 tree_sitter = parse(language, code)
 
@@ -64,7 +66,7 @@ tree_sitter = parse(language, code)
 nxgraph = bfs_tree_traverser(tree_sitter)
 
 # rewrite graph
-G = rename_graph_types(nxgraph)
+G = rename_graph_types(nxgraph, language)
 G = clear_graph(nxgraph)
 G = rewrite_graph(G, language)
 G = arrange_graph(G)

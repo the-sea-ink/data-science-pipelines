@@ -1,10 +1,13 @@
 {
   "expression_statement" : {
+    "caller_function" : "caller_function",
     "identifier" : "identifier"
   },
   "call" : {
     "identifier" : "identifier",
-    "call" : "call"
+    "call" : "call",
+    "function" : "function",
+    "caller_function" : "caller_function"
   },
   "left_assignment" : {
     "identifier" : "identifier"
