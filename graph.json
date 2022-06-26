@@ -1,0 +1,110 @@
+{
+    "nodes": [
+        {
+            "id": 8,
+            "type": "datasets",
+            "text": "X, y = make_classification(random_state=0)",
+            "parent_id": "-1",
+            "variable_list": "X, y",
+            "caller_function": "make_classification",
+            "argument_list": "(random_state=0)",
+            "child_id": "9"
+        },
+        {
+            "id": 9,
+            "type": "data_splitting",
+            "text": "X_train, X_test, y_train, y_test = train_test_split(X, y, random_state=0)",
+            "parent_id": "8",
+            "variable_list": "X_train, X_test, y_train, y_test",
+            "caller_function": "train_test_split",
+            "argument_list": "(X, y, random_state=0)",
+            "child_id": "10"
+        },
+        {
+            "id": 10,
+            "type": "model_declaration",
+            "text": "pipe = Pipeline([('scaler', StandardScaler()), ('svc', SVC())])",
+            "parent_id": "9",
+            "variable_list": "pipe",
+            "caller_function": "Pipeline",
+            "function": "StandardScaler', SVC",
+            "argument_list": "()', ([('scaler', StandardScaler()), ('svc', SVC())])",
+            "child_id": "13"
+        },
+        {
+            "id": 13,
+            "type": "svm.libsvm",
+            "text": "pipe.fit(X_train, y_train)",
+            "parent_id": "10",
+            "caller_function": "pipe.fit",
+            "argument_list": "(X_train, y_train)",
+            "child_id": "14"
+        },
+        {
+            "id": 14,
+            "type": "expression_statement",
+            "text": "pipe.score(X_test, y_test)",
+            "parent_id": "13",
+            "caller_function": "pipe.score",
+            "argument_list": "(X_test, y_test)"
+        },
+        {
+            "id": 101,
+            "type": "model_declaration",
+            "identifier": "StandardScaler",
+            "parent_id": "-1",
+            "child_id": "10"
+        },
+        {
+            "id": 102,
+            "type": "svm",
+            "identifier": "SVC",
+            "parent_id": "-1",
+            "child_id": "10"
+        }
+    ],
+    "edges": [
+        {
+            "edge_id": "edge-1",
+            "source": 8,
+            "sourceHandle": null,
+            "targetHandle": null,
+            "target": 9
+        },
+        {
+            "edge_id": "edge-1",
+            "source": 9,
+            "sourceHandle": null,
+            "targetHandle": null,
+            "target": 10
+        },
+        {
+            "edge_id": "edge-1",
+            "source": 10,
+            "sourceHandle": null,
+            "targetHandle": null,
+            "target": 13
+        },
+        {
+            "edge_id": "edge-1",
+            "source": 13,
+            "sourceHandle": null,
+            "targetHandle": null,
+            "target": 14
+        },
+        {
+            "edge_id": "edge-1",
+            "source": 101,
+            "sourceHandle": null,
+            "targetHandle": null,
+            "target": 10
+        },
+        {
+            "edge_id": "edge-1",
+            "source": 102,
+            "sourceHandle": null,
+            "targetHandle": null,
+            "target": 10
+        }
+    ]
+}
