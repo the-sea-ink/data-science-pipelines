@@ -367,3 +367,224 @@ class R:
         abline(lm)
         plot(lm)
         """
+
+    code_3  = """
+    library(MASS)
+    library(tidyverse)
+    library(caret)
+    
+    # normalize data :
+    all_data <- rbind(final_train[,-1],final_train_last[,-1],final_test[,-c(1,2)])
+    preproc.param <- all_data %>% preProcess(method = c("center", "scale"))
+    all_data.transformed <- preproc.param %>% predict(all_data)
+    train.transformed <- all_data.transformed[1:15118,]
+    validation.transformed <- all_data.transformed[15119:18717,]
+    test.transformed <- all_data.transformed[18718:19717,]
+    
+    # I remove some variables because the lda method does not accept collinearity
+    formule <- as.formula("accuracy_group~ accumulated_accuracy_group + dif_4070 + dif_2030 + duration_mean + dif_4030 + accumulated_uncorrect_attempts + Clip + + Chow_Time + somme_clip_game_activity + assessment_before_accuracy + accumulated_actions + acc_0 + acc_1 + acc_3 + acc_Bird + acc_Caul + acc_Mush + acc_Ches + acc_Cart + lgt_Caul + lgt_Mush + lgt_Ches + lgt_Cart + agt_Bird + agt_Caul + agt_Mush + agt_Ches + agt_Cart + ata_Bird + ata_Caul + ata_Mush + ata_Ches + ata_Cart + afa_Bird + afa_Caul + afa_Mush + afa_Ches + titre0 + titre1 + titre2 + titre3")
+    # Fit the model
+    model <- lda(formule, data = cbind(final_train[,1],train.transformed))"""
+
+    code_4 = """
+            install.packages("e1071")
+    install.packages("caTools")
+    install.packages("class")
+      
+    # Loading package
+    library(e1071)
+    library(caTools)
+    library(class)
+      
+    # Loading data
+    data(iris)
+    head(iris)
+      
+    # Splitting data into train
+    # and test data
+    split <- sample.split(iris, SplitRatio = 0.7)
+    train_cl <- subset(iris, split == "TRUE")
+    test_cl <- subset(iris, split == "FALSE")
+      
+    # Feature Scaling
+    train_scale <- scale(train_cl[, 1:4])
+    test_scale <- scale(test_cl[, 1:4])
+      
+    # Fitting KNN Model 
+    # to training dataset
+    classifier_knn <- knn(train = train_scale,
+                          test = test_scale,
+                          cl = train_cl$Species,
+                          k = 1)
+    classifier_knn
+      
+    # Confusiin Matrix
+    cm <- table(test_cl$Species, classifier_knn)
+    cm
+      
+    # Model Evaluation - Choosing K
+    # Calculate out of Sample error
+    misClassError <- mean(classifier_knn != test_cl$Species)
+    print(paste('Accuracy =', 1-misClassError))
+      
+    # K = 3
+    classifier_knn <- knn(train = train_scale,
+                          test = test_scale,
+                          cl = train_cl$Species,
+                          k = 3)
+    misClassError <- mean(classifier_knn != test_cl$Species)
+    print(paste('Accuracy =', 1-misClassError))
+      
+    # K = 5
+    classifier_knn <- knn(train = train_scale,
+                          test = test_scale,
+                          cl = train_cl$Species,
+                          k = 5)
+    misClassError <- mean(classifier_knn != test_cl$Species)
+    print(paste('Accuracy =', 1-misClassError))
+      
+    # K = 7
+    classifier_knn <- knn(train = train_scale,
+                          test = test_scale,
+                          cl = train_cl$Species,
+                          k = 7)
+    misClassError <- mean(classifier_knn != test_cl$Species)
+    print(paste('Accuracy =', 1-misClassError))
+      
+    # K = 15
+    classifier_knn <- knn(train = train_scale,
+                          test = test_scale,
+                          cl = train_cl$Species,
+                          k = 15)
+    misClassError <- mean(classifier_knn != test_cl$Species)
+    print(paste('Accuracy =', 1-misClassError))
+      
+    # K = 19
+    classifier_knn <- knn(train = train_scale,
+                          test = test_scale,
+                          cl = train_cl$Species,
+                          k = 19)
+    misClassError <- mean(classifier_knn != test_cl$Species)
+    print(paste('Accuracy =', 1-misClassError))
+"""
+
+    code_5 = """
+    install.packages("caTools")    # For Logistic regression
+install.packages("ROCR")       # For ROC curve to evaluate model
+    
+# Loading package
+library(caTools)
+library(ROCR) 
+   
+# Splitting dataset
+split <- sample.split(mtcars, SplitRatio = 0.8)
+split
+   
+train_reg <- subset(mtcars, split == "TRUE")
+test_reg <- subset(mtcars, split == "FALSE")
+   
+# Training model
+logistic_model <- glm(vs ~ wt + disp, 
+                      data = train_reg, 
+                      family = "binomial")
+logistic_model
+   
+# Summary
+summary(logistic_model)
+   
+# Predict test data based on model
+predict_reg <- predict(logistic_model, 
+                       test_reg, type = "response")
+predict_reg  
+   
+# Changing probabilities
+predict_reg <- ifelse(predict_reg >0.5, 1, 0)
+   
+# Evaluating model accuracy
+# using confusion matrix
+table(test_reg$vs, predict_reg)
+   
+missing_classerr <- mean(predict_reg != test_reg$vs)
+print(paste('Accuracy =', 1 - missing_classerr))
+   
+# ROC-AUC Curve
+ROCPred <- prediction(predict_reg, test_reg$vs) 
+ROCPer <- performance(ROCPred, measure = "tpr", 
+                             x.measure = "fpr")
+   
+auc <- performance(ROCPred, measure = "auc")
+auc <- auc@y.values[[1]]
+auc
+   
+# Plotting curve
+plot(ROCPer)
+plot(ROCPer, colorize = TRUE, 
+     print.cutoffs.at = seq(0.1, by = 0.1), 
+     main = "ROC CURVE")
+abline(a = 0, b = 1)
+   
+auc <- round(auc, 4)
+legend(.6, .4, auc, title = "AUC", cex = 1)
+    """
+
+    code_6 = """library(dplyr)
+    # Drop variables
+    clean_titanic <- titanic % > %
+    select(-c(home.dest, cabin, name, X, ticket)) % > % 
+    #Convert to factor level
+        mutate(pclass = factor(pclass, levels = c(1, 2, 3), labels = c('Upper', 'Middle', 'Lower')),
+        survived = factor(survived, levels = c(0, 1), labels = c('No', 'Yes'))) % > %
+    na.omit()
+    glimpse(clean_titanic)"""
+
+    code_7 = """
+    ImpData <- as.data.frame(importance(rf.fit))
+    ImpData$Var.Names <- row.names(ImpData)
+    
+    ggplot(ImpData, aes(x=Var.Names, y=`%IncMSE`)) +
+      geom_segment( aes(x=Var.Names, xend=Var.Names, y=0, yend=`%IncMSE`), color="skyblue") +
+      geom_point(aes(size = IncNodePurity), color="blue", alpha=0.6) +
+      theme_light() +
+      coord_flip() +
+      theme(
+        legend.position="bottom",
+        panel.grid.major.y = element_blank(),
+        panel.border = element_blank(),
+        axis.ticks.y = element_blank()
+      )
+"""
+
+    code_8 = """set.seed(123)
+valid_split <- initial_split(ames_train, .8)
+
+# training data
+ames_train_v2 <- analysis(valid_split)
+
+# validation data
+ames_valid <- assessment(valid_split)
+x_test <- ames_valid[setdiff(names(ames_valid), "Sale_Price")]
+y_test <- ames_valid$Sale_Price
+
+rf_oob_comp <- randomForest(
+  formula = Sale_Price ~ .,
+  data    = ames_train_v2,
+  xtest   = x_test,
+  ytest   = y_test
+)
+
+# extract OOB & validation errors
+oob <- sqrt(rf_oob_comp$mse)
+validation <- sqrt(rf_oob_comp$test$mse)
+
+# compare error rates
+tibble::tibble(
+  `Out of Bag Error` = oob,
+  `Test error` = validation,
+  ntrees = 1:rf_oob_comp$ntree
+) %>%
+  gather(Metric, RMSE, -ntrees) %>%
+  ggplot(aes(ntrees, RMSE, color = Metric)) +
+  geom_line() +
+  scale_y_continuous(labels = scales::dollar) +
+  xlab("Number of trees")
+  """
