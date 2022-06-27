@@ -228,7 +228,7 @@ def trim(attribute):
 def rename_graph_types(graph, language):
     if language != "python":
         return
-    #print_graph(graph)
+    # print_graph(graph)
     # create_subgraph(graph, 13)
     f = open('knowledge_base/graph_clearing_patterns.json', "r")
     json_data = json.loads(f.read())
@@ -251,11 +251,11 @@ def rename_graph_types(graph, language):
 
 def clear_graph(G):
     # create rule
-    rule = Rule.from_transform(G)
+    # rule = Rule.from_transform(G)
 
     # print graph
-    #print_graph(G)
-    #subgraph = create_subgraph(G, 1)
+    # print_graph(G)
+    # subgraph = create_subgraph(G, 1)
     # print_graph(subgraph)
 
     # read json file
@@ -329,6 +329,14 @@ def clear_graph(G):
             import_dict.append(save_imports(G, node_ids))
             remove_nodes(G, node_ids)
 
+    return G
+
+
+def arrange_graph(G):
+    # read json file
+    f = open('knowledge_base/graph_clearing_patterns.json', "r")
+    json_data = json.loads(f.read())
+
     # rearrange initially present nodes
     G.remove_node(0)
     current_node_list = []
@@ -339,7 +347,10 @@ def clear_graph(G):
     for n in current_node_list:
         node_attrs = G.get_node(n)
         if n != current_node_list[-1]:
-            G.add_edge(n, current_node_list[i + 1])
+            try:
+                G.add_edge(n, current_node_list[i + 1])
+            except:
+                pass
             node_attrs["child_id"] = current_node_list[i + 1]
             i += 1
         if parent_id != 0:
@@ -356,7 +367,7 @@ def clear_graph(G):
         if len(instances) != 0:
             node_type = list(nested_calls._graph.nodes._nodes)[0]
             node_ids = get_ids(node_type, instances)
-            #print(node_ids)
+            # print(node_ids)
             for nested_function_call in json_data["nested_function_calls"][node]:
                 for id in node_ids:
                     nested_function = (G.get_node(id))
@@ -364,12 +375,11 @@ def clear_graph(G):
                         new_nodes = (nested_function[nested_function_call])
                         i = 1
                         for node in new_nodes:
-                            node_dict = {"type": "call", "identifier": node, "parent_id" : -1 ,"child_id" : id}
+                            node_dict = {"type": "call", "identifier": node, "parent_id": -1, "child_id": id}
                             new_node_id = id * 10 + i
                             i += 1
                             G.add_node(new_node_id, node_dict)
                             G.add_edge(new_node_id, id)
-
     return G
 
 
@@ -435,15 +445,17 @@ def convert_graph_to_json(G):
         node_attrs = {"id": n}
         node_raw_attrs = G.get_node(n)
         for key in node_raw_attrs:
-            node_attrs.update({key: str(node_raw_attrs[key]).replace("{'","").replace("'}", "").replace("{","").replace("}", "").replace("b'", "").replace("b\"", "").replace("\"", "")})
-        #node_attrs.update(G.get_node(n))
+            node_attrs.update({key: str(node_raw_attrs[key]).replace("{'", "").replace("'}", "").replace("{",
+                                                                                                         "").replace(
+                "}", "").replace("b'", "").replace("b\"", "").replace("\"", "")})
+        # node_attrs.update(G.get_node(n))
         graph_dict["nodes"].append(node_attrs)
     i = 1
     for s, t, attrs in G.edges(data=True):
-        edge_id = "edge-"+str(i)
-        edge_attrs = {"edge_id" : edge_id, "source" : s, "sourceHandle" : None, "targetHandle" : None, "target" : t}
+        edge_id = "edge-" + str(i)
+        edge_attrs = {"edge_id": edge_id, "source": s, "sourceHandle": None, "targetHandle": None, "target": t}
         graph_dict["edges"].append(edge_attrs)
-    #print(graph_dict)
+    # print(graph_dict)
     with open('graph.json', 'w') as fp:
-        json.dump(graph_dict, fp,  indent=4)
+        json.dump(graph_dict, fp, indent=4)
     return G

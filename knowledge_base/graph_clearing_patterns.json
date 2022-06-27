@@ -16,7 +16,8 @@
     "$" : "$",
     "<-" : "<-",
     "\n" : "\n",
-    "null" : "null"
+    "null" : "null",
+    "%" : "%"
   },
   "renaming_patterns" : {
     "import_path" : {

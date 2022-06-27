@@ -1,6 +1,6 @@
 from builder_functions.graph_builder import bfs_tree_traverser
 from builder_functions.pattern_builder import rewrite_graph, clear_graph, rename_graph_types, \
-    convert_graph_to_json
+    convert_graph_to_json, arrange_graph
 from tree_sitter import Language, Parser
 import test_scripts
 from regraph import NXGraph, Rule
@@ -53,15 +53,10 @@ def parse(prog_language, code):
   #  code = code.decode('utf-8')
 
 # parse code -> get tree-sitter
-#language = 'r'
-#code = test_scripts.R.code_2
-language = 'python'
-<<<<<<< Updated upstream
-code = test_scripts.Python.code_5
-=======
-code = test_scripts.Python.code_1
->>>>>>> Stashed changes
+language = 'r'
+code = test_scripts.R.code_8
 #language = 'python'
+#code = test_scripts.Python.code_15
 #tree_sitter = parse(language, code)
 tree_sitter = parse(language, code)
 
@@ -70,8 +65,9 @@ tree_sitter = parse(language, code)
 nxgraph = bfs_tree_traverser(tree_sitter)
 
 # rewrite graph
-G = rename_graph_types(nxgraph, language)
+rename_graph_types(nxgraph, language)
 G = clear_graph(nxgraph)
+G = arrange_graph(G)
 G = rewrite_graph(G, language)
 G = convert_graph_to_json(G)
 #rule = Rule.from_transform(G)

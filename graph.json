@@ -1,72 +1,192 @@
 {
     "nodes": [
         {
-            "id": 8,
-            "type": "datasets",
-            "text": "X, y = make_classification(random_state=0)",
+            "id": 1,
+            "type": "call",
+            "text": "set.seed(123)",
             "parent_id": "-1",
-            "variable_list": "X, y",
-            "caller_function": "make_classification",
-            "argument_list": "(random_state=0)",
+            "identifier": "set.seed",
+            "child_id": "3"
+        },
+        {
+            "id": 3,
+            "type": "left_assignment",
+            "text": "valid_split <- initial_split(ames_train, .8)",
+            "parent_id": "1",
+            "identifier": "valid_split', initial_split', ames_train",
+            "child_id": "6"
+        },
+        {
+            "id": 6,
+            "type": "left_assignment",
+            "text": "ames_train_v2 <- analysis(valid_split)",
+            "parent_id": "3",
+            "identifier": "ames_train_v2', valid_split', analysis",
             "child_id": "9"
         },
         {
             "id": 9,
-            "type": "data_splitting",
-            "text": "X_train, X_test, y_train, y_test = train_test_split(X, y, random_state=0)",
-            "parent_id": "8",
-            "variable_list": "X_train, X_test, y_train, y_test",
-            "caller_function": "train_test_split",
-            "argument_list": "(X, y, random_state=0)",
-            "child_id": "10"
+            "type": "left_assignment",
+            "text": "ames_valid <- assessment(valid_split)",
+            "parent_id": "6",
+            "identifier": "valid_split', ames_valid', assessment",
+            "child_id": "11"
         },
         {
-            "id": 10,
-            "type": "model_declaration",
-            "text": "pipe = Pipeline([('scaler', StandardScaler()), ('svc', SVC())])",
+            "id": 11,
+            "type": "left_assignment",
+            "text": "x_test <- ames_valid[setdiff(names(ames_valid), Sale_Price)]",
             "parent_id": "9",
-            "variable_list": "pipe",
-            "caller_function": "Pipeline",
-            "function": "StandardScaler', SVC",
-            "argument_list": "()', ([('scaler', StandardScaler()), ('svc', SVC())])",
+            "identifier": "setdiff', ames_valid', names', x_test",
             "child_id": "13"
         },
         {
             "id": 13,
-            "type": "svm.libsvm",
-            "text": "pipe.fit(X_train, y_train)",
-            "parent_id": "10",
-            "caller_function": "pipe.fit",
-            "argument_list": "(X_train, y_train)",
-            "child_id": "14"
+            "type": "left_assignment",
+            "text": "y_test <- ames_valid$Sale_Price",
+            "parent_id": "11",
+            "identifier": "ames_valid', y_test', Sale_Price",
+            "child_id": "15"
         },
         {
-            "id": 14,
-            "type": "expression_statement",
-            "text": "pipe.score(X_test, y_test)",
+            "id": 15,
+            "type": "left_assignment",
+            "text": "rf_oob_comp <- randomForest(\\n  formula = Sale_Price ~ .,\\n  data    = ames_train_v2,\\n  xtest   = x_test,\\n  ytest   = y_test\\n)",
             "parent_id": "13",
-            "caller_function": "pipe.score",
-            "argument_list": "(X_test, y_test)"
+            "identifier": "y_test', Sale_Price', data', ames_train_v2', x_test', rf_oob_comp', ytest', .', randomForest', xtest', formula",
+            "child_id": "18"
         },
         {
-            "id": 101,
-            "type": "model_declaration",
-            "identifier": "StandardScaler",
-            "parent_id": "-1",
-            "child_id": "10"
+            "id": 18,
+            "type": "left_assignment",
+            "text": "oob <- sqrt(rf_oob_comp$mse)",
+            "parent_id": "15",
+            "identifier": "sqrt', rf_oob_comp', oo, mse",
+            "child_id": "20"
         },
         {
-            "id": 102,
-            "type": "svm",
-            "identifier": "SVC",
-            "parent_id": "-1",
-            "child_id": "10"
+            "id": 20,
+            "type": "left_assignment",
+            "text": "validation <- sqrt(rf_oob_comp$test$mse)",
+            "parent_id": "18",
+            "identifier": "sqrt', mse', test', rf_oob_comp', validation",
+            "child_id": "23"
+        },
+        {
+            "id": 23,
+            "type": "binary",
+            "text": "tibble::tibble(\\n  `Out of Bag Error` = oob,\\n  `Test error` = validation,\\n  ntrees = 1:rf_oob_comp$ntree\\n) %>%\\n  gather(Metric, RMSE, -ntrees) %>%\\n  ggplot(aes(ntrees, RMSE, color = Metric)) +\\n  geom_line() +\\n  scale_y_continuous(labels = scales::dollar) +\\n  xlab(Number of trees)",
+            "parent_id": "20",
+            "child_id": "53"
+        },
+        {
+            "id": 53,
+            "type": "binary",
+            "text": "tibble::tibble(\\n  `Out of Bag Error` = oob,\\n  `Test error` = validation,\\n  ntrees = 1:rf_oob_comp$ntree\\n) %>%\\n  gather(Metric, RMSE, -ntrees) %>%\\n  ggplot(aes(ntrees, RMSE, color = Metric)) +\\n  geom_line() +\\n  scale_y_continuous(labels = scales::dollar)",
+            "parent_id": "23",
+            "child_id": "55"
+        },
+        {
+            "id": 55,
+            "type": "call",
+            "text": "xlab(Number of trees)",
+            "parent_id": "53",
+            "identifier": "xlab",
+            "child_id": "88"
+        },
+        {
+            "id": 88,
+            "type": "binary",
+            "text": "tibble::tibble(\\n  `Out of Bag Error` = oob,\\n  `Test error` = validation,\\n  ntrees = 1:rf_oob_comp$ntree\\n) %>%\\n  gather(Metric, RMSE, -ntrees) %>%\\n  ggplot(aes(ntrees, RMSE, color = Metric)) +\\n  geom_line()",
+            "parent_id": "55",
+            "child_id": "90"
+        },
+        {
+            "id": 90,
+            "type": "call",
+            "text": "scale_y_continuous(labels = scales::dollar)",
+            "parent_id": "88",
+            "identifier": "scale_y_continuous', scales', labels', dollar",
+            "child_id": "110"
+        },
+        {
+            "id": 110,
+            "type": "binary",
+            "text": "tibble::tibble(\\n  `Out of Bag Error` = oob,\\n  `Test error` = validation,\\n  ntrees = 1:rf_oob_comp$ntree\\n) %>%\\n  gather(Metric, RMSE, -ntrees) %>%\\n  ggplot(aes(ntrees, RMSE, color = Metric))",
+            "parent_id": "90",
+            "child_id": "112"
+        },
+        {
+            "id": 112,
+            "type": "call",
+            "text": "geom_line()",
+            "parent_id": "110",
+            "identifier": "geom_line",
+            "child_id": "140"
+        },
+        {
+            "id": 140,
+            "type": "binary",
+            "text": "tibble::tibble(\\n  `Out of Bag Error` = oob,\\n  `Test error` = validation,\\n  ntrees = 1:rf_oob_comp$ntree\\n) %>%\\n  gather(Metric, RMSE, -ntrees)",
+            "parent_id": "112",
+            "child_id": "141"
+        },
+        {
+            "id": 141,
+            "type": "special",
+            "text": "%>%",
+            "parent_id": "140",
+            "child_id": "142"
+        },
+        {
+            "id": 142,
+            "type": "call",
+            "text": "ggplot(aes(ntrees, RMSE, color = Metric))",
+            "parent_id": "141",
+            "identifier": "color', ntrees', aes', Metric', ggplot', RMSE",
+            "child_id": "158"
+        },
+        {
+            "id": 158,
+            "type": "call",
+            "text": "tibble::tibble(\\n  `Out of Bag Error` = oob,\\n  `Test error` = validation,\\n  ntrees = 1:rf_oob_comp$ntree\\n)",
+            "parent_id": "142",
+            "identifier": "ntree', `Out of Bag Error`', tibble', ntrees', oo, `Test error`', rf_oob_comp', validation",
+            "child_id": "159"
+        },
+        {
+            "id": 159,
+            "type": "special",
+            "text": "%>%",
+            "parent_id": "158",
+            "child_id": "160"
+        },
+        {
+            "id": 160,
+            "type": "call",
+            "text": "gather(Metric, RMSE, -ntrees)",
+            "parent_id": "159",
+            "identifier": "gather', Metric', ntrees', RMSE"
         }
     ],
     "edges": [
         {
             "edge_id": "edge-1",
-            "source": 8,
+            "source": 1,
+            "sourceHandle": null,
+            "targetHandle": null,
+            "target": 3
+        },
+        {
+            "edge_id": "edge-1",
+            "source": 3,
+            "sourceHandle": null,
+            "targetHandle": null,
+            "target": 6
+        },
+        {
+            "edge_id": "edge-1",
+            "source": 6,
             "sourceHandle": null,
             "targetHandle": null,
             "target": 9
@@ -76,11 +196,11 @@
             "source": 9,
             "sourceHandle": null,
             "targetHandle": null,
-            "target": 10
+            "target": 11
         },
         {
             "edge_id": "edge-1",
-            "source": 10,
+            "source": 11,
             "sourceHandle": null,
             "targetHandle": null,
             "target": 13
@@ -90,21 +210,189 @@
             "source": 13,
             "sourceHandle": null,
             "targetHandle": null,
-            "target": 14
+            "target": 15
         },
         {
             "edge_id": "edge-1",
-            "source": 101,
+            "source": 15,
             "sourceHandle": null,
             "targetHandle": null,
-            "target": 10
+            "target": 18
         },
         {
             "edge_id": "edge-1",
-            "source": 102,
+            "source": 18,
             "sourceHandle": null,
             "targetHandle": null,
-            "target": 10
+            "target": 20
+        },
+        {
+            "edge_id": "edge-1",
+            "source": 20,
+            "sourceHandle": null,
+            "targetHandle": null,
+            "target": 23
+        },
+        {
+            "edge_id": "edge-1",
+            "source": 23,
+            "sourceHandle": null,
+            "targetHandle": null,
+            "target": 53
+        },
+        {
+            "edge_id": "edge-1",
+            "source": 23,
+            "sourceHandle": null,
+            "targetHandle": null,
+            "target": 55
+        },
+        {
+            "edge_id": "edge-1",
+            "source": 53,
+            "sourceHandle": null,
+            "targetHandle": null,
+            "target": 88
+        },
+        {
+            "edge_id": "edge-1",
+            "source": 53,
+            "sourceHandle": null,
+            "targetHandle": null,
+            "target": 90
+        },
+        {
+            "edge_id": "edge-1",
+            "source": 53,
+            "sourceHandle": null,
+            "targetHandle": null,
+            "target": 55
+        },
+        {
+            "edge_id": "edge-1",
+            "source": 55,
+            "sourceHandle": null,
+            "targetHandle": null,
+            "target": 88
+        },
+        {
+            "edge_id": "edge-1",
+            "source": 88,
+            "sourceHandle": null,
+            "targetHandle": null,
+            "target": 110
+        },
+        {
+            "edge_id": "edge-1",
+            "source": 88,
+            "sourceHandle": null,
+            "targetHandle": null,
+            "target": 112
+        },
+        {
+            "edge_id": "edge-1",
+            "source": 88,
+            "sourceHandle": null,
+            "targetHandle": null,
+            "target": 90
+        },
+        {
+            "edge_id": "edge-1",
+            "source": 90,
+            "sourceHandle": null,
+            "targetHandle": null,
+            "target": 110
+        },
+        {
+            "edge_id": "edge-1",
+            "source": 110,
+            "sourceHandle": null,
+            "targetHandle": null,
+            "target": 140
+        },
+        {
+            "edge_id": "edge-1",
+            "source": 110,
+            "sourceHandle": null,
+            "targetHandle": null,
+            "target": 141
+        },
+        {
+            "edge_id": "edge-1",
+            "source": 110,
+            "sourceHandle": null,
+            "targetHandle": null,
+            "target": 142
+        },
+        {
+            "edge_id": "edge-1",
+            "source": 110,
+            "sourceHandle": null,
+            "targetHandle": null,
+            "target": 112
+        },
+        {
+            "edge_id": "edge-1",
+            "source": 112,
+            "sourceHandle": null,
+            "targetHandle": null,
+            "target": 140
+        },
+        {
+            "edge_id": "edge-1",
+            "source": 140,
+            "sourceHandle": null,
+            "targetHandle": null,
+            "target": 158
+        },
+        {
+            "edge_id": "edge-1",
+            "source": 140,
+            "sourceHandle": null,
+            "targetHandle": null,
+            "target": 159
+        },
+        {
+            "edge_id": "edge-1",
+            "source": 140,
+            "sourceHandle": null,
+            "targetHandle": null,
+            "target": 160
+        },
+        {
+            "edge_id": "edge-1",
+            "source": 140,
+            "sourceHandle": null,
+            "targetHandle": null,
+            "target": 141
+        },
+        {
+            "edge_id": "edge-1",
+            "source": 141,
+            "sourceHandle": null,
+            "targetHandle": null,
+            "target": 142
+        },
+        {
+            "edge_id": "edge-1",
+            "source": 142,
+            "sourceHandle": null,
+            "targetHandle": null,
+            "target": 158
+        },
+        {
+            "edge_id": "edge-1",
+            "source": 158,
+            "sourceHandle": null,
+            "targetHandle": null,
+            "target": 159
+        },
+        {
+            "edge_id": "edge-1",
+            "source": 159,
+            "sourceHandle": null,
+            "targetHandle": null,
+            "target": 160
         }
     ]
 }
