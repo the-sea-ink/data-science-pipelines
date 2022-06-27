@@ -48,7 +48,6 @@ def parse(prog_language, code):
     tree = parser.parse(bytes(code, "utf8"))
     return tree
 
-
 #with open("bernoulli.py", "rb") as file:
  #   code += file.read()  # async read chunk
   #  code = code.decode('utf-8')
@@ -57,7 +56,11 @@ def parse(prog_language, code):
 #language = 'r'
 #code = test_scripts.R.code_2
 language = 'python'
+<<<<<<< Updated upstream
 code = test_scripts.Python.code_5
+=======
+code = test_scripts.Python.code_1
+>>>>>>> Stashed changes
 #language = 'python'
 #tree_sitter = parse(language, code)
 tree_sitter = parse(language, code)

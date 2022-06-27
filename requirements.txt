@@ -1,5 +1,5 @@
 actionlib==1.13.2
-angles==1.9.13
+angles==2.0
 anyio==3.6.1
 argon2-cffi==21.3.0
 argon2-cffi-bindings==21.2.0
@@ -11,8 +11,8 @@ backcall==0.2.0
 base_local_planner==1.17.1
 beautifulsoup4==4.11.1
 bleach==5.0.0
-bondpy==1.8.6
-camera-calibration==1.16.0
+bondpy==0.1.11
+camera-calibration==0.2
 camera-calibration-parsers==1.12.0
 catkin==0.8.10
 cffi==1.15.0
