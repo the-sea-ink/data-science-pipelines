@@ -356,9 +356,8 @@ def clear_graph(G):
         if len(instances) != 0:
             node_type = list(nested_calls._graph.nodes._nodes)[0]
             node_ids = get_ids(node_type, instances)
-            print(node_ids)
+            #print(node_ids)
             for nested_function_call in json_data["nested_function_calls"][node]:
-                print(nested_function_call)
                 for id in node_ids:
                     nested_function = (G.get_node(id))
                     if nested_function_call in nested_function:
@@ -413,7 +412,6 @@ def rewrite_graph(G, language):
             # read attribute type for each node in pattern_ids
             for pattern_id in pattern_ids:
                 node_attributes = G.get_node(pattern_id).get(attr_type)
-                # print(node_attributes)
                 # compare each attribute text with signatures
                 if bool(node_attributes) != 0:
                     for attribute_bytes in node_attributes:
@@ -427,10 +425,25 @@ def rewrite_graph(G, language):
                                 new_attributes["type"] = mapping[name]
                                 G.update_node_attrs(pattern_id, new_attributes)
 
-    # print_graph(G)
+    print_graph(G)
     return G
 
 
-def arrange_graph(G):
-    print_graph(G)
+def convert_graph_to_json(G):
+    graph_dict = {"nodes": [], "edges": []}
+    for n, attrs in G.nodes(data=True):
+        node_attrs = {"id": n}
+        node_raw_attrs = G.get_node(n)
+        for key in node_raw_attrs:
+            node_attrs.update({key: str(node_raw_attrs[key]).replace("{'","").replace("'}", "").replace("{","").replace("}", "").replace("b'", "").replace("b\"", "").replace("\"", "")})
+        #node_attrs.update(G.get_node(n))
+        graph_dict["nodes"].append(node_attrs)
+    i = 1
+    for s, t, attrs in G.edges(data=True):
+        edge_id = "edge-"+str(i)
+        edge_attrs = {"edge_id" : edge_id, "source" : s, "sourceHandle" : None, "targetHandle" : None, "target" : t}
+        graph_dict["edges"].append(edge_attrs)
+    #print(graph_dict)
+    with open('graph.json', 'w') as fp:
+        json.dump(graph_dict, fp,  indent=4)
     return G
