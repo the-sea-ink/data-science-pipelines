@@ -38,23 +38,19 @@ def parse(prog_language, code):
     tree = parser.parse(bytes(code, "utf8"))
     return tree
 
-
-# with open("bernoulli.py", "rb") as file:
-#   code += file.read()  # async read chunk
-#  code = code.decode('utf-8')
+# call this function if you need to add languages to language.so library
 #language_init()
 
-# parse code -> get tree-sitter
 # language = 'r'
 # code = test_scripts.R.code_2
 
-#language = 'python'
-#code = test_scripts.Python.code_5
+language = 'python'
+code = test_scripts.Python.code_5
 
-language = 'snakemake'
-code = test_scripts.Snakemake.code_1
+#language = 'snakemake'
+#code = test_scripts.Snakemake.code_1
 
-# tree_sitter = parse(language, code)
+# parse code with tree-sitter
 tree_sitter = parse(language, code)
 # traverse tree-sitter -> get NXGraph
 nxgraph = bfs_tree_traverser(tree_sitter)
@@ -65,11 +61,4 @@ G = clear_graph(nxgraph)
 G = arrange_graph(G)
 G = rewrite_graph(G, language)
 G = convert_graph_to_json(G)
-# rule = Rule.from_transform(G)
-# plot_rule(rule)
 
-# convert NXGraph -> get nx.Graph
-# graph = convert_nxgraph_to_graph(nxgraph)
-
-# nx.Graph -> gt.Graph, WiP
-# gtG = nx2gt(graph)
