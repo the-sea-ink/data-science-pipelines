@@ -60,5 +60,5 @@ rename_graph_types(nxgraph, language)
 G = clear_graph(nxgraph)
 G = arrange_graph(G)
 G = rewrite_graph(G, language)
-G = convert_graph_to_json(G)
+json_graph = convert_graph_to_json(G)
 

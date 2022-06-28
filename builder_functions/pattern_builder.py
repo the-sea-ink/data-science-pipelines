@@ -470,4 +470,4 @@ def convert_graph_to_json(G):
     # print(graph_dict)
     with open('graph.json', 'w') as fp:
         json.dump(graph_dict, fp, indent=4)
-    return G
+    return graph_dict
