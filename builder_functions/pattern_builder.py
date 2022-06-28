@@ -388,14 +388,14 @@ def arrange_graph(G):
 def rewrite_graph(G, language):
     # read data from knowledge base
     # print_graph(G)
-    if language == 'python':
+    if language == 'python' or language == 'snakemake':
         df = pd.read_csv("knowledge_base/signatures_p.csv")
     elif language == 'r':
         df = pd.read_csv("knowledge_base/signatures_r.csv")
     mapping = dict(zip(df.name, df.category))
 
     # read json file
-    if language == 'python':
+    if language == 'python' or language == 'snakemake':
         f = open('knowledge_base/rewrite_rules_p.json', "r")
     elif language == 'r':
         f = open('knowledge_base/rewrite_rules_r.json', "r")

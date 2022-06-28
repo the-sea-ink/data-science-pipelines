@@ -588,3 +588,15 @@ tibble::tibble(
   scale_y_continuous(labels = scales::dollar) +
   xlab("Number of trees")
   """
+
+
+class Snakemake:
+    code_1 = """rule samtools_index:
+    input:
+        "sorted_reads/{sample}.bam" 
+    output:
+        "sorted_reads/{sample}.bam.bai"
+    conda:
+        "environment.yaml"
+    shell:
+        "samtools index {input}" """
