@@ -53,10 +53,10 @@ def parse(prog_language, code):
   #  code = code.decode('utf-8')
 
 # parse code -> get tree-sitter
-language = 'r'
-code = test_scripts.R.code_8
-#language = 'python'
-#code = test_scripts.Python.code_15
+#language = 'r'
+#code = test_scripts.R.code_2
+language = 'python'
+code = test_scripts.Python.code_5
 #tree_sitter = parse(language, code)
 tree_sitter = parse(language, code)
 

@@ -4,6 +4,8 @@ import pandas as pd
 from regraph import NXGraph, Rule
 import json
 
+from regraph.backends.networkx.plotting import plot_rule
+
 
 def remove_descendants(G, node_type, instances):
     removed_nodes = []
@@ -127,7 +129,7 @@ def print_graph(G):
 
 def rename_node_type(graph, all_instances, parent_type, child_index, old_type_name, new_type_name, which="="):
     """
-    Gives a new name to the the type of the node with the index "child_index", of the list of all the
+    Gives a new name to the type of the node with the index "child_index", of the list of all the
     children with the same node type.
 
     :params:
@@ -229,7 +231,7 @@ def rename_graph_types(graph, language):
     if language != "python":
         return
     # print_graph(graph)
-    # create_subgraph(graph, 13)
+    # create_subgraph(graph, 10)
     f = open('knowledge_base/graph_clearing_patterns.json', "r")
     json_data = json.loads(f.read())
     changed_nodes = []
@@ -411,7 +413,7 @@ def rewrite_graph(G, language):
         # For this specific node, find attribute type to read
         # acc. to rewrite rules
         attr_type = list(json_data[node].keys())[0]
-        # print(attr_type)
+        #print(attr_type)
         # print("---")
         # print(attr_type)
         # for this node type, find all graph nodes
@@ -422,6 +424,7 @@ def rewrite_graph(G, language):
             # read attribute type for each node in pattern_ids
             for pattern_id in pattern_ids:
                 node_attributes = G.get_node(pattern_id).get(attr_type)
+                #print(node_attributes)
                 # compare each attribute text with signatures
                 if bool(node_attributes) != 0:
                     for attribute_bytes in node_attributes:
@@ -430,31 +433,40 @@ def rewrite_graph(G, language):
                         if dot in attribute and language == "python":
                             attribute = trim(attribute)
                         for name in mapping:
+                            new_attributes = G.get_node(pattern_id)
                             if attribute == name:
-                                new_attributes = G.get_node(pattern_id)
-                                new_attributes["type"] = mapping[name]
+                                new_attributes["task"] = mapping[name]
                                 G.update_node_attrs(pattern_id, new_attributes)
+                            #else:
+                                #missing_task = node_attributes["text"]
+                                #new_attributes["task"] = missing_task
 
     print_graph(G)
+    rule = Rule.from_transform(G)
+    #plot_rule(rule)
     return G
 
 
 def convert_graph_to_json(G):
     graph_dict = {"nodes": [], "edges": []}
     for n, attrs in G.nodes(data=True):
-        node_attrs = {"id": n}
+        metadata = {"id": n, "type": "operator", "targetPosition": "top", "position": {"x": 0, "y": 0}, "data" : {}}
+        #node_attrs = {}
         node_raw_attrs = G.get_node(n)
         for key in node_raw_attrs:
-            node_attrs.update({key: str(node_raw_attrs[key]).replace("{'", "").replace("'}", "").replace("{",
+            metadata["data"].update({key: str(node_raw_attrs[key]).replace("{'", "").replace("'}", "").replace("{",
                                                                                                          "").replace(
                 "}", "").replace("b'", "").replace("b\"", "").replace("\"", "")})
         # node_attrs.update(G.get_node(n))
-        graph_dict["nodes"].append(node_attrs)
+        graph_data = {}
+        graph_dict["nodes"].append(metadata)
+        #graph_dict["nodes"].append(graph_data)
     i = 1
     for s, t, attrs in G.edges(data=True):
         edge_id = "edge-" + str(i)
-        edge_attrs = {"edge_id": edge_id, "source": s, "sourceHandle": None, "targetHandle": None, "target": t}
+        edge_attrs = {"edge_id": edge_id, "source": s, "sourceHandle": 0, "targetHandle": 0, "target": t}
         graph_dict["edges"].append(edge_attrs)
+        i += 1
     # print(graph_dict)
     with open('graph.json', 'w') as fp:
         json.dump(graph_dict, fp, indent=4)
