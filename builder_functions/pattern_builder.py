@@ -1,7 +1,7 @@
 import collections
 import csv
 import pandas as pd
-from regraph import NXGraph, Rule
+from regraph import NXGraph, Rule, FiniteSet
 import json
 
 from regraph.backends.networkx.plotting import plot_rule
@@ -374,14 +374,14 @@ def arrange_graph(G):
                 for id in node_ids:
                     nested_function = (G.get_node(id))
                     if nested_function_call in nested_function:
-                        new_nodes = (nested_function[nested_function_call])
+                        nodes_to_refactor = (nested_function[nested_function_call])
                         i = 1
-                        for node in new_nodes:
+                        for node in nodes_to_refactor:
                             for j in nested_function["argument_list"]:
                                 if node.decode("utf-8") in str(j):
                                     nested_function["argument_list"] = {}
                             node = node.decode("utf-8")
-                            node_dict = {"type": "hyperparameter", "name": node + "()", "value": "", "parent_id": -1, "child_id": id}
+                            node_dict = {"type": "operator", "task": node + "()",  "parent_id": -1, "child_id": id}
                             new_node_id = id * 10 + i
                             i += 1
                             G.add_node(new_node_id, node_dict)
@@ -397,30 +397,35 @@ def arrange_graph(G):
             for node_attribute in json_data["hyperparameters"][node]:
                 for id in node_ids:
                     node = (G.get_node(id))
+                    node_clone = node
                     if node_attribute in node:
-                        new_nodes = (node[node_attribute])
-                        for n in new_nodes:
+                        nodes_to_refactor = (node[node_attribute])
+                        for n in nodes_to_refactor:
                             n = n.decode("utf-8")
+                            n = n.replace("(", "").replace(")", "")
                             # split arguments in the argument list
-                            argument_list = n.split(', ')
-                            new_nodes = argument_list
-                            #for element in argument_list:
-                                #new_nodes["argument_list"] = element
+                            splitted_list = n.split(", ")
+                            nodes_to_refactor = splitted_list
+                            node_clone.update({node_attribute: splitted_list})
+
                         i = 1
-                        for node in new_nodes:
-                            node = node.replace("(", "").replace(")", "")
+                        for node in nodes_to_refactor:
+                            #node = node.decode("utf-8")
                             if "=" in node:
                                 node_name, node_value = node.split("=")
-                            else:
-                                node_name = node
-                                node_value = ""
-                            node_dict = {"type": "hyperparameter", "name": node_name, "value": node_value, "parent_id": -1, "child_id": id}
-                            new_node_id = id * 10 + i
-                            i += 1
-                            if node != "()":
-                                #print(node)
-                                G.add_node(new_node_id, node_dict)
-                                G.add_edge(new_node_id, id)
+                                node_dict = {"type": "hyperparameter", "name": node_name, "value": node_value,
+                                             "parent_id": -1, "child_id": id}
+                                new_node_id = id * 10 + i
+                                i += 1
+                                if node != "()":
+                                    # print(node)
+                                    G.add_node(new_node_id, node_dict)
+                                    G.add_edge(new_node_id, id)
+                    G.update_node_attrs(id, node_clone)
+                            #else:
+                                #node_name = node
+                                #node_value = ""
+
     return G
 
 
@@ -488,6 +493,19 @@ def rewrite_graph(G, language):
     #plot_rule(rule)
     return G
 
+def jsonify_finite_set(param):
+    if len(param.to_json()["data"]) > 1:
+        result_list = list()
+        for element in param.to_json()["data"]:
+            if isinstance(element, (bytes, bytearray)):
+                result_list.append(element.decode("utf-8"))
+            else:
+                result_list.append(element)
+        return result_list
+    data = param.to_json()["data"][0]
+    if isinstance(data, (bytes, bytearray)):
+        data = data.decode("utf-8")
+    return data
 
 def convert_graph_to_json(G):
     graph_dict = {"nodes": [], "edges": []}
@@ -500,9 +518,8 @@ def convert_graph_to_json(G):
         #node_attrs = {}
         node_raw_attrs = G.get_node(n)
         for key in node_raw_attrs:
-            metadata["data"].update({key: str(node_raw_attrs[key]).replace("{'", "").replace("'}", "").replace("{",
-                                                                                                         "").replace(
-                "}", "").replace("b'", "").replace("b\"", "").replace("\"", "")})
+            metadata["data"].update({key: jsonify_finite_set(node_raw_attrs[key])})
+
         # node_attrs.update(G.get_node(n))
         graph_data = {}
         graph_dict["nodes"].append(metadata)

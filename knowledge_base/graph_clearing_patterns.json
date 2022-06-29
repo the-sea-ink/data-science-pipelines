@@ -171,7 +171,8 @@
 
   "hyperparameters" : {
     "expression_statement" : {
-      "argument_list": "argument_list"
+      "argument_list": "argument_list",
+      "variable_list": "variable_list"
     }
   }
 }
