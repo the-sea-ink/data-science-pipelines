@@ -9,14 +9,14 @@
                 "y": 0
             },
             "data": {
-                "type": "operator",
+                "type": "expression_statement",
                 "text": "X, y = make_classification(random_state=0)",
                 "parent_id": "-1",
                 "variable_list": "X, y",
                 "caller_function": "make_classification",
                 "argument_list": "(random_state=0)",
                 "child_id": "9",
-                "task": "make_classification"
+                "task": "datasets"
             }
         },
         {
@@ -28,14 +28,14 @@
                 "y": 0
             },
             "data": {
-                "type": "operator",
+                "type": "expression_statement",
                 "text": "X_train, X_test, y_train, y_test = train_test_split(X, y, random_state=0)",
                 "parent_id": "8",
                 "variable_list": "X_train, X_test, y_train, y_test",
                 "caller_function": "train_test_split",
                 "argument_list": "(X, y, random_state=0)",
                 "child_id": "10",
-                "task": "train_test_split"
+                "task": "data_splitting"
             }
         },
         {
@@ -47,15 +47,15 @@
                 "y": 0
             },
             "data": {
-                "type": "operator",
+                "type": "expression_statement",
                 "text": "pipe = Pipeline([('scaler', StandardScaler()), ('svc', SVC())])",
                 "parent_id": "9",
                 "variable_list": "pipe",
                 "caller_function": "Pipeline",
-                "function": "StandardScaler', SVC",
+                "function": "SVC', StandardScaler",
                 "argument_list": "([('scaler', StandardScaler()), ('svc', SVC())]), ()",
                 "child_id": "13",
-                "task": "Pipeline"
+                "task": "model_declaration"
             }
         },
         {
@@ -67,13 +67,13 @@
                 "y": 0
             },
             "data": {
-                "type": "operator",
+                "type": "expression_statement",
                 "text": "pipe.fit(X_train, y_train)",
                 "parent_id": "10",
                 "caller_function": "pipe.fit",
                 "argument_list": "(X_train, y_train)",
                 "child_id": "14",
-                "task": "fit"
+                "task": "svm.libsvm"
             }
         },
         {
@@ -85,12 +85,12 @@
                 "y": 0
             },
             "data": {
-                "type": "operator",
+                "type": "expression_statement",
                 "text": "pipe.score(X_test, y_test)",
                 "parent_id": "13",
                 "caller_function": "pipe.score",
                 "argument_list": "(X_test, y_test)",
-                "task": "score"
+                "task": "! score"
             }
         },
         {

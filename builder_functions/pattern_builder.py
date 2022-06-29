@@ -459,9 +459,12 @@ def rewrite_graph(G, language):
                             new_attributes = G.get_node(pattern_id)
                             if attribute == name:
                                 new_attributes["task"] = mapping[name]
+                                G.update_node_attrs(pattern_id, new_attributes)
+                                break
                             else:
-                                new_attributes["task"] = attribute
-                            new_attributes["type"] = "operator"
+                                new_attributes["task"] = "! " + attribute
+                                G.update_node_attrs(pattern_id, new_attributes)
+                            #new_attributes["type"] = "operator"
                             G.update_node_attrs(pattern_id, new_attributes)
 
     print_graph(G)

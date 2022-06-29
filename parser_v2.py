@@ -41,8 +41,8 @@ def parse(prog_language, code):
 # call this function if you need to add languages to language.so library
 #language_init()
 
-# language = 'r'
-# code = test_scripts.R.code_2
+#language = 'r'
+#code = test_scripts.R.code_2
 
 language = 'python'
 code = test_scripts.Python.code_5
