@@ -363,7 +363,7 @@ def arrange_graph(G):
         parent_id = n
 
     # add nodes from nested functions
-    """for node in json_data["nested_function_calls"]:
+    for node in json_data["nested_function_calls"]:
         nested_calls = create_simple_pattern(node, node)
         instances = G.find_matching(nested_calls)
         if len(instances) != 0:
@@ -377,13 +377,17 @@ def arrange_graph(G):
                         new_nodes = (nested_function[nested_function_call])
                         i = 1
                         for node in new_nodes:
-                            node_dict = {"type": "call", "identifier": node, "parent_id": -1, "child_id": id}
+                            for j in nested_function["argument_list"]:
+                                if node.decode("utf-8") in str(j):
+                                    nested_function["argument_list"] = {}
+                            node = node.decode("utf-8")
+                            node_dict = {"type": "hyperparameter", "name": node + "()", "value": "", "parent_id": -1, "child_id": id}
                             new_node_id = id * 10 + i
                             i += 1
                             G.add_node(new_node_id, node_dict)
-                            G.add_edge(new_node_id, id)"""
+                            G.add_edge(new_node_id, id)
 
-    # add hyperparameter nodes
+    # add other hyperparameter nodes
     for node in json_data["hyperparameters"]:
         hyperparameter_pattern = create_simple_pattern(node, node)
         instances = G.find_matching(hyperparameter_pattern)
@@ -395,10 +399,22 @@ def arrange_graph(G):
                     node = (G.get_node(id))
                     if node_attribute in node:
                         new_nodes = (node[node_attribute])
+                        for n in new_nodes:
+                            n = n.decode("utf-8")
+                            # split arguments in the argument list
+                            argument_list = n.split(', ')
+                            new_nodes = argument_list
+                            #for element in argument_list:
+                                #new_nodes["argument_list"] = element
                         i = 1
                         for node in new_nodes:
-                            node = node.decode("utf_8")
-                            node_dict = {"type": "hyperparameter", "parent_id": -1, "child_id": id, "value": node}
+                            node = node.replace("(", "").replace(")", "")
+                            if "=" in node:
+                                node_name, node_value = node.split("=")
+                            else:
+                                node_name = node
+                                node_value = ""
+                            node_dict = {"type": "hyperparameter", "name": node_name, "value": node_value, "parent_id": -1, "child_id": id}
                             new_node_id = id * 10 + i
                             i += 1
                             if node != "()":
