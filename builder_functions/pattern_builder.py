@@ -363,7 +363,7 @@ def arrange_graph(G):
         parent_id = n
 
     # add nodes from nested functions
-    for node in json_data["nested_function_calls"]:
+    """for node in json_data["nested_function_calls"]:
         nested_calls = create_simple_pattern(node, node)
         instances = G.find_matching(nested_calls)
         if len(instances) != 0:
@@ -381,7 +381,30 @@ def arrange_graph(G):
                             new_node_id = id * 10 + i
                             i += 1
                             G.add_node(new_node_id, node_dict)
-                            G.add_edge(new_node_id, id)
+                            G.add_edge(new_node_id, id)"""
+
+    # add hyperparameter nodes
+    for node in json_data["hyperparameters"]:
+        hyperparameter_pattern = create_simple_pattern(node, node)
+        instances = G.find_matching(hyperparameter_pattern)
+        if len(instances) != 0:
+            node_attribute = list(hyperparameter_pattern._graph.nodes._nodes)[0]
+            node_ids = get_ids(node_attribute, instances)
+            for node_attribute in json_data["hyperparameters"][node]:
+                for id in node_ids:
+                    node = (G.get_node(id))
+                    if node_attribute in node:
+                        new_nodes = (node[node_attribute])
+                        i = 1
+                        for node in new_nodes:
+                            node = node.decode("utf_8")
+                            node_dict = {"type": "hyperparameter", "parent_id": -1, "child_id": id, "value": node}
+                            new_node_id = id * 10 + i
+                            i += 1
+                            if node != "()":
+                                #print(node)
+                                G.add_node(new_node_id, node_dict)
+                                G.add_edge(new_node_id, id)
     return G
 
 
@@ -438,6 +461,7 @@ def rewrite_graph(G, language):
                                 new_attributes["task"] = mapping[name]
                             else:
                                 new_attributes["task"] = attribute
+                            new_attributes["type"] = "operator"
                             G.update_node_attrs(pattern_id, new_attributes)
 
     print_graph(G)
@@ -449,7 +473,11 @@ def rewrite_graph(G, language):
 def convert_graph_to_json(G):
     graph_dict = {"nodes": [], "edges": []}
     for n, attrs in G.nodes(data=True):
-        metadata = {"id": n, "type": "operator", "targetPosition": "top", "position": {"x": 0, "y": 0}, "data" : {}}
+        #print(attrs["type"])
+        if str(attrs["type"]) == "{'hyperparameter'}":
+            metadata = {"id": n, "type": "hyperparameter", "targetPosition": "top", "position": {"x": 0, "y": 0}, "data": {}}
+        else:
+            metadata = {"id": n, "type": "operator", "targetPosition": "top", "position": {"x": 0, "y": 0}, "data" : {}}
         #node_attrs = {}
         node_raw_attrs = G.get_node(n)
         for key in node_raw_attrs:

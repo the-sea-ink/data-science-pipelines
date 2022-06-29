@@ -167,5 +167,11 @@
     "expression_statement" : {
       "function" : "function"
     }
+  },
+
+  "hyperparameters" : {
+    "expression_statement" : {
+      "argument_list": "argument_list"
+    }
   }
 }
