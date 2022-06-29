@@ -16,7 +16,7 @@
                 "caller_function": "make_classification",
                 "argument_list": "(random_state=0)",
                 "child_id": "9",
-                "task": "datasets"
+                "task": "make_classification"
             }
         },
         {
@@ -35,7 +35,7 @@
                 "caller_function": "train_test_split",
                 "argument_list": "(X, y, random_state=0)",
                 "child_id": "10",
-                "task": "data_splitting"
+                "task": "train_test_split"
             }
         },
         {
@@ -53,9 +53,9 @@
                 "variable_list": "pipe",
                 "caller_function": "Pipeline",
                 "function": "SVC', StandardScaler",
-                "argument_list": "([('scaler', StandardScaler()), ('svc', SVC())]), ()",
+                "argument_list": "()', ([('scaler', StandardScaler()), ('svc', SVC())])",
                 "child_id": "13",
-                "task": "model_declaration"
+                "task": "Pipeline"
             }
         },
         {
@@ -73,7 +73,7 @@
                 "caller_function": "pipe.fit",
                 "argument_list": "(X_train, y_train)",
                 "child_id": "14",
-                "task": "svm.libsvm"
+                "task": "fit"
             }
         },
         {
@@ -89,7 +89,8 @@
                 "text": "pipe.score(X_test, y_test)",
                 "parent_id": "13",
                 "caller_function": "pipe.score",
-                "argument_list": "(X_test, y_test)"
+                "argument_list": "(X_test, y_test)",
+                "task": "score"
             }
         },
         {
@@ -105,7 +106,7 @@
                 "identifier": "SVC",
                 "parent_id": "-1",
                 "child_id": "10",
-                "task": "svm"
+                "task": "SVC"
             }
         },
         {
@@ -121,7 +122,7 @@
                 "identifier": "StandardScaler",
                 "parent_id": "-1",
                 "child_id": "10",
-                "task": "model_declaration"
+                "task": "StandardScaler"
             }
         }
     ],
