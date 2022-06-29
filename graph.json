@@ -1,8 +1,8 @@
 {
     "nodes": [
         {
-            "id": 8,
-            "type": "operator",
+            "id": "8",
+            "type": "default",
             "targetPosition": "top",
             "position": {
                 "x": 0,
@@ -13,18 +13,18 @@
                 "text": "X, y = make_classification(random_state=0)",
                 "parent_id": -1,
                 "variable_list": [
-                    "y",
-                    "X"
+                    "X",
+                    "y"
                 ],
                 "caller_function": "make_classification",
                 "argument_list": "random_state=0",
                 "child_id": 9,
-                "task": "datasets"
+                "label": "datasets"
             }
         },
         {
-            "id": 9,
-            "type": "operator",
+            "id": "9",
+            "type": "default",
             "targetPosition": "top",
             "position": {
                 "x": 0,
@@ -42,17 +42,17 @@
                 ],
                 "caller_function": "train_test_split",
                 "argument_list": [
-                    "y",
                     "X",
-                    "random_state=0"
+                    "random_state=0",
+                    "y"
                 ],
                 "child_id": 10,
-                "task": "data_splitting"
+                "label": "data_splitting"
             }
         },
         {
-            "id": 10,
-            "type": "operator",
+            "id": "10",
+            "type": "default",
             "targetPosition": "top",
             "position": {
                 "x": 0,
@@ -69,12 +69,12 @@
                     "SVC"
                 ],
                 "child_id": 13,
-                "task": "model_declaration"
+                "label": "model_declaration"
             }
         },
         {
-            "id": 13,
-            "type": "operator",
+            "id": "13",
+            "type": "default",
             "targetPosition": "top",
             "position": {
                 "x": 0,
@@ -86,16 +86,16 @@
                 "parent_id": 10,
                 "caller_function": "pipe.fit",
                 "argument_list": [
-                    "y_train",
-                    "X_train"
+                    "X_train",
+                    "y_train"
                 ],
                 "child_id": 14,
-                "task": "svm.libsvm"
+                "label": "svm.libsvm"
             }
         },
         {
-            "id": 14,
-            "type": "operator",
+            "id": "14",
+            "type": "default",
             "targetPosition": "top",
             "position": {
                 "x": 0,
@@ -110,66 +110,66 @@
                     "X_test",
                     "y_test"
                 ],
-                "task": "! score"
+                "label": "! score"
             }
         },
         {
-            "id": 101,
-            "type": "operator",
+            "id": "101",
+            "type": "default",
             "targetPosition": "top",
             "position": {
                 "x": 0,
                 "y": 0
             },
             "data": {
-                "type": "operator",
-                "task": "StandardScaler()",
+                "type": "default",
+                "label": "StandardScaler()",
                 "parent_id": -1,
                 "child_id": 10
             }
         },
         {
-            "id": 102,
-            "type": "operator",
+            "id": "102",
+            "type": "default",
             "targetPosition": "top",
             "position": {
                 "x": 0,
                 "y": 0
             },
             "data": {
-                "type": "operator",
-                "task": "SVC()",
+                "type": "default",
+                "label": "SVC()",
                 "parent_id": -1,
                 "child_id": 10
             }
         },
         {
-            "id": 81,
-            "type": "hyperparameter",
+            "id": "81",
+            "type": "input",
             "targetPosition": "top",
             "position": {
                 "x": 0,
                 "y": 0
             },
             "data": {
-                "type": "hyperparameter",
-                "name": "random_state",
+                "type": "input",
+                "label": "random_state=0",
                 "value": "0",
                 "parent_id": -1,
                 "child_id": 8
             }
         },
         {
-            "id": 91,
-            "type": "hyperparameter",
+            "id": "91",
+            "type": "input",
             "targetPosition": "top",
             "position": {
                 "x": 0,
                 "y": 0
             },
             "data": {
-                "type": "hyperparameter",
-                "name": "random_state",
+                "type": "input",
+                "label": "random_state=0",
                 "value": "0",
                 "parent_id": -1,
                 "child_id": 9
@@ -178,60 +178,52 @@
     ],
     "edges": [
         {
-            "edge_id": "edge-1",
-            "source": 8,
-            "sourceHandle": 0,
-            "targetHandle": 0,
-            "target": 9
+            "id": "edge-1",
+            "source": "8",
+            "target": "9",
+            "type": "smoothstep"
         },
         {
-            "edge_id": "edge-2",
-            "source": 9,
-            "sourceHandle": 0,
-            "targetHandle": 0,
-            "target": 10
+            "id": "edge-2",
+            "source": "9",
+            "target": "10",
+            "type": "smoothstep"
         },
         {
-            "edge_id": "edge-3",
-            "source": 10,
-            "sourceHandle": 0,
-            "targetHandle": 0,
-            "target": 13
+            "id": "edge-3",
+            "source": "10",
+            "target": "13",
+            "type": "smoothstep"
         },
         {
-            "edge_id": "edge-4",
-            "source": 13,
-            "sourceHandle": 0,
-            "targetHandle": 0,
-            "target": 14
+            "id": "edge-4",
+            "source": "13",
+            "target": "14",
+            "type": "smoothstep"
         },
         {
-            "edge_id": "edge-5",
-            "source": 101,
-            "sourceHandle": 0,
-            "targetHandle": 0,
-            "target": 10
+            "id": "edge-5",
+            "source": "101",
+            "target": "10",
+            "type": "smoothstep"
         },
         {
-            "edge_id": "edge-6",
-            "source": 102,
-            "sourceHandle": 0,
-            "targetHandle": 0,
-            "target": 10
+            "id": "edge-6",
+            "source": "102",
+            "target": "10",
+            "type": "smoothstep"
         },
         {
-            "edge_id": "edge-7",
-            "source": 81,
-            "sourceHandle": 0,
-            "targetHandle": 0,
-            "target": 8
+            "id": "edge-7",
+            "source": "81",
+            "target": "8",
+            "type": "smoothstep"
         },
         {
-            "edge_id": "edge-8",
-            "source": 91,
-            "sourceHandle": 0,
-            "targetHandle": 0,
-            "target": 9
+            "id": "edge-8",
+            "source": "91",
+            "target": "9",
+            "type": "smoothstep"
         }
     ]
 }

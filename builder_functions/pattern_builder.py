@@ -381,7 +381,7 @@ def arrange_graph(G):
                                 if node.decode("utf-8") in str(j):
                                     nested_function["argument_list"] = {}
                             node = node.decode("utf-8")
-                            node_dict = {"type": "operator", "task": node + "()",  "parent_id": -1, "child_id": id}
+                            node_dict = {"type": "default", "label": node + "()",  "parent_id": -1, "child_id": id}
                             new_node_id = id * 10 + i
                             i += 1
                             G.add_node(new_node_id, node_dict)
@@ -413,7 +413,7 @@ def arrange_graph(G):
                             #node = node.decode("utf-8")
                             if "=" in node:
                                 node_name, node_value = node.split("=")
-                                node_dict = {"type": "hyperparameter", "name": node_name, "value": node_value,
+                                node_dict = {"type": "input", "label": f'{node_name}={node_value}', "value": node_value,
                                              "parent_id": -1, "child_id": id}
                                 new_node_id = id * 10 + i
                                 i += 1
@@ -432,17 +432,14 @@ def arrange_graph(G):
 def rewrite_graph(G, language):
     # read data from knowledge base
     # print_graph(G)
-    if language == 'python' or language == 'snakemake':
+    assert language != '', 'language is not set'
+    if language in ['python', 'snakemake']:
         df = pd.read_csv("knowledge_base/signatures_p.csv")
-    elif language == 'r':
-        df = pd.read_csv("knowledge_base/signatures_r.csv")
-    mapping = dict(zip(df.name, df.category))
-
-    # read json file
-    if language == 'python' or language == 'snakemake':
         f = open('knowledge_base/rewrite_rules_p.json', "r")
     elif language == 'r':
+        df = pd.read_csv("knowledge_base/signatures_r.csv")
         f = open('knowledge_base/rewrite_rules_r.json', "r")
+    mapping = dict(zip(df.name, df.category))
 
     json_data = json.loads(f.read())
 
@@ -479,16 +476,16 @@ def rewrite_graph(G, language):
                         for name in mapping:
                             new_attributes = G.get_node(pattern_id)
                             if attribute == name:
-                                new_attributes["task"] = mapping[name]
+                                new_attributes["label"] = mapping[name]
                                 G.update_node_attrs(pattern_id, new_attributes)
                                 break
                             else:
-                                new_attributes["task"] = "! " + attribute
+                                new_attributes["label"] = "! " + attribute
                                 G.update_node_attrs(pattern_id, new_attributes)
                             #new_attributes["type"] = "operator"
                             G.update_node_attrs(pattern_id, new_attributes)
 
-    print_graph(G)
+    # print_graph(G)
     rule = Rule.from_transform(G)
     #plot_rule(rule)
     return G
@@ -508,13 +505,14 @@ def jsonify_finite_set(param):
     return data
 
 def convert_graph_to_json(G):
+    print_graph(G)
     graph_dict = {"nodes": [], "edges": []}
     for n, attrs in G.nodes(data=True):
         #print(attrs["type"])
-        if str(attrs["type"]) == "{'hyperparameter'}":
-            metadata = {"id": n, "type": "hyperparameter", "targetPosition": "top", "position": {"x": 0, "y": 0}, "data": {}}
+        if str(attrs["type"]) == "{'input'}":
+            metadata = {"id": str(n), "type": "input", "targetPosition": "top", "position": {"x": 0, "y": 0}, "data": {}}
         else:
-            metadata = {"id": n, "type": "operator", "targetPosition": "top", "position": {"x": 0, "y": 0}, "data" : {}}
+            metadata = {"id": str(n), "type": "default", "targetPosition": "top", "position": {"x": 0, "y": 0}, "data" : {}}
         #node_attrs = {}
         node_raw_attrs = G.get_node(n)
         for key in node_raw_attrs:
@@ -527,7 +525,7 @@ def convert_graph_to_json(G):
     i = 1
     for s, t, attrs in G.edges(data=True):
         edge_id = "edge-" + str(i)
-        edge_attrs = {"edge_id": edge_id, "source": s, "sourceHandle": 0, "targetHandle": 0, "target": t}
+        edge_attrs = {"id": edge_id, "source": str(s), "target": str(t), 'type': 'smoothstep'}
         graph_dict["edges"].append(edge_attrs)
         i += 1
     # print(graph_dict)

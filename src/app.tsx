@@ -8,7 +8,15 @@ import {
   Box,
   CssBaseline,
   Grid,
+  DialogTitle,
+  Dialog,
+  InputLabel,
+  MenuItem,
+  FormControl,
   Stack } from '@mui/material';
+
+import Select, { SelectChangeEvent } from '@mui/material/Select';
+
 
 import ReactFlow, {
   addEdge,
@@ -28,22 +36,81 @@ import dagre from 'dagre';
 import AddBoxIcon from '@mui/icons-material/AddBox';
 import Coder from "./codeMirror";
 
-import {upload} from '../upload';
+import {upload, update} from '../upload';
 
 const Input = styled('input')({
   display: 'none',
 });
 
+export interface SimpleDialogProps {
+  open: boolean;
+  selectedValue: string;
+  onClose: (value: string) => void;
+}
+
+function SimpleDialog(props: SimpleDialogProps) {
+  const { onClose, selectedValue, open } = props;
+
+  const handleClose = () => {
+    onClose(selectedValue);
+  };
+
+  const handleChange = (event: SelectChangeEvent) => {
+    onClose(event.target.value);
+  };
+
+  return (
+    <Dialog onClose={handleClose} open={open}>
+      <DialogTitle>Select Programming Language</DialogTitle>
+      <Box sx={{ minWidth: 120 }}>
+      <FormControl fullWidth>
+        <InputLabel id="demo-simple-select-label">Language</InputLabel>
+        <Select
+          labelId="demo-simple-select-label"
+          id="demo-simple-select"
+          value={props.selectedValue}
+          label="Language"
+          onChange={handleChange}
+        >
+          <MenuItem value={'python'}>Python</MenuItem>
+          <MenuItem value={'r'}>R</MenuItem>
+          <MenuItem value={'snakemake'}>snakemake</MenuItem>
+        </Select>
+      </FormControl>
+    </Box>
+    </Dialog>
+  );
+}
+
 export default function App() {
     const [code, setCode] = useState<string>('hello world');
     const [nodes, setNodes] = useState<Node[]>([]);
     const [edges, setEdges] = useState<Edge[]>([]);
+    const [language, setLanguage] = useState<string>('');
+    const [open, setOpen] = useState<boolean>(false);
+
+    const handleChange = (event: SelectChangeEvent) => {
+      setLanguage(event.target.value as string);
+    };
 
     function handleDrawerToggle(): boolean { return true };
     const drawerWidth = 48;
 
     function onCodeChange(c: string): void {
         setCode(c);
+        upd(c);
+    }
+
+    async function upd(c: string): Promise<void> {
+      let resp = await update(c, language);
+      console.log(resp);
+      setNodes(resp.values.nodes);
+      setEdges(resp.values.edges);
+    }
+
+    function onClose(l: string): void {
+        setLanguage(l);
+        setOpen(false);
     }
 
     const onNodesChange = useCallback(
@@ -61,8 +128,8 @@ export default function App() {
     const nodeWidthPerLetter = 20;
     const nodeHeight = 36;
 
-    const getLayoutedElements = (nodes: Node[], edges: Edge[], direction: string = 'horizontal') => {
-
+    const getLayoutedElements = (nodes: Node[], edges: Edge[], direction: string = 'vertical') => {
+      console.log(nodes, edges);
       const dagreGraph = new dagre.graphlib.Graph();
       dagreGraph.setDefaultEdgeLabel(() => ({}));
 
@@ -70,7 +137,7 @@ export default function App() {
       dagreGraph.setGraph({ rankdir: isHorizontal ? 'LR' : 'TB' });
 
       nodes.forEach( (n: Node) => {
-        dagreGraph.setNode(n.id, { width: nodeWidthPerLetter * n.data.label.length , height: nodeHeight });
+        dagreGraph.setNode(n.id, { width: nodeWidthPerLetter * (n.data.task ? n.data.label.length : 20) , height: nodeHeight });
       });
 
       edges.forEach( (e: Edge) => {
@@ -88,7 +155,7 @@ export default function App() {
         // to notify react flow about the change. Moreover we are shifting the dagre node position
         // (anchor=center center) to the top left so it matches the react flow node anchor point (top left).
         el.position = {
-          x: nodeWithPosition.x - nodeWidthPerLetter * el.data.label.length / 2 + Math.random() / 1000,
+          x: nodeWithPosition.x - nodeWidthPerLetter * (el.data.task ? el.data.label.length : 20) / 2 + Math.random() / 1000,
           y: nodeWithPosition.y - nodeHeight / 2,
         };
 
@@ -96,61 +163,69 @@ export default function App() {
       });
     };
 
-    return (
+    return <>
+      <SimpleDialog open={open} selectedValue={language} onClose={onClose} />
       <Box sx={{ display: 'flex' }}>
         <CssBaseline />
-        <Box
-          component="nav"
-          sx={{ width: { sm: drawerWidth }, flexShrink: { sm: 0 } }}
-          aria-label="mailbox folders"
-        >
-          <Drawer
-            variant="permanent"
-            open={true}
-            onClose={handleDrawerToggle}
-            ModalProps={{
-              keepMounted: true, // Better open performance on mobile.
-            }}
-            sx={{
-              display: { xs: 'block' },
-              '& .MuiDrawer-paper': { boxSizing: 'border-box', width: drawerWidth },
-            }}
-          >
-            <Stack spacing={2}>
-              <label htmlFor="icon-button-file">
-                <Input accept='.py' id="icon-button-file" type="file" onChange={async (e) => {
-                    e.preventDefault();
-                    let target = (e.target as HTMLInputElement);
-                    if (target.files?.length) {
-                      let file = target.files?.item(0)!;
-                      let resp = await upload(file);
-                      console.log(resp);
-                      setCode(resp.values.code);
-                      setNodes(resp.values.nodes);
-                      setEdges(resp.values.edges);
-                    }
-                  }}
-                />
-                <IconButton color="primary" aria-label="upload picture" component="span">
-                  <AddBoxIcon />
-                </IconButton>
-              </label>
-
-            </Stack>
-          </Drawer>
-        </Box>
         <Box
           component="main"
           sx={{ flexGrow: 1, p: 1, width: { sm: `calc(100% - ${drawerWidth}px)` } }}
         >
           <Grid container spacing={1} columnSpacing={1}>
             <Grid item xs rowSpacing={1}>
-              <Box sx={{ border: 1, height: '98vh' }}>
+              <Stack spacing={1}>
+                <Stack spacing={1} direction="row">
+                <label htmlFor="icon-button-file">
+                  <Input accept='.py,.r,.snakefile' id="icon-button-file" type="file" onChange={async (e) => {
+                      e.preventDefault();
+                      function delay(s: number) {
+                        return new Promise( resolve => setTimeout(resolve, 1000*s) );
+                      }
+                      let target = (e.target as HTMLInputElement);
+                      if (target.files?.length) {
+                        let file = target.files?.item(0)!;
+                        if (language == '') {
+                          setOpen(true);
+                          while (language == '') {
+                            delay(1);
+                          }
+                        }
+                        let resp = await upload(file, language);
+                        console.log(resp);
+                        setCode(resp.values.code);
+                        setNodes(resp.values.nodes);
+                        setEdges(resp.values.edges);
+                      }
+                    }}
+                  />
+                  <IconButton color="primary" aria-label="upload picture" component="span">
+                    <AddBoxIcon />
+                  </IconButton>
+                </label>
+                <Box sx={{ minWidth: 120 }}>
+                <FormControl fullWidth size="small">
+                  <InputLabel id="demo-simple-select-label">Language</InputLabel>
+                  <Select
+                    labelId="demo-simple-select-label"
+                    id="demo-simple-select"
+                    value={language}
+                    label="Language"
+                    onChange={handleChange}
+                  >
+                    <MenuItem value={'python'}>Python</MenuItem>
+                    <MenuItem value={'r'}>R</MenuItem>
+                    <MenuItem value={'snakemake'}>snakemake</MenuItem>
+                  </Select>
+                </FormControl>
+              </Box>
+              </Stack>
+              <Box sx={{ border: 1, height: '92vh' }}>
                 <Coder code={code} onCodeChange={onCodeChange} />
               </Box>
+              </Stack>
             </Grid>
             <Grid item xs rowSpacing={1}>
-              <Box sx={{ border: 1, height: '98vh' }}>
+              <Box sx={{ border: 1, height: '98vh', width: '50vw'}}>
                 <ReactFlow
                   nodes={getLayoutedElements(nodes, edges)}
                   edges={edges}
@@ -168,5 +243,5 @@ export default function App() {
         </Grid>
         </Box>
       </Box>
-    )
+    </>
 }
