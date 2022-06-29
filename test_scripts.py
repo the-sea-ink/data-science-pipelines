@@ -1,22 +1,6 @@
 class Python:
     code_1 = """
-        import numpy as np
-
-        def perform_bernoulli_trials(n, p):
-
-            # Initialize number of successes: n_success
-            n_success = 0
-
-            # Perform trials
-            for i in range(n):
-                # Choose random number between zero and one: random_number
-                random_number = np.random.random()
-
-                # If less than p, it's a success so add one to n_success
-                if random_number < p:
-                    n_success += 1
-
-            return n_success
+      
         """
 
     code_2 = """
@@ -53,20 +37,20 @@ class Python:
         """
 
     code_5 = """
-import matplotlib
-import numpy as np
-from sklearn.svm import SVC
-from sklearn.preprocessing import StandardScaler
-from sklearn.datasets import make_classification
-from sklearn.model_selection import train_test_split
-from sklearn.pipeline import Pipeline
-X, y = make_classification(random_state=0)
-X_train, X_test, y_train, y_test = train_test_split(X, y, random_state=0)
-pipe = Pipeline([('scaler', StandardScaler()), ('svc', SVC())])
-# The pipeline can be used as any other estimator
-# and avoids leaking the test set into the train set
-pipe.fit(X_train, y_train)
-pipe.score(X_test, y_test)
+        import matplotlib
+        import numpy as np
+        from sklearn.svm import SVC
+        from sklearn.preprocessing import StandardScaler
+        from sklearn.datasets import make_classification
+        from sklearn.model_selection import train_test_split
+        from sklearn.pipeline import Pipeline
+        X, y = make_classification(random_state=0)
+        X_train, X_test, y_train, y_test = train_test_split(X, y, random_state=0)
+        pipe = Pipeline([('scaler', StandardScaler()), ('svc', SVC())])
+        # The pipeline can be used as any other estimator
+        # and avoids leaking the test set into the train set
+        pipe.fit(X_train, y_train)
+        pipe.score(X_test, y_test)
         """
 
     code_6 = """

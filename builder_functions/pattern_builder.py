@@ -311,7 +311,7 @@ def clear_graph(G):
         instances = G.find_matching(pattern)
         if len(instances) != 0:
             pattern_type = list(pattern._graph.nodes._nodes)[0]
-            remove_descendants(G, pattern_type, instances, rule)
+            remove_descendants(G, pattern_type, instances)
 
     # handle comments
     for node in json_data["nodes_to_completely_remove"]:
@@ -381,7 +381,7 @@ def arrange_graph(G):
                                 if node.decode("utf-8") in str(j):
                                     nested_function["argument_list"] = {}
                             node = node.decode("utf-8")
-                            node_dict = {"type": "default", "label": node + "()",  "parent_id": -1, "child_id": id}
+                            node_dict = {"type": "default", "label": node + "()", "caller_function": node, "parent_id": -1, "child_id": id}
                             new_node_id = id * 10 + i
                             i += 1
                             G.add_node(new_node_id, node_dict)
@@ -410,7 +410,7 @@ def arrange_graph(G):
 
                         i = 1
                         for node in nodes_to_refactor:
-                            #node = node.decode("utf-8")
+                            # node = node.decode("utf-8")
                             if "=" in node:
                                 node_name, node_value = node.split("=")
                                 node_dict = {"type": "input", "label": f'{node_name}={node_value}', "value": node_value,
@@ -422,9 +422,9 @@ def arrange_graph(G):
                                     G.add_node(new_node_id, node_dict)
                                     G.add_edge(new_node_id, id)
                     G.update_node_attrs(id, node_clone)
-                            #else:
-                                #node_name = node
-                                #node_value = ""
+                    # else:
+                    # node_name = node
+                    # node_value = ""
 
     return G
 
@@ -454,7 +454,7 @@ def rewrite_graph(G, language):
         # For this specific node, find attribute type to read
         # acc. to rewrite rules
         attr_type = list(json_data[node].keys())[0]
-        #print(attr_type)
+        # print(attr_type)
         # print("---")
         # print(attr_type)
         # for this node type, find all graph nodes
@@ -465,11 +465,14 @@ def rewrite_graph(G, language):
             # read attribute type for each node in pattern_ids
             for pattern_id in pattern_ids:
                 node_attributes = G.get_node(pattern_id).get(attr_type)
-                #print(node_attributes)
+                # print(node_attributes)
                 # compare each attribute text with signatures
                 if bool(node_attributes) != 0:
                     for attribute_bytes in node_attributes:
-                        attribute = attribute_bytes.decode("utf-8")
+                        if isinstance(attribute_bytes, (bytes, bytearray)):
+                            attribute = attribute_bytes.decode("utf-8")
+                        else:
+                            attribute = attribute_bytes
                         dot = "."
                         if dot in attribute and language == "python":
                             attribute = trim(attribute)
@@ -480,15 +483,21 @@ def rewrite_graph(G, language):
                                 G.update_node_attrs(pattern_id, new_attributes)
                                 break
                             else:
-                                new_attributes["label"] = "! " + attribute
+                                if language == 'python':
+                                    new_label = new_attributes["caller_function"]
+                                    new_attributes["label"] = new_label
+                                else:
+                                    new_label = new_attributes["text"]
+                                    new_attributes["label"] = new_label
                                 G.update_node_attrs(pattern_id, new_attributes)
-                            #new_attributes["type"] = "operator"
+                            # new_attributes["type"] = "operator"
                             G.update_node_attrs(pattern_id, new_attributes)
 
     # print_graph(G)
     rule = Rule.from_transform(G)
-    #plot_rule(rule)
+    # plot_rule(rule)
     return G
+
 
 def jsonify_finite_set(param):
     if len(param.to_json()["data"]) > 1:
@@ -504,16 +513,19 @@ def jsonify_finite_set(param):
         data = data.decode("utf-8")
     return data
 
+
 def convert_graph_to_json(G):
     print_graph(G)
     graph_dict = {"nodes": [], "edges": []}
     for n, attrs in G.nodes(data=True):
-        #print(attrs["type"])
+        # print(attrs["type"])
         if str(attrs["type"]) == "{'input'}":
-            metadata = {"id": str(n), "type": "input", "targetPosition": "top", "position": {"x": 0, "y": 0}, "data": {}}
+            metadata = {"id": str(n), "type": "input", "targetPosition": "top", "position": {"x": 0, "y": 0},
+                        "data": {}}
         else:
-            metadata = {"id": str(n), "type": "default", "targetPosition": "top", "position": {"x": 0, "y": 0}, "data" : {}}
-        #node_attrs = {}
+            metadata = {"id": str(n), "type": "default", "targetPosition": "top", "position": {"x": 0, "y": 0},
+                        "data": {}}
+        # node_attrs = {}
         node_raw_attrs = G.get_node(n)
         for key in node_raw_attrs:
             metadata["data"].update({key: jsonify_finite_set(node_raw_attrs[key])})
@@ -521,7 +533,7 @@ def convert_graph_to_json(G):
         # node_attrs.update(G.get_node(n))
         graph_data = {}
         graph_dict["nodes"].append(metadata)
-        #graph_dict["nodes"].append(graph_data)
+        # graph_dict["nodes"].append(graph_data)
     i = 1
     for s, t, attrs in G.edges(data=True):
         edge_id = "edge-" + str(i)
