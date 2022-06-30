@@ -39,19 +39,20 @@ def parse(prog_language, code):
     return tree
 
 # call this function if you need to add languages to language.so library
-#language_init()
+language_init()
 
-language = 'r'
-code = test_scripts.R.code_2
+# language = 'r'
+# code = test_scripts.R.code_2
 
-#language = 'python'
-#code = test_scripts.Python.code_5
+language = 'python'
+code = test_scripts.Python.code_4
 
 #language = 'snakemake'
 #code = test_scripts.Snakemake.code_1
 
 # parse code with tree-sitter
 tree_sitter = parse(language, code)
+print(tree_sitter)
 # traverse tree-sitter -> get NXGraph
 nxgraph = bfs_tree_traverser(tree_sitter)
 

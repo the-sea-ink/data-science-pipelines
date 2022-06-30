@@ -1,7 +1,7 @@
 {
     "nodes": [
         {
-            "id": "1",
+            "id": "2",
             "type": "default",
             "targetPosition": "top",
             "position": {
@@ -9,15 +9,11 @@
                 "y": 0
             },
             "data": {
-                "type": "call",
-                "text": "library(tidyverse)",
+                "type": "expression_statement",
+                "text": "n_success = 0",
                 "parent_id": -1,
-                "identifier": [
-                    "library",
-                    "tidyverse"
-                ],
-                "child_id": 3,
-                "label": "library(tidyverse)"
+                "variable_list": "n_success",
+                "child_id": 3
             }
         },
         {
@@ -29,246 +25,20 @@
                 "y": 0
             },
             "data": {
-                "type": "call",
-                "text": "list.files(path = \"../input\")",
-                "parent_id": 1,
-                "identifier": [
-                    "path",
-                    "list.files"
-                ],
-                "child_id": 6,
+                "type": "expression_statement",
+                "text": "print(\"Python is great!\")",
+                "parent_id": 2,
+                "caller_function": "print",
+                "argument_list": "\"Python is great!\"",
                 "label": "user_output"
-            }
-        },
-        {
-            "id": "6",
-            "type": "default",
-            "targetPosition": "top",
-            "position": {
-                "x": 0,
-                "y": 0
-            },
-            "data": {
-                "type": "equals_assignment",
-                "text": "salary_data=read_csv(\"../input/salary-data-simple-linear-regression/Salary_Data.csv\")",
-                "parent_id": 3,
-                "identifier": [
-                    "read_csv",
-                    "salary_data"
-                ],
-                "child_id": 9,
-                "label": "salary_data=read_csv(\"../input/salary-data-simple-linear-regression/Salary_Data.csv\")"
-            }
-        },
-        {
-            "id": "9",
-            "type": "default",
-            "targetPosition": "top",
-            "position": {
-                "x": 0,
-                "y": 0
-            },
-            "data": {
-                "type": "call",
-                "text": "summary.data.frame(salary_data)",
-                "parent_id": 6,
-                "identifier": [
-                    "summary.data.frame",
-                    "salary_data"
-                ],
-                "child_id": 11,
-                "label": "summary.data.frame(salary_data)"
-            }
-        },
-        {
-            "id": "11",
-            "type": "default",
-            "targetPosition": "top",
-            "position": {
-                "x": 0,
-                "y": 0
-            },
-            "data": {
-                "type": "call",
-                "text": "plot(salary_data$YearsExperience,salary_data$Salary,xlab=\"Salary\",ylab=\"Years of experience\",main=\"Salary with respect to years of experience\",col=\"blue\")",
-                "parent_id": 9,
-                "identifier": [
-                    "main",
-                    "Salary",
-                    "xlab",
-                    "YearsExperience",
-                    "col",
-                    "salary_data",
-                    "ylab",
-                    "plot"
-                ],
-                "child_id": 14,
-                "label": "data_plotting"
-            }
-        },
-        {
-            "id": "14",
-            "type": "default",
-            "targetPosition": "top",
-            "position": {
-                "x": 0,
-                "y": 0
-            },
-            "data": {
-                "type": "call",
-                "text": "plot(salary_data$YearsExperience,salary_data$Salary, pch=16,cex=1.3, col=\"green\",xlab=\"Years of experience\",ylab=\"Salary\",main=\"linear regression training set\")",
-                "parent_id": 11,
-                "identifier": [
-                    "main",
-                    "Salary",
-                    "xlab",
-                    "YearsExperience",
-                    "col",
-                    "salary_data",
-                    "cex",
-                    "ylab",
-                    "pch",
-                    "plot"
-                ],
-                "child_id": 16,
-                "label": "data_plotting"
-            }
-        },
-        {
-            "id": "16",
-            "type": "default",
-            "targetPosition": "top",
-            "position": {
-                "x": 0,
-                "y": 0
-            },
-            "data": {
-                "type": "equals_assignment",
-                "text": "lm=lm(Salary~YearsExperience,salary_data)",
-                "parent_id": 14,
-                "identifier": [
-                    "YearsExperience",
-                    "salary_data",
-                    "Salary",
-                    "lm"
-                ],
-                "child_id": 18,
-                "label": "lm=lm(Salary~YearsExperience,salary_data)"
-            }
-        },
-        {
-            "id": "18",
-            "type": "default",
-            "targetPosition": "top",
-            "position": {
-                "x": 0,
-                "y": 0
-            },
-            "data": {
-                "type": "call",
-                "text": "summary(lm)",
-                "parent_id": 16,
-                "identifier": [
-                    "lm",
-                    "summary"
-                ],
-                "child_id": 20,
-                "label": "model_selection"
-            }
-        },
-        {
-            "id": "20",
-            "type": "default",
-            "targetPosition": "top",
-            "position": {
-                "x": 0,
-                "y": 0
-            },
-            "data": {
-                "type": "call",
-                "text": "abline(lm)",
-                "parent_id": 18,
-                "identifier": [
-                    "lm",
-                    "abline"
-                ],
-                "child_id": 22,
-                "label": "data_plotting"
-            }
-        },
-        {
-            "id": "22",
-            "type": "default",
-            "targetPosition": "top",
-            "position": {
-                "x": 0,
-                "y": 0
-            },
-            "data": {
-                "type": "call",
-                "text": "plot(lm)",
-                "parent_id": 20,
-                "identifier": [
-                    "lm",
-                    "plot"
-                ],
-                "label": "data_plotting"
             }
         }
     ],
     "edges": [
         {
             "id": "edge-1",
-            "source": "1",
+            "source": "2",
             "target": "3",
-            "type": "smoothstep"
-        },
-        {
-            "id": "edge-2",
-            "source": "3",
-            "target": "6",
-            "type": "smoothstep"
-        },
-        {
-            "id": "edge-3",
-            "source": "6",
-            "target": "9",
-            "type": "smoothstep"
-        },
-        {
-            "id": "edge-4",
-            "source": "9",
-            "target": "11",
-            "type": "smoothstep"
-        },
-        {
-            "id": "edge-5",
-            "source": "11",
-            "target": "14",
-            "type": "smoothstep"
-        },
-        {
-            "id": "edge-6",
-            "source": "14",
-            "target": "16",
-            "type": "smoothstep"
-        },
-        {
-            "id": "edge-7",
-            "source": "16",
-            "target": "18",
-            "type": "smoothstep"
-        },
-        {
-            "id": "edge-8",
-            "source": "18",
-            "target": "20",
-            "type": "smoothstep"
-        },
-        {
-            "id": "edge-9",
-            "source": "20",
-            "target": "22",
             "type": "smoothstep"
         }
     ]
