@@ -464,11 +464,13 @@ def rewrite_graph(G, language):
             # print(pattern_ids)
             # read attribute type for each node in pattern_ids
             for pattern_id in pattern_ids:
+                label_set = 0
                 node_attributes = G.get_node(pattern_id).get(attr_type)
                 # print(node_attributes)
                 # compare each attribute text with signatures
                 if bool(node_attributes) != 0:
                     for attribute_bytes in node_attributes:
+
                         if isinstance(attribute_bytes, (bytes, bytearray)):
                             attribute = attribute_bytes.decode("utf-8")
                         else:
@@ -481,17 +483,21 @@ def rewrite_graph(G, language):
                             if attribute == name:
                                 new_attributes["label"] = mapping[name]
                                 G.update_node_attrs(pattern_id, new_attributes)
+                                print(attribute)
+                                label_set = 1
                                 break
                             else:
                                 if language == 'python':
                                     new_label = new_attributes["caller_function"]
                                     new_attributes["label"] = new_label
-                                else:
-                                    new_label = new_attributes["text"]
-                                    new_attributes["label"] = new_label
-                                G.update_node_attrs(pattern_id, new_attributes)
-                            # new_attributes["type"] = "operator"
+                                    G.update_node_attrs(pattern_id, new_attributes)
+                        if label_set == 0:
+                            new_label = new_attributes["text"]
+                            new_attributes["label"] = new_label
                             G.update_node_attrs(pattern_id, new_attributes)
+
+                            # new_attributes["type"] = "operator"
+
 
     # print_graph(G)
     rule = Rule.from_transform(G)

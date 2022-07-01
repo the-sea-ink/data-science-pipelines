@@ -346,10 +346,10 @@ class R:
         plot(salary_data$YearsExperience,salary_data$Salary,xlab="Salary",ylab="Years of experience",main="Salary with respect to years of experience",col="blue")
         #3-Run the regression
         plot(salary_data$YearsExperience,salary_data$Salary, pch=16,cex=1.3, col="green",xlab="Years of experience",ylab="Salary",main="linear regression training set")
-        lm=lm(Salary~YearsExperience,salary_data)
-        summary(lm)
-        abline(lm)
-        plot(lm)
+        linear_model=lm(Salary~YearsExperience,salary_data)
+        summary(linear_model)
+        abline(linear_model)
+        plot(linear_model)
         """
 
     code_3  = """
