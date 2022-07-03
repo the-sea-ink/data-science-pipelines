@@ -1,5 +1,4 @@
 class Python:
-    class Python:
         code_1 = """
             import numpy as np
             n_success = 0
@@ -300,7 +299,7 @@ class Python:
         ypred = model.predict(Xtest)
         print("\n\nK-Nearest Neighbor Accuracy Score:", Base.accuracy_score(ytest, ypred), "%")"""
 
-    class R:
+class R:
         code_1 = """
             library(ggplot2) # Data visualization
             library(readr) # CSV file I/O, e.g. the read_csv function
