@@ -429,6 +429,182 @@ def arrange_graph(G):
     return G
 
 
+def arrange_graph_v3(G):
+    f = open('knowledge_base/graph_clearing_patterns.json', "r")
+    json_data = json.loads(f.read())
+
+    # remove module node
+    G.remove_node(0)
+
+    # delete all edges
+    for edge in list(G.edges()):
+        G.remove_edge(edge[0], edge[1])
+
+    for node1_id in list(G.nodes()):
+        node1 = G.get_node(node1_id)
+
+        if "variable_list" in list(node1.keys()):
+            # get the name of the variables as a list of strings
+            variables = list(node1["variable_list"])[0].decode("utf-8").split(',')
+            # clear whitespaces in the name of the variables
+            variables = [var.strip() for var in variables]
+
+            for node2_id in list(G.nodes()):
+                node2 = G.get_node(node2_id)
+
+                if "argument_list" in list(node2.keys()):
+
+                    arguments = list(node2["argument_list"])[0].decode("utf-8").split(',')
+                    arguments = [arg.strip() for arg in arguments]
+                    # remove parenthesis of first argument
+                    arguments[0] = arguments[0][1:]
+                    # remove parenthesis of last argument
+                    arguments[-1] = arguments[-1][:-1]
+
+                    for var in variables:
+                        if var in arguments and (node1_id, node2_id) not in list(G.edges()):
+                            G.add_edge(node1_id, node2_id)
+
+    new_node_id = max(list(G.nodes())) + 1
+    for node in json_data["nested_function_calls"]:
+        nested_calls = create_simple_pattern(node, node)
+        instances = G.find_matching(nested_calls)
+        if len(instances) != 0:
+            node_type = list(nested_calls._graph.nodes._nodes)[0]
+            node_ids = get_ids(node_type, instances)
+            # print(node_ids)
+            for nested_function_call in json_data["nested_function_calls"][node]:
+                for id in node_ids:
+                    nested_function = (G.get_node(id))
+                    if nested_function_call in nested_function:
+                        nodes_to_refactor = (nested_function[nested_function_call])
+                        i = 1
+                        for node in nodes_to_refactor:
+                            for j in nested_function["argument_list"]:
+                                if node.decode("utf-8") in str(j):
+                                    nested_function["argument_list"] = {}
+                            node = node.decode("utf-8")
+                            node_dict = {"type": "default", "label": node + "()", "caller_function": node, "parent_id": -1, "child_id": id}
+                            i += 1
+                            G.add_node(new_node_id, node_dict)
+                            G.add_edge(new_node_id, id)
+                            new_node_id += 1
+
+    for node1_id in list(G.nodes()):
+        node1 = G.get_node(node1_id)
+
+        if "caller_function" in list(node1.keys()):
+            caller_func = list(node1["caller_function"])[0]
+
+            if type(caller_func) == bytes:
+                caller_func = caller_func.decode("utf-8")
+
+            obj = caller_func.split('.')[0]
+
+            for node2_id in list(G.nodes()):
+                node2 = G.get_node(node2_id)
+
+                if "variable_list" in list(node2.keys()):
+                    variables = list(node2["variable_list"])[0].decode("utf-8").split(',')
+                    variables = [var.strip() for var in variables]
+
+                    if obj in variables:
+                        G.add_edge(node2_id, node1_id)
+
+        if "subscript_object" in list(node1.keys()):
+            sub_obj = list(node1["subscript_object"])[0].decode("utf-8").split('.')[0]
+
+            for node2_id in list(G.nodes()):
+                node2 = G.get_node(node2_id)
+
+                if "variable_list" in list(node2.keys()):
+                    variables = list(node2["variable_list"])[0].decode("utf-8").split(',')
+                    variables = [var.strip() for var in variables]
+
+                    if sub_obj in variables:
+                        G.add_edge(node2_id, node1_id)
+
+    return G
+
+def arrange_graph_v2(G):
+    # remove module node
+    G.remove_node(0)
+
+    # delete all edges
+    for edge in list(G.edges()):
+        G.remove_edge(edge[0], edge[1])
+
+    new_node_id = max(list(G.nodes())) + 1
+    variable_ids = []
+
+    # create new node for each variable in variable_list and add edge to expression_statement
+    for node_id in list(G.nodes()):
+        node = G.get_node(node_id)
+
+        if "variable_list" in list(node.keys()):
+            # get the name of the variables as a list of strings
+            variables = list(node["variable_list"])[0].decode("utf-8").split(',')
+            # clear whitespaces in the name of the variables
+            variables = [var.strip() for var in variables]
+
+            for var in variables:
+                G.add_node(new_node_id, {"type": "variable", "label": var})
+                G.add_edge(node_id, new_node_id)
+                variable_ids.append(new_node_id)
+                new_node_id += 1
+
+    # search if there is a variable for each argument in argument_list, and if so, connect variable to
+    # expression_statement
+    for node1_id in list(G.nodes()):
+        node1 = G.get_node(node1_id)
+
+        if "argument_list" in list(node1.keys()):
+            # convert argument_list into a list of strings
+            arguments = list(node1["argument_list"])[0].decode("utf-8").split(',')
+            # remove whitespaces
+            arguments = [arg.strip() for arg in arguments]
+            # remove parenthesis of first argument
+            arguments[0] = arguments[0][1:]
+            # remove parenthesis of last argument
+            arguments[-1] = arguments[-1][:-1]
+
+            for node2_id in list(G.nodes()):
+                node2 = G.get_node(node2_id)
+
+                if node2_id > node1_id and list(node2["type"])[0] == "variable":
+                    if list(node2["label"])[0] in arguments:
+                        G.add_edge(node2_id, node1_id)
+
+    # create a node for each argument that is not a variable
+    for node_id in list(G.nodes()):
+        node = G.get_node(node_id)
+
+        if "argument_list" in list(node.keys()):
+            # convert argument_list into a list of strings
+            arguments = list(node["argument_list"])[0].decode("utf-8").split(',')
+            # remove whitespaces
+            arguments = [arg.strip() for arg in arguments]
+            # remove parenthesis of first argument
+            arguments[0] = arguments[0][1:]
+            # remove parenthesis of last argument
+            arguments[-1] = arguments[-1][:-1]
+
+            for arg in arguments:
+                has_match = False
+                for var_id in variable_ids:
+                    var_node = G.get_node(var_id)
+
+                    if arg == list(var_node["label"])[0]:
+                        has_match = True
+
+                if not has_match:
+                    G.add_node(new_node_id, {"type": "argument", "label": arg})
+                    G.add_edge(new_node_id, node_id)
+                    new_node_id += 1
+
+    return G
+
+
 def rewrite_graph(G, language):
     # read data from knowledge base
     # print_graph(G)
