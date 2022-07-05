@@ -1,4 +1,4 @@
-id,name,long_name,package_id,url,category
+id,name,long_name,url,package_id,category
 1,BaseEstimator,sklearn.base.BaseEstimator,https://scikit-learn.org/stable/modules/generated/sklearn.base.BaseEstimator.html,1,base
 2,BiclusterMixin,sklearn.base.BiclusterMixin,https://scikit-learn.org/stable/modules/generated/sklearn.base.BiclusterMixin.html,1,base
 3,ClassifierMixin,sklearn.base.ClassifierMixin,https://scikit-learn.org/stable/modules/generated/sklearn.base.ClassifierMixin.html,1,base
@@ -432,7 +432,7 @@ id,name,long_name,package_id,url,category
 431,l1_min_c,sklearn.svm.l1_min_c,https://scikit-learn.org/stable/modules/generated/sklearn.svm.l1_min_c.html,1,svm
 432,cross_validation,sklearn.svm.libsvm.cross_validation,https://scikit-learn.org/stable/modules/generated/sklearn.svm.libsvm.cross_validation.html,1,svm.libsvm
 433,decision_function,sklearn.svm.libsvm.decision_function,https://scikit-learn.org/stable/modules/generated/sklearn.svm.libsvm.decision_function.html,1,svm.libsvm
-434,fit,sklearn.svm.libsvm.fit,https://scikit-learn.org/stable/modules/generated/sklearn.svm.libsvm.fit.html,1,svm.libsvm
+434,fit,sklearn.svm.libsvm.fit,https://scikit-learn.org/stable/modules/generated/sklearn.svm.libsvm.fit.html,1,train_model
 435,predict,sklearn.svm.libsvm.predict,https://scikit-learn.org/stable/modules/generated/sklearn.svm.libsvm.predict.html,1,svm.libsvm
 436,predict_proba,sklearn.svm.libsvm.predict_proba,https://scikit-learn.org/stable/modules/generated/sklearn.svm.libsvm.predict_proba.html,1,svm.libsvm
 437,DecisionTreeClassifier,sklearn.tree.DecisionTreeClassifier,https://scikit-learn.org/stable/modules/generated/sklearn.tree.DecisionTreeClassifier.html,1,tree
@@ -517,3 +517,5 @@ id,name,long_name,package_id,url,category
 516,seed,numpy.random.seed,https://docs.scipy.org/doc/numpy-1.15.1/reference/generated/numpy.random.seed.html,3,configuration
 517,print,print,output,user_output,user_output
 518,inverse_transform,inverse_transform,https://scikit-learn.org/stable/modules/generated/sklearn.preprocessing.StandardScaler.html#sklearn.preprocessing.StandardScaler,5,data_scaling
+519,score,score,score,get_score,get_score
+520,predict,predict,predict,make_prediction,make_prediction
