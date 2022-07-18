@@ -1,6 +1,6 @@
 from builder_functions.graph_builder import bfs_tree_traverser
 from builder_functions.pattern_builder import rewrite_graph, clear_graph, rename_graph_types, \
-    convert_graph_to_json, arrange_graph
+    convert_graph_to_json, arrange_graph, arrange_graph_v3
 from tree_sitter import Language, Parser
 import test_scripts
 from regraph import NXGraph, Rule
@@ -77,7 +77,7 @@ def main():
     # rewrite graph
     rename_graph_types(nxgraph, language)
     G = clear_graph(nxgraph)
-    G = arrange_graph(G)
+    G = arrange_graph_v3(G)
     G = rewrite_graph(G, language)
     G = convert_graph_to_json(G)
 
