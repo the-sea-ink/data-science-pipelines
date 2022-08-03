@@ -1,7 +1,7 @@
 {
     "nodes": [
         {
-            "id": "1",
+            "id": "2",
             "type": "default",
             "targetPosition": "top",
             "position": {
@@ -9,14 +9,13 @@
                 "y": 0
             },
             "data": {
-                "type": "call",
-                "text": "library(tidyverse)",
+                "type": "expression_statement",
+                "text": "scaler = StandardScaler()",
                 "parent_id": 0,
-                "identifier": [
-                    "tidyverse",
-                    "library"
-                ],
-                "label": "package_import"
+                "variable_list": "scaler",
+                "caller_function": "StandardScaler",
+                "argument_list": "()",
+                "label": "model_declaration"
             }
         },
         {
@@ -28,14 +27,49 @@
                 "y": 0
             },
             "data": {
-                "type": "call",
-                "text": "list.files(path = \"../input\")",
+                "type": "expression_statement",
+                "text": "scaler.fit(df_feat)",
                 "parent_id": 0,
-                "identifier": [
-                    "path",
-                    "list.files"
-                ],
-                "label": "user_output"
+                "caller_function": "scaler.fit",
+                "argument_list": "(df_feat)",
+                "label": "train_model"
+            }
+        },
+        {
+            "id": "4",
+            "type": "default",
+            "targetPosition": "top",
+            "position": {
+                "x": 0,
+                "y": 0
+            },
+            "data": {
+                "type": "expression_statement",
+                "text": "df_scaled = scaler.transform(df_feat)",
+                "parent_id": 0,
+                "variable_list": "df_scaled",
+                "caller_function": "scaler.transform",
+                "argument_list": "(df_feat)",
+                "label": "scaler.transform"
+            }
+        },
+        {
+            "id": "5",
+            "type": "default",
+            "targetPosition": "top",
+            "position": {
+                "x": 0,
+                "y": 0
+            },
+            "data": {
+                "type": "expression_statement",
+                "text": "df_scaled = pd.DataFrame(df_scaled,columns=df_feat.columns[:4])",
+                "parent_id": 0,
+                "variable_list": "df_scaled",
+                "caller_function": "pd.DataFrame",
+                "argument_list": "(df_scaled,columns=df_feat.columns[:4])",
+                "subscript_object": "df_feat.columns",
+                "label": "datasets"
             }
         },
         {
@@ -47,18 +81,17 @@
                 "y": 0
             },
             "data": {
-                "type": "equals_assignment",
-                "text": "salary_data=read_csv(\"../input/salary-data-simple-linear-regression/Salary_Data.csv\")",
+                "type": "expression_statement",
+                "text": "df_preprocessed = pd.concat([df_scaled,dummies,target],axis=1)",
                 "parent_id": 0,
-                "identifier": [
-                    "read_csv",
-                    "salary_data"
-                ],
-                "label": "salary_data=read_csv(\"../input/salary-data-simple-linear-regression/Salary_Data.csv\")"
+                "variable_list": "df_preprocessed",
+                "caller_function": "pd.concat",
+                "argument_list": "([df_scaled,dummies,target],axis=1)",
+                "label": "pd.concat"
             }
         },
         {
-            "id": "9",
+            "id": "7",
             "type": "default",
             "targetPosition": "top",
             "position": {
@@ -66,147 +99,45 @@
                 "y": 0
             },
             "data": {
-                "type": "call",
-                "text": "summary.data.frame(salary_data)",
+                "type": "expression_statement",
+                "text": "df_preprocessed.head()",
                 "parent_id": 0,
-                "identifier": [
-                    "salary_data",
-                    "summary.data.frame"
-                ],
-                "label": "summary.data.frame(salary_data)"
-            }
-        },
-        {
-            "id": "11",
-            "type": "default",
-            "targetPosition": "top",
-            "position": {
-                "x": 0,
-                "y": 0
-            },
-            "data": {
-                "type": "call",
-                "text": "plot(salary_data$YearsExperience,salary_data$Salary,xlab=\"Salary\",ylab=\"Years of experience\",main=\"Salary with respect to years of experience\",col=\"blue\")",
-                "parent_id": 0,
-                "identifier": [
-                    "YearsExperience",
-                    "plot",
-                    "col",
-                    "salary_data",
-                    "main",
-                    "ylab",
-                    "xlab",
-                    "Salary"
-                ],
-                "label": "plot(salary_data$YearsExperience,salary_data$Salary,xlab=\"Salary\",ylab=\"Years of experience\",main=\"Salary with respect to years of experience\",col=\"blue\")"
-            }
-        },
-        {
-            "id": "14",
-            "type": "default",
-            "targetPosition": "top",
-            "position": {
-                "x": 0,
-                "y": 0
-            },
-            "data": {
-                "type": "call",
-                "text": "plot(salary_data$YearsExperience,salary_data$Salary, pch=16,cex=1.3, col=\"green\",xlab=\"Years of experience\",ylab=\"Salary\",main=\"linear regression training set\")",
-                "parent_id": 0,
-                "identifier": [
-                    "YearsExperience",
-                    "pch",
-                    "plot",
-                    "cex",
-                    "col",
-                    "salary_data",
-                    "main",
-                    "ylab",
-                    "xlab",
-                    "Salary"
-                ],
-                "label": "plot(salary_data$YearsExperience,salary_data$Salary, pch=16,cex=1.3, col=\"green\",xlab=\"Years of experience\",ylab=\"Salary\",main=\"linear regression training set\")"
-            }
-        },
-        {
-            "id": "16",
-            "type": "default",
-            "targetPosition": "top",
-            "position": {
-                "x": 0,
-                "y": 0
-            },
-            "data": {
-                "type": "equals_assignment",
-                "text": "linear_model=lm(Salary~YearsExperience,salary_data)",
-                "parent_id": 0,
-                "identifier": [
-                    "YearsExperience",
-                    "salary_data",
-                    "linear_model",
-                    "lm",
-                    "Salary"
-                ],
-                "label": "linear_model=lm(Salary~YearsExperience,salary_data)"
-            }
-        },
-        {
-            "id": "18",
-            "type": "default",
-            "targetPosition": "top",
-            "position": {
-                "x": 0,
-                "y": 0
-            },
-            "data": {
-                "type": "call",
-                "text": "summary(linear_model)",
-                "parent_id": 0,
-                "identifier": [
-                    "linear_model",
-                    "summary"
-                ],
-                "label": "model_selection"
-            }
-        },
-        {
-            "id": "20",
-            "type": "default",
-            "targetPosition": "top",
-            "position": {
-                "x": 0,
-                "y": 0
-            },
-            "data": {
-                "type": "call",
-                "text": "abline(linear_model)",
-                "parent_id": 0,
-                "identifier": [
-                    "linear_model",
-                    "abline"
-                ],
-                "label": "data_plotting"
-            }
-        },
-        {
-            "id": "22",
-            "type": "default",
-            "targetPosition": "top",
-            "position": {
-                "x": 0,
-                "y": 0
-            },
-            "data": {
-                "type": "call",
-                "text": "plot(linear_model)",
-                "parent_id": 0,
-                "identifier": [
-                    "linear_model",
-                    "plot"
-                ],
-                "label": "data_plotting"
+                "caller_function": "df_preprocessed.head",
+                "argument_list": "()",
+                "label": "df_preprocessed.head"
             }
         }
     ],
-    "edges": []
+    "edges": [
+        {
+            "id": "edge-1",
+            "source": "2",
+            "target": "3",
+            "type": "smoothstep"
+        },
+        {
+            "id": "edge-2",
+            "source": "2",
+            "target": "4",
+            "type": "smoothstep"
+        },
+        {
+            "id": "edge-3",
+            "source": "4",
+            "target": "5",
+            "type": "smoothstep"
+        },
+        {
+            "id": "edge-4",
+            "source": "5",
+            "target": "5",
+            "type": "smoothstep"
+        },
+        {
+            "id": "edge-5",
+            "source": "6",
+            "target": "7",
+            "type": "smoothstep"
+        }
+    ]
 }

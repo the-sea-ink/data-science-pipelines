@@ -691,7 +691,7 @@ def jsonify_finite_set(param):
 
 
 def convert_graph_to_json(G):
-    print_graph(G)
+    #print_graph(G)
     graph_dict = {"nodes": [], "edges": []}
     for n, attrs in G.nodes(data=True):
         # print(attrs["type"])

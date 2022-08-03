@@ -8,8 +8,9 @@ class Python:
         code_2 = """
             import matplotlib
             import numpy as np
+            import Casita.Papel as pape
             from sklearn.svm import SVC
-            from sklearn.preprocessing import StandardScaler
+            from sklearn.preprocessing import StandardScaler, Abuelito
             from sklearn.datasets import make_classification
             from sklearn.model_selection import train_test_split
             from sklearn.pipeline import Pipeline
@@ -20,6 +21,8 @@ class Python:
             # and avoids leaking the test set into the train set
             pipe.fit(X_train, y_train)
             pipe.score(X_test, y_test)
+            np.array()
+            np()
             """
 
         code_3 = """
