@@ -1,5 +1,6 @@
 from builder_functions.graph_builder import bfs_tree_traverser
-from builder_functions.pattern_builder import *
+from builder_functions.pattern_builder import rewrite_graph, clear_graph, rename_graph_types, \
+    convert_graph_to_json, arrange_graph, arrange_graph_v3
 from tree_sitter import Language, Parser
 import test_scripts
 from regraph import NXGraph, Rule
@@ -40,7 +41,7 @@ def parse(prog_language, code):
 # call this function if you need to add languages to language.so library
 language_init()
 
-language = 'r'
+"""language = 'r'
 code = test_scripts.R.code_2
 
 #language = 'python'
@@ -62,4 +63,26 @@ G = arrange_graph_v3(G)
 G = rewrite_graph(G, language)
 json_graph = convert_graph_to_json(G)
 
+# gtG = nx2gt(graph)"""
+def main():
+    # language = 'r'
+    # code = test_scripts.R.code_2
+    language = 'python'
+    code = test_scripts.Python.code_7
+    tree_sitter = parse(language, code)
 
+    # traverse tree-sitter -> get NXGraph
+    nxgraph = bfs_tree_traverser(tree_sitter)
+
+    # rewrite graph
+    rename_graph_types(nxgraph, language)
+    G = clear_graph(nxgraph)
+    G = arrange_graph_v3(G)
+    G = rewrite_graph(G, language)
+    G = convert_graph_to_json(G)
+
+if __name__ == "__main__":
+    import time
+    start_time = time.time()
+    main()
+    print("--- %s seconds ---" % (time.time() - start_time))
