@@ -1,6 +1,6 @@
 from builder_functions.graph_builder import bfs_tree_traverser
 from builder_functions.pattern_builder import rewrite_graph, clear_graph, rename_graph_types, \
-    convert_graph_to_json, arrange_graph, arrange_graph_v3
+    convert_graph_to_json, arrange_graph, arrange_graph_v3, print_graph
 from tree_sitter import Language, Parser
 import test_scripts
 from regraph import NXGraph, Rule
@@ -68,11 +68,12 @@ def main():
     # language = 'r'
     # code = test_scripts.R.code_2
     language = 'python'
-    code = test_scripts.Python.code_7
+    code = test_scripts.Python.code_7_1
     tree_sitter = parse(language, code)
 
     # traverse tree-sitter -> get NXGraph
     nxgraph = bfs_tree_traverser(tree_sitter)
+    print_graph(nxgraph)
 
     # rewrite graph
     rename_graph_types(nxgraph, language)

@@ -96,11 +96,11 @@ def get_prop_type(value, key=None):
 
     return tname, value, key
 
-
+"""
 def nx2gt(nxG):
-    """
-    Converts a networkx graph to a graph-tool graph.
-    """
+    
+    #Converts a networkx graph to a graph-tool graph.
+    
     # Phase 0: Create a directed or undirected graph-tool Graph
     gtG = gt.Graph(directed=nxG.is_directed())
 
@@ -179,4 +179,4 @@ def nx2gt(nxG):
             gtG.ep[key][e] = value  # ep is short for edge_properties
 
     # Done, finally!
-    return gtG
+    return gtG"""

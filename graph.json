@@ -1,42 +1,7 @@
 {
     "nodes": [
         {
-            "id": "2",
-            "type": "default",
-            "targetPosition": "top",
-            "position": {
-                "x": 0,
-                "y": 0
-            },
-            "data": {
-                "type": "expression_statement",
-                "text": "scaler = StandardScaler()",
-                "parent_id": 0,
-                "variable_list": "scaler",
-                "caller_function": "StandardScaler",
-                "argument_list": "()",
-                "label": "model_declaration"
-            }
-        },
-        {
-            "id": "3",
-            "type": "default",
-            "targetPosition": "top",
-            "position": {
-                "x": 0,
-                "y": 0
-            },
-            "data": {
-                "type": "expression_statement",
-                "text": "scaler.fit(df_feat)",
-                "parent_id": 0,
-                "caller_function": "scaler.fit",
-                "argument_list": "(df_feat)",
-                "label": "train_model"
-            }
-        },
-        {
-            "id": "4",
+            "id": "1",
             "type": "default",
             "targetPosition": "top",
             "position": {
@@ -52,92 +17,7 @@
                 "argument_list": "(df_feat)",
                 "label": "scaler.transform"
             }
-        },
-        {
-            "id": "5",
-            "type": "default",
-            "targetPosition": "top",
-            "position": {
-                "x": 0,
-                "y": 0
-            },
-            "data": {
-                "type": "expression_statement",
-                "text": "df_scaled = pd.DataFrame(df_scaled,columns=df_feat.columns[:4])",
-                "parent_id": 0,
-                "variable_list": "df_scaled",
-                "caller_function": "pd.DataFrame",
-                "argument_list": "(df_scaled,columns=df_feat.columns[:4])",
-                "subscript_object": "df_feat.columns",
-                "label": "datasets"
-            }
-        },
-        {
-            "id": "6",
-            "type": "default",
-            "targetPosition": "top",
-            "position": {
-                "x": 0,
-                "y": 0
-            },
-            "data": {
-                "type": "expression_statement",
-                "text": "df_preprocessed = pd.concat([df_scaled,dummies,target],axis=1)",
-                "parent_id": 0,
-                "variable_list": "df_preprocessed",
-                "caller_function": "pd.concat",
-                "argument_list": "([df_scaled,dummies,target],axis=1)",
-                "label": "pd.concat"
-            }
-        },
-        {
-            "id": "7",
-            "type": "default",
-            "targetPosition": "top",
-            "position": {
-                "x": 0,
-                "y": 0
-            },
-            "data": {
-                "type": "expression_statement",
-                "text": "df_preprocessed.head()",
-                "parent_id": 0,
-                "caller_function": "df_preprocessed.head",
-                "argument_list": "()",
-                "label": "df_preprocessed.head"
-            }
         }
     ],
-    "edges": [
-        {
-            "id": "edge-1",
-            "source": "2",
-            "target": "3",
-            "type": "smoothstep"
-        },
-        {
-            "id": "edge-2",
-            "source": "2",
-            "target": "4",
-            "type": "smoothstep"
-        },
-        {
-            "id": "edge-3",
-            "source": "4",
-            "target": "5",
-            "type": "smoothstep"
-        },
-        {
-            "id": "edge-4",
-            "source": "5",
-            "target": "5",
-            "type": "smoothstep"
-        },
-        {
-            "id": "edge-5",
-            "source": "6",
-            "target": "7",
-            "type": "smoothstep"
-        }
-    ]
+    "edges": []
 }

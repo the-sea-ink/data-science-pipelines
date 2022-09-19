@@ -142,7 +142,7 @@ class Python:
         """
 
         code_7 = """
-            from sklearn.preprocessing import StandardScaler
+        from sklearn.preprocessing import StandardScaler
         scaler = StandardScaler()
         scaler.fit(df_feat)
         df_scaled = scaler.transform(df_feat)
@@ -150,6 +150,10 @@ class Python:
         df_preprocessed = pd.concat([df_scaled,dummies,target],axis=1)
         df_preprocessed.head()
             """
+
+        code_7_1 = """
+        df_scaled = scaler.transform(df_feat)
+        """
 
         code_8 = """
         from sklearn.cluster import KMeans
