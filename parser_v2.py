@@ -35,7 +35,8 @@ def parse(prog_language, code):
     language = Language('build/my-languages.so', prog_language)
     parser = Parser()
     parser.set_language(language)
-    tree = parser.parse(bytes(code, "utf8"))
+    b = bytes(code, "utf8")
+    tree = parser.parse(b)
     return tree
 
 # call this function if you need to add languages to language.so library
@@ -68,22 +69,22 @@ def main():
     # language = 'r'
     # code = test_scripts.R.code_2
     language = 'python'
-    code = test_scripts.Python.code_7_1
+    code = test_scripts.Python.code_0
     tree_sitter = parse(language, code)
 
     # traverse tree-sitter -> get NXGraph
     nxgraph = bfs_tree_traverser(tree_sitter)
-    print_graph(nxgraph)
+    #print_graph(nxgraph)
 
     # rewrite graph
     rename_graph_types(nxgraph, language)
     G = clear_graph(nxgraph)
-    G = arrange_graph_v3(G)
-    G = rewrite_graph(G, language)
-    G = convert_graph_to_json(G)
+    #G = arrange_graph_v3(G)
+    #G = rewrite_graph(G, language)
+    #G = convert_graph_to_json(G)
 
 if __name__ == "__main__":
     import time
     start_time = time.time()
     main()
-    print("--- %s seconds ---" % (time.time() - start_time))
+    #print("--- %s seconds ---" % (time.time() - start_time))

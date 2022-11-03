@@ -1,4 +1,8 @@
 class Python:
+        code_0 = """
+                df_scaled = pd.DataFrame(df_scaled,columns=df_feat.columns[:4])
+                """
+
         code_1 = """
             import numpy as np
             n_success = 0
@@ -151,9 +155,7 @@ class Python:
         df_preprocessed.head()
             """
 
-        code_7_1 = """
-        df_scaled = scaler.transform(df_feat)
-        """
+
 
         code_8 = """
         from sklearn.cluster import KMeans
@@ -305,6 +307,15 @@ class Python:
         model.fit(Xtrain, ytrain)
         ypred = model.predict(Xtest)
         print("\n\nK-Nearest Neighbor Accuracy Score:", Base.accuracy_score(ytest, ypred), "%")"""
+
+        code_21 = """
+        import numpy as np # linear algebra
+        import pandas as pd # data processing, CSV file I/O (e.g. pd.read_csv)
+        import os
+        
+        for dirname, _, filenames in os.walk('/kaggle/input'):
+            for filename in filenames:
+                print(os.path.join(dirname, filename))"""
 
 class R:
         code_1 = """

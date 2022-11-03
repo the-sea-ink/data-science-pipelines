@@ -1,9 +1,10 @@
 import collections
 import csv
 import pandas as pd
-from regraph import NXGraph, Rule, FiniteSet
+from regraph import NXGraph, Rule, FiniteSet, plot_graph
 import json
-
+import matplotlib.pyplot as plt
+import networkx as nx
 from regraph.backends.networkx.plotting import plot_rule
 
 
@@ -18,6 +19,15 @@ def remove_descendants(G, node_type, instances):
             for id in list(desc):
                 G.remove_node(id)
                 removed_nodes.append(id)
+    return removed_nodes
+
+
+def remove_children(G, node):
+    removed_nodes = []
+    children = G.descendants(node)
+    for child in list(children):
+        G.remove_node(child)
+        removed_nodes.append(child)
     return removed_nodes
 
 
@@ -44,7 +54,7 @@ def remove_everything_else(ids, rule, num_nodes):
     return rule
 
 
-# gets the ids of all of the nodes of a certain "type" in an instance of a graph
+# gets the ids of all the nodes of a certain "type" in an instance of a graph
 def get_ids(node_type, instances):
     ids = []
     for instance in instances:
@@ -91,7 +101,7 @@ def create_subgraph(G, node_id):
     subg_nodes = list(G.descendants(node_id))
     subg_nodes.append(node_id)
     subgraph = G.generate_subgraph(G, subg_nodes)
-    print_graph(subgraph)
+    # print_graph(subgraph)
     rule = Rule.from_transform(subgraph)
     # plot_rule(rule)
     return subgraph
@@ -245,6 +255,27 @@ def rename_graph_types(graph, language):
     return list(set(changed_nodes))
 
 
+def save_attributes_of_descendants(G):
+    """
+
+    :param G:
+    :return:
+    """
+    f = open('knowledge_base/syntactic_rewrites.json', "r")
+    json_data = json.loads(f.read())
+
+    for parent_node in json_data["nodes_with_descendants"]:
+        # create pattern for each parent node with descendants
+        parent_node_pattern = create_simple_pattern(parent_node, parent_node)
+
+    return
+
+
+def rule_tester(G):
+    rule = Rule.from_transform(G)
+    rule.inject_add_edge(2, 4)
+
+
 def clear_redundancies(G):
     """
     Removes syntactical redundancies like ,;() etc.
@@ -253,8 +284,6 @@ def clear_redundancies(G):
     """
     f = open('knowledge_base/syntactic_rewrites.json', "r")
     json_data = json.loads(f.read())
-
-    redundancy_patterns = []
 
     for value in json_data["redundancies"]:
         # create pattern for each entry in "redundancies"
@@ -267,20 +296,120 @@ def clear_redundancies(G):
         redundancy_rule = Rule.from_transform(redundancy_pattern)
         if redundancy_pattern_instances:
             redundancy_rule.inject_remove_node(value)
-            for instance in redundancy_pattern_instances:
-                # rewrite graph for each found instance
-                G.rewrite(redundancy_rule, instance)
-
+            # json_rule = redundancy_rule.to_json()
+            # print(json_rule)
+            # rewrite graph for each found instance
+            for instance in redundancy_pattern_instances: G.rewrite(redundancy_rule, instance)
     return G
 
 
-def clear_graph(G):
+def create_rule_from_json(G):
+    # read json file
+    f = open('knowledge_base/rule_creation.json', "r")
+    rule_dict = json.loads(f.read())
 
+    # parse json file
+
+    # pattern
+    # get nodes
+    if "nodes" in rule_dict["pattern"]:
+        node_list = rule_dict["pattern"]["nodes"]
+
+    # get edges
+    if "edges" in rule_dict["pattern"]:
+        edge_list = rule_dict["pattern"]["edges"]
+
+    # transformations
+    # get nodes to remove
+    if "remove_nodes" in rule_dict["transformations"]:
+        nodes_to_remove = rule_dict["transformations"]["remove_nodes"]
+
+    # get attributes to remove
+    if "remove_node_attrs" in rule_dict["transformations"]:
+        atts_to_remove = rule_dict["transformations"]["remove_node_attrs"]
+
+    # get attributes to update
+    if "update_node_attrs" in rule_dict["transformations"]:
+        attrs_to_update = rule_dict["transformations"]["update_node_attrs"]
+
+    # get nodes to add
+    if "add_nodes_with_attributes" in rule_dict["transformations"]:
+        nodes_to_add = rule_dict["transformations"]["add_nodes_with_attributes"]
+
+    # get attributes to add
+    if "add_node_attributes" in rule_dict["transformations"]:
+        attributes_to_add = rule_dict["transformations"]["add_node_attributes"]
+
+    # get nodes to clone
+    if "clone_nodes" in rule_dict["transformations"]:
+        nodes_to_clone = rule_dict["transformations"]["clone_nodes"]
+
+    # get nodes to merge
+    if "merge_nodes" in rule_dict["transformations"]:
+        nodes_to_merge = rule_dict["transformations"]["merge_nodes"]
+
+    # get edges to add
+    if "add_edges" in rule_dict["transformations"]:
+        edges_to_add = rule_dict["transformations"]["add_edges"]
+
+    # get edge attributes to add
+    if "add_attributes_to_edges" in rule_dict["transformations"]:
+        edge_attrs_to_add = rule_dict["transformations"]["add_attributes_to_edges"]
+
+    # get edges to remove
+    if "remove_edges" in rule_dict["transformations"]:
+        edges_to_remove = rule_dict["transformations"]["remove_edges"]
+
+    # get edge attributes to remove
+    if "remove_edge_attrs" in rule_dict["transformations"]:
+        edge_attrs_to_remove = rule_dict["transformations"]["remove_edge_attrs"]
+
+    # get edge attributes to update
+    if "update_edge_attrs" in rule_dict["transformations"]:
+        edge_attrs_to_update = rule_dict["transformations"]["update_edge_attrs"]
+
+
+def create_execute_rule(G):
+    create_rule_from_json(G)
+    # create pattern
+    pattern = NXGraph()
+    pattern.add_node(1, {"type": "="})
+
+    # create rule from pattern
+    rule = Rule.from_transform(pattern)
+
+    # add transformations
+    rule.inject_remove_node(1)
+
+    json_rule = rule.to_json()
+    json_rule = json.dumps(json_rule, indent=2)
+    # print(json_rule)
+
+    # find pattern in a graph
+    pattern_instances = G.find_matching(pattern)
+    if pattern_instances:
+        for instance in pattern_instances: G.rewrite(rule, instance)
+
+    return pattern
+
+
+def clear_graph(G):
     # read json file
     f = open('knowledge_base/graph_clearing_patterns.json', "r")
     json_data = json.loads(f.read())
 
-    clear_redundancies(G)
+    # clear_redundancies(G)
+
+    # create_subgraph(G, 1)
+
+    remove_children(G, 14)
+
+    graph = create_execute_rule(G)
+
+    # print_graph(G)
+
+    # print_graph(G)
+    # positioning = plot_graph(G)
 
     # handle nodes with descendants that contain necessary attributes
     for node in json_data["nodes_with_descendants"]:

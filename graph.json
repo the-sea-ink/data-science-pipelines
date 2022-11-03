@@ -10,12 +10,12 @@
             },
             "data": {
                 "type": "expression_statement",
-                "text": "df_scaled = scaler.transform(df_feat)",
+                "text": "df_preprocessed = pd.concat([df_scaled,dummies,target],axis=1)",
                 "parent_id": 0,
-                "variable_list": "df_scaled",
-                "caller_function": "scaler.transform",
-                "argument_list": "(df_feat)",
-                "label": "scaler.transform"
+                "variable_list": "df_preprocessed",
+                "caller_function": "pd.concat",
+                "argument_list": "([df_scaled,dummies,target],axis=1)",
+                "label": "pd.concat"
             }
         }
     ],

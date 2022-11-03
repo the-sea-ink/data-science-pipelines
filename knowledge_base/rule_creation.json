@@ -1,0 +1,99 @@
+{
+  "pattern":{
+    "nodes":[
+      {
+        "node_id":1,
+        "text":"="
+      }
+    ],
+    "edges":[
+      {
+        "parent_node_id":"1",
+        "child_node_id":"2"
+      }
+    ]
+  },
+  "transformations":{
+      "remove_nodes":[
+        {
+          "node_id1": 1
+        }
+      ],
+      "remove_node_attrs":[
+        {
+          "node_id":"1",
+          "attrs_to_remove":[
+            "attr1",
+            "attr2"
+          ]
+        }
+      ],
+      "update_node_attrs":[
+        {
+          "node":"",
+          "attr_to_update1":"",
+          "attr_to_update2":""
+        }
+      ],
+      "add_nodes_with_attributes":[
+        {
+          "node_id":"1",
+          "attr1":"a"
+        }
+      ],
+      "add_node_attributes":[
+        {
+          "node_id":"1",
+          "attr1":"b"
+        }
+      ],
+      "clone_nodes":[
+        {
+          "node_id":"2",
+          "cloned_node_id":"c"
+        }
+      ],
+      "merge_nodes":[
+        {
+          "node1_id":"1",
+          "node2_id":"2",
+          "node3_id":"3"
+        }
+      ],
+      "add_edges":[
+          {
+              "parent_node_id" : 1,
+              "child_node_id" : 2
+          }
+      ],
+      "add_attributes_to_edges": [
+          {
+              "parent_node_id" : 1,
+              "child_node_id" : 2,
+              "attr1" : "d"
+          }
+      ],
+      "remove_edges": [
+          {
+              "parent_node_id" : 5,
+              "child_node_id" : 6
+          }
+      ],
+      "remove_edge_attrs": [
+          {
+              "parent_node_id" : 6,
+              "child_node_id" : 7,
+              "attr1" : "e"
+
+          }
+      ],
+      "update_edge_attrs" : [
+          {
+              "parent_node_id" : 6,
+              "child_node_id" : 7,
+              "attr1" : "f"
+          }
+      ]
+
+  }
+}

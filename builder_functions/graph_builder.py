@@ -2,6 +2,7 @@ from pyparsing import unicode
 import networkx as nx
 from regraph import NXGraph
 import graph_tools as gt
+from networkx import Graph
 
 
 # traverses parsed nodes with Breadth-first search algorithm and
