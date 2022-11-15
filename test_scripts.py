@@ -1,6 +1,9 @@
 class Python:
-        code_0 = """
-                df_scaled = pd.DataFrame(df_scaled,columns=df_feat.columns[:4])
+        code_0 = """   
+                X, y = make_classification(random_state=0)
+                X_train, X_test, y_train, y_test = train_test_split(X, y, random_state=0)
+                pipe.fit(X_train, y_train)
+                pipe.score(X_test, y_test)   
                 """
 
         code_1 = """

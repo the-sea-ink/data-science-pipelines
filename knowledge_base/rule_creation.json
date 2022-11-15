@@ -2,135 +2,48 @@
   "pattern":{
     "nodes":[
       {
-        "node_id":1,
-        "text":"=",
-        "type" : "red"
+        "node_id": 1,
+        "type" : "subscript"
       },
       {
-        "node_id":2,
-        "text":"=",
-        "type" : "red"
+        "node_id": 2,
+        "type" : "identifier"
       },
       {
-        "node_id":3,
-        "text":"=",
-        "type" : "red"
+        "node_id": 3,
+        "type" : "slice"
       },
       {
-        "node_id":4,
-        "text":"=",
-        "type" : "red"
-      },
-      {
-        "node_id":5
-      },
-      {
-        "node_id":10
-      },
-      {
-        "node_id":11
-      },
-      {
-        "node_id":12
+        "node_id": 4,
+        "type" : "integer"
       }
     ],
     "edges":[
       {
         "parent_node_id":1,
-        "child_node_id":2,
-        "attr" : "new"
+        "child_node_id":2
+      },
+      {
+        "parent_node_id":1,
+        "child_node_id":3
       },
       {
         "parent_node_id":3,
-        "child_node_id":4,
-        "attr" : "new"
+        "child_node_id":4
       }
     ]
   },
   "transformations":{
-      "remove_nodes":[
-        {
-          "node_id": 5
-        }
-      ],
-      "remove_node_attrs":[
-        {
-          "node_id" : 1,
-          "text" : "=",
-          "type" : "red"
-        }
-      ],
-      "update_node_attrs":[
-        {
-          "node_id" : 2,
-          "text" : "+",
-          "type" : "white"
-        }
-      ],
-      "add_nodes_with_attributes":[
-        {
-          "node_id": 7,
-          "type" : "yet_another_node"
-        }
-      ],
-      "add_node_attributes":[
-        {
-          "node_id" : 7,
-          "info" : "monday_is_a_frustrating_day"
-        }
-      ],
-      "clone_nodes":[
+    "remove_nodes":[
         {
           "node_id": 2
-        }
-      ],
-      "merge_nodes":[
-        {
-          "node_id" : 10
         },
         {
-          "node_id" : 11
+          "node_id": 3
         },
         {
-          "node_id" : 12
+          "node_id": 4
         }
-      ],
-      "add_edges":[
-          {
-              "parent_node_id" : 2,
-              "child_node_id" : 3,
-              "type" : "variable",
-              "text" : "yet_another_edge_attr"
-          }
-      ],
-      "add_attributes_to_edges": [
-          {
-              "parent_node_id" : 1,
-              "child_node_id" : 2,
-              "attr1" : "d"
-          }
-      ],
-      "remove_edges": [
-          {
-              "parent_node_id" : 3,
-              "child_node_id" : 4
-          }
-      ],
-      "remove_edge_attrs": [
-          {
-              "parent_node_id" : 1,
-              "child_node_id" : 2,
-              "attr" : "new"
-
-          }
-      ],
-      "update_edge_attrs" : [
-          {
-              "parent_node_id" : 1,
-              "child_node_id" : 2,
-              "attr1" : "r"
-          }
-      ]
-
+    ]
   }
 }

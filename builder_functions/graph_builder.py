@@ -35,7 +35,7 @@ def bfs_tree_traverser(tree):
             if child_node not in visited:
                 node_id += 1
                 # add child node to graph
-                G.add_node(node_id, attrs={"type": child_node.type, "text": child_node.text, "parent_id": parent_id})
+                G.add_node(node_id, attrs={"type": child_node.type, "text": child_node.text})
                 # add edge between parent_node and child_node
                 G.add_edge(parent_id, node_id)
 

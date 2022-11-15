@@ -48,7 +48,7 @@ class Extractor:
 
         # rewrite graph
         rename_graph_types(nxgraph, self.language)
-        G = clear_graph(nxgraph)
+        G = transform_graph(nxgraph)
         G = arrange_graph_v3(G)
         G = rewrite_graph(G, self.language)
         json_graph = convert_graph_to_json(G)

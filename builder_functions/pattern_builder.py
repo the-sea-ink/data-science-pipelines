@@ -1,14 +1,14 @@
-import collections
 import csv
-import pandas as pd
 from regraph import NXGraph, Rule, FiniteSet, plot_graph
 import json
+import ast
+import time
 import matplotlib.pyplot as plt
 import networkx as nx
 from regraph.backends.networkx.plotting import plot_rule
 
 
-def remove_descendants(G, node_type, instances):
+def remove_descendants_from_instances(G, node_type, instances):
     removed_nodes = []
     for ins in instances:
         node_id = ins[node_type]
@@ -22,9 +22,9 @@ def remove_descendants(G, node_type, instances):
     return removed_nodes
 
 
-def remove_children(G, node):
+def remove_descendants_from_node(G, node_id):
     removed_nodes = []
-    children = G.descendants(node)
+    children = G.descendants(node_id)
     for child in list(children):
         G.remove_node(child)
         removed_nodes.append(child)
@@ -45,15 +45,6 @@ def save_imports(G, node_ids):
     return import_dict
 
 
-# removes all the nodes and edges of all nodes in rule whose ids
-# are not in the list
-def remove_everything_else(ids, rule, num_nodes):
-    for i in range(num_nodes):
-        if i not in ids:
-            rule.inject_remove_node(i)
-    return rule
-
-
 # gets the ids of all the nodes of a certain "type" in an instance of a graph
 def get_ids(node_type, instances):
     ids = []
@@ -66,59 +57,17 @@ def get_ids(node_type, instances):
 # creates a pattern to filter a graph based on "node type"
 # attr_name -> name given to the variable used to identify this node type
 # node_type -> the type of node that wants to be filtered
-def create_simple_pattern(attr_name, node_type):
+def create_pattern(id, attr_name, node_type):
     pattern = NXGraph()
-    pattern.add_node(attr_name)
-    pattern.add_node_attrs(attr_name, {"type": node_type})
+    pattern.add_node(id, {attr_name: node_type})
     return pattern
-
-
-# creates a subgraph of the nodes given in ids, searches for their descendants that match the different given patterns
-# and adds the text attribute of nodes that match those patterns as an attribute to the ascendant node
-def add_attrs_from_patterns(ids, patterns, is_import, G):
-    """
-    :param ids: parent IDs with important descendant nodes
-    :param patterns: patterns of descendant nodes
-    :param is_import:
-    :param G: graph
-    :return:
-    """
-    for id in ids:
-        # if is_import else list(G.successors(id))
-        subg_nodes = list(G.descendants(id))
-        subg_nodes.append(id)
-        subgraph = G.generate_subgraph(G, subg_nodes)
-        for pattern in patterns:
-            instances = subgraph.find_matching(pattern)
-            if len(instances) > 0:
-                sub_id = get_ids(list(pattern._graph.nodes._nodes)[0], instances)
-                for i in range(len(sub_id)):
-                    node_attributes = {list(pattern._graph.nodes._nodes)[0]: subgraph.get_node(sub_id[i])["text"]}
-                    G.add_node_attrs(id, attrs=node_attributes)
 
 
 def create_subgraph(G, node_id):
     subg_nodes = list(G.descendants(node_id))
     subg_nodes.append(node_id)
     subgraph = G.generate_subgraph(G, subg_nodes)
-    # print_graph(subgraph)
-    rule = Rule.from_transform(subgraph)
-    # plot_rule(rule)
     return subgraph
-
-
-def create_node_from_attr():
-    return
-
-
-# adds an edge between the parent of a node and all the children of that same node (grandparent - grandchildren
-# connection) this is necessary in order to later be able to remove those nodes that only serve as connectors
-def connect_parent_and_children(G, ids, rule):
-    for id in ids:
-        parent_id = list(G.predecessors(id))[0]
-        for child_id in list(G.successors(id)):
-            rule.inject_add_edge(parent_id, child_id)
-    return rule
 
 
 def print_graph(G):
@@ -130,76 +79,6 @@ def print_graph(G):
     print("List of edges: ")
     for s, t, attrs in G.edges(data=True):
         print("\t{}->{}".format(s, t), attrs)
-
-
-def rename_node_type(graph, all_instances, parent_type, child_index, old_type_name, new_type_name, which="="):
-    """
-    Gives a new name to the type of the node with the index "child_index", of the list of all the
-    children with the same node type.
-
-    :params:
-        - all_instances : instances returned from pattern matching a graph
-        - parent_type : node type of the parent node
-        - child_index : index of the child node that wants to be changed. Ex: If a node has 4 children with the same node type
-            "dotted_name", and you want to change the type for the first child, the index is 0. If you want to change the type
-            of the fourth child, the index is 3.
-        - old_type_name : the current name given to the node's type
-        - new_type_name : the new name that will replace the current one
-        - which : if which is "=" then only the child_index is changed, if it is "<" then all below the child_index are also changed,
-            if it is ">" then all above the child_index are also changed.
-
-    :return:
-        - changed_nodes : list with the ids of the nodes that were affected by the name change
-    """
-
-    counter = 0
-    last_parent_id = 0
-    changed_nodes = []
-
-    for instance in all_instances:
-
-        if last_parent_id != instance[parent_type]:
-            counter = 0
-
-        if counter == child_index and which == "=":
-            node_id = instance[old_type_name]
-            node = graph.get_node(node_id)
-            node["type"] = {new_type_name}
-            changed_nodes.append(node_id)
-        elif counter <= child_index and which == "<":
-            node_id = instance[old_type_name]
-            node = graph.get_node(node_id)
-            node["type"] = {new_type_name}
-            changed_nodes.append(node_id)
-        elif counter >= child_index and which == ">":
-            node_id = instance[old_type_name]
-            node = graph.get_node(node_id)
-            node["type"] = {new_type_name}
-            changed_nodes.append(node_id)
-
-        last_parent_id = instance[parent_type]
-        counter += 1
-
-    return changed_nodes
-
-
-def create_linear_pattern(ordered_node_types):
-    """
-    Creates a linear pattern. We call a linear pattern a graph formation that only has parent-child edges and
-    no siblings.
-    :params: ordered_node_types -> is a list with the node types in the order that the edges should be created
-                in the pattern. Ex: [x, y, z] will create these 3 nodes and the edges [(x, y), (y,z)]
-    """
-    pattern = NXGraph()
-    pattern.add_nodes_from(ordered_node_types)
-
-    for i, node_type in enumerate(ordered_node_types):
-        pattern.add_node_attrs(node_type, {"type": node_type})
-
-        if ((i + 1) < len(ordered_node_types)):
-            pattern.add_edge(ordered_node_types[i], ordered_node_types[i + 1])
-
-    return pattern
 
 
 def sort_instances(all_instances, last_node_type):
@@ -216,675 +95,177 @@ def print_nodes(graph, node_ids):
         print(graph.get_node(id))
 
 
-def renaming_pipeline(graph, ordered_node_types, old_type_name, new_type_name, child_index, which="="):
-    first_node = ordered_node_types[0]
-    pattern = create_linear_pattern(ordered_node_types)
-    all_instances = graph.find_matching(pattern)
-    sorted_instances = sort_instances(all_instances, old_type_name)
-    changed_nodes = rename_node_type(graph, sorted_instances, first_node, child_index, old_type_name, new_type_name,
-                                     which)
-    return changed_nodes
-
-
 def trim(attribute):
     pos = attribute.find(".")
     attribute = attribute[pos + 1:]
     return attribute
 
 
-def rename_graph_types(graph, language):
-    if language != "python":
-        return
-    # create_subgraph(graph, 10)
-    f = open('knowledge_base/graph_clearing_patterns.json', "r")
-    json_data = json.loads(f.read())
-    changed_nodes = []
+def apply_pre_transformations(G):
+    # descendants
+    redundant_descendants = [
+        "keyword_argument",
+        "attribute"
+    ]
+    for redundancy in redundant_descendants:
+        pattern = create_pattern("node_id", "type", redundancy)
+        instances = G.find_matching(pattern)
+        for instance in instances:
+            remove_descendants_from_node(G, instance["node_id"])
 
-    for new_type in json_data["renaming_patterns"]:
-        for patt in json_data["renaming_patterns"][new_type]:
-            patt_data = json_data["renaming_patterns"][new_type][patt]
-            linear_pattern = patt_data["linear_pattern"]
-            old_type_name = patt_data["old_type_name"]
-            new_type_name = patt_data["new_type_name"]
-            child_index = patt_data["child_index"]
-            which = patt_data["which"]
-
-            changed_nodes.extend(
-                renaming_pipeline(graph, linear_pattern, old_type_name, new_type_name, child_index, which))
-
-    return list(set(changed_nodes))
+    return G
 
 
-def save_attributes_of_descendants(G):
-    """
+def apply_post_transformations(G):
+    # remove redundancies
+    redundancy_list = [
+        "expression_statement",
+        "assignment",
+        "pattern_list",
+        "call",
+        "argument_list"
+    ]
+    for redundancy in redundancy_list:
+        redundancy_pattern = create_pattern("node_id", "type", redundancy)
+        instances = G.find_matching(redundancy_pattern)
+        for instance in instances:
+            remove_nodes(G, [instance["node_id"]])
 
-    :param G:
-    :return:
-    """
-    f = open('knowledge_base/syntactic_rewrites.json', "r")
-    json_data = json.loads(f.read())
+    # connect functions
+    output_pattern = NXGraph()
+    output_pattern.add_node(1, {'type': 'caller_function'})
+    output_pattern.add_node(2, {'type': 'identifier'})
+    output_pattern.add_edge(1, 2)
 
-    for parent_node in json_data["nodes_with_descendants"]:
-        # create pattern for each parent node with descendants
-        parent_node_pattern = create_simple_pattern(parent_node, parent_node)
+    input_pattern = NXGraph()
+    input_pattern.add_node(1, {'type': 'identifier'})
+    input_pattern.add_node(2, {'type': 'caller_function'})
+    input_pattern.add_edge(1, 2)
+
+    output_instances = G.find_matching(output_pattern)
+    input_instances = G.find_matching(input_pattern)
+
+    removed_instances = []
+    for output_instance in output_instances:
+        if output_instance in removed_instances:
+            continue
+        output_identifier = output_instance[2]
+        output_caller_function = output_instance[1]
+        output_node = G.get_node(output_identifier)
+        for input_instance in input_instances:
+            if input_instance in removed_instances:
+                continue
+            input_identifier = input_instance[1]
+            input_caller_function = input_instance[2]
+            input_node = G.get_node(input_identifier)
+            if output_node['text'] == input_node['text']:
+                # remove nodes
+                G.remove_node(output_identifier)
+                removed_instances.append(output_instance)
+                G.remove_node(input_identifier)
+                removed_instances.append(input_instance)
+                # add edge between caller functions
+                try:
+                    G.add_edge(output_caller_function, input_caller_function, {'text': output_node['text']})
+                except:
+                    G.add_edge_attrs(output_caller_function, input_caller_function, {'text': output_node['text']})
+
+                continue
+    return
+
+
+def arrange_variables():
+    return
+
+
+def execute_rule(G, pattern, rule):
+    pattern_instances = G.find_matching(pattern)
+    if pattern_instances:
+        for instance in pattern_instances:
+            G.rewrite(rule, instance)
 
     return
 
 
-def rule_tester(G):
-    rule = Rule.from_transform(G)
-    rule.inject_add_edge(2, 4)
-
-
-def clear_redundancies(G):
-    """
-    Removes syntactical redundancies like ,;() etc.
-    :param G: graph to be cleared from redundant nodes
-    :return: cleared graph
-    """
-    f = open('knowledge_base/syntactic_rewrites.json', "r")
-    json_data = json.loads(f.read())
-
-    for value in json_data["redundancies"]:
-        # create pattern for each entry in "redundancies"
-        redundancy_pattern = create_simple_pattern(value, value)
-
-        # find all redundancies
-        redundancy_pattern_instances = G.find_matching(redundancy_pattern)
-
-        # create rule for all found redundancies
-        redundancy_rule = Rule.from_transform(redundancy_pattern)
-        if redundancy_pattern_instances:
-            redundancy_rule.inject_remove_node(value)
-            # json_rule = redundancy_rule.to_json()
-            # print(json_rule)
-            # rewrite graph for each found instance
-            for instance in redundancy_pattern_instances: G.rewrite(redundancy_rule, instance)
-    return G
-
-
-def get_pattern_from_json():
-    # read json file
-    f = open('knowledge_base/rule_creation.json', "r")
-    rule_dict = json.loads(f.read())
-
-    # create pattern
-    pattern = NXGraph()
-
-    # get nodes
-    if "nodes" in rule_dict["pattern"]:
-        node_list = rule_dict["pattern"]["nodes"]
-        # parse input
-        for node in node_list:
-            node_id = node.pop("node_id")
-            if node:
-                node_attrs = node
-                pattern.add_node(node_id, node_attrs)
-            else:
-                pattern.add_node(node_id)
-
-    # get edges
-    if "edges" in rule_dict["pattern"]:
-        edge_list = rule_dict["pattern"]["edges"]
-        # parse input
-        for edge in edge_list:
-            # extract nodes ids
-            parent_node_id = edge.pop("parent_node_id")
-            child_node_id = edge.pop("child_node_id")
-            # if other attributes left, extract them too
-            if edge:
-                edge_attrs = edge
-                pattern.add_edge(parent_node_id, child_node_id, edge_attrs)
-            else:
-                pattern.add_edge(parent_node_id, child_node_id)
-
-    return pattern
-
-
-def get_transformations_from_json(pattern):
-    # create rule
-    rule = Rule.from_transform(pattern)
-
-    # read json file
-    f = open('knowledge_base/rule_creation.json', "r")
-    rule_dict = json.loads(f.read())
-
-    # transformations
-    # get nodes to remove
-    if "remove_nodes" in rule_dict["transformations"]:
-        nodes_to_remove = rule_dict["transformations"]["remove_nodes"]
-        # parse input
-        for node in nodes_to_remove:
-            node_id = node.pop("node_id")
-            rule.inject_remove_node(node_id)
-
-    # get attributes to remove
-    if "remove_node_attrs" in rule_dict["transformations"]:
-        atts_to_remove = rule_dict["transformations"]["remove_node_attrs"]
-        # parse input
-        for node in atts_to_remove:
-            node_id = node.pop("node_id")
-            node_attrs_to_remove = node
-            rule.inject_remove_node_attrs(node_id, node_attrs_to_remove)
-
-    # get attributes to update
-    if "update_node_attrs" in rule_dict["transformations"]:
-        attrs_to_update = rule_dict["transformations"]["update_node_attrs"]
-        # parse input
-        for node in attrs_to_update:
-            node_id = node.pop("node_id")
-            node_attrs_to_update = node
-            rule.inject_update_node_attrs(node_id, node_attrs_to_update)
-
-    # get nodes to add
-    if "add_nodes_with_attributes" in rule_dict["transformations"]:
-        nodes_to_add = rule_dict["transformations"]["add_nodes_with_attributes"]
-        # parse input
-        for node in nodes_to_add:
-            node_id = node.pop("node_id")
-            node_attrs = node
-            rule.inject_add_node(node_id, node_attrs)
-
-    # get attributes to add
-    if "add_node_attributes" in rule_dict["transformations"]:
-        attributes_to_add = rule_dict["transformations"]["add_node_attributes"]
-        # parse input
-        for node in attributes_to_add:
-            node_id = node.pop("node_id")
-            node_attrs = node
-            rule.inject_add_node_attrs(node_id, node_attrs)
-
-    # get nodes to clone
-    if "clone_nodes" in rule_dict["transformations"]:
-        nodes_to_clone = rule_dict["transformations"]["clone_nodes"]
-        for node in nodes_to_clone:
-            node_id = node.pop("node_id")
-            rule.inject_clone_node(node_id)
-        # TODO cloned node id not working
-
-    # get nodes to merge
-    if "merge_nodes" in rule_dict["transformations"]:
-        nodes_to_merge = rule_dict["transformations"]["merge_nodes"]
-        node_ids_to_merge = []
-        for node in nodes_to_merge:
-            node_id = node.pop("node_id")
-            node_ids_to_merge.append(node_id)
-        rule.inject_merge_nodes(node_ids_to_merge)
-        # TODO add new node id
-
-    # get edges to add
-    if "add_edges" in rule_dict["transformations"]:
-        edges_to_add = rule_dict["transformations"]["add_edges"]
-        for edge in edges_to_add:
-            parent_node_id = edge.pop("parent_node_id")
-            child_node_id = edge.pop("child_node_id")
-            attributes = edge
-            rule.inject_add_edge(parent_node_id, child_node_id, attributes)
-
-    # get edge attributes to add
-    if "add_attributes_to_edges" in rule_dict["transformations"]:
-        edge_attrs_to_add = rule_dict["transformations"]["add_attributes_to_edges"]
-        for edge in edge_attrs_to_add:
-            parent_node_id = edge.pop("parent_node_id")
-            child_node_id = edge.pop("child_node_id")
-            attributes = edge
-            rule.inject_add_edge_attrs(parent_node_id, child_node_id, attributes)
-
-    # get edges to remove
-    if "remove_edges" in rule_dict["transformations"]:
-        edges_to_remove = rule_dict["transformations"]["remove_edges"]
-        for edge in edges_to_remove:
-            parent_node_id = edge.pop("parent_node_id")
-            child_node_id = edge.pop("child_node_id")
-            rule.inject_remove_edge(parent_node_id, child_node_id)
-
-    # get edge attributes to remove
-    if "remove_edge_attrs" in rule_dict["transformations"]:
-        edge_attrs_to_remove = rule_dict["transformations"]["remove_edge_attrs"]
-        for edge in edge_attrs_to_remove:
-            parent_node_id = edge.pop("parent_node_id")
-            child_node_id = edge.pop("child_node_id")
-            attributes = edge
-            rule.inject_remove_edge_attrs(parent_node_id, child_node_id, attributes)
-
-    # get edge attributes to update
-    if "update_edge_attrs" in rule_dict["transformations"]:
-        edge_attrs_to_update = rule_dict["transformations"]["update_edge_attrs"]
-        for edge in edge_attrs_to_update:
-            parent_node_id = edge.pop("parent_node_id")
-            child_node_id = edge.pop("child_node_id")
-            attributes = edge
-            rule.inject_update_edge_attrs(parent_node_id, child_node_id, attributes)
-
-    print(rule)
+def read_rule_from_line(line):
+    string = line.rstrip()
+    rule = ast.literal_eval(string)
     return rule
 
-def create_execute_rule(G):
-    # create pattern
-    pattern = NXGraph()
-    pattern.add_node(1, {"type": "="})
 
-    # create rule from pattern
-    rule = Rule.from_transform(pattern)
+def get_subgraphs(G, pattern, pattern_digraph):
+    # find root
+    root_id = [n for n, d in pattern_digraph.in_degree() if d == 0]
+    root_node = pattern.get_node(root_id[0])
 
-    # add transformations
-    rule.inject_remove_node(1)
-
-    json_rule = rule.to_json()
-    json_rule = json.dumps(json_rule, indent=2)
-    # print(json_rule)
-
-    # find pattern in a graph
-    pattern_instances = G.find_matching(pattern)
-    if pattern_instances:
-        for instance in pattern_instances: G.rewrite(rule, instance)
-
-    return pattern
+    # find all instances of root in graph
+    root_pattern = NXGraph()
+    root_pattern.add_node(root_id[0], root_node)
+    instances = G.find_matching(root_pattern)
+    subgraphs = []
+    if instances:
+        for instance in instances:
+            subgraphs.append(create_subgraph(G, instance[1]))
+    return subgraphs
 
 
-def clear_graph(G):
+def apply_rule(G, json_rule):
+    rule = Rule.from_json(json_rule)
+    pattern = rule.lhs
+
+    # check if pattern is a tree
+    nodes = pattern.nodes()
+    edges = pattern.edges()
+    pattern_digraph = nx.DiGraph()
+    pattern_digraph.add_nodes_from(nodes)
+    pattern_digraph.add_edges_from(edges)
+
+    instances = []
+    # get subgraphs
+    if nx.is_tree(pattern_digraph):
+        subgraphs = get_subgraphs(G, pattern, pattern_digraph)
+        for subgraph in subgraphs:
+            instances.extend(subgraph.find_matching(pattern))
+    else:
+        instances = G.find_matching(pattern)
+
+    #instances = G.find_matching(pattern)
+    if instances:
+        for instance in instances:
+            G.rewrite(rule, instance)
+
+
+def transform_graph(G):
     # read json file
     f = open('knowledge_base/graph_clearing_patterns.json', "r")
     json_data = json.loads(f.read())
+    # print_graph(G)
+    apply_pre_transformations(G)
 
-    pattern = get_pattern_from_json()
-    rule = get_transformations_from_json(pattern)
+    start_outer = time.time()
+    counter = 1
+    with open("knowledge_base/rule_base.txt") as file:
+        for line in file:
+            start_iner = time.time()
+            json_rule = read_rule_from_line(line)
+            # if counter == 22:
+            # print_graph(G)
+            apply_rule(G, json_rule)
+            # if counter == 21:
+            # print_graph(G)
+            end_iner = time.time()
+            print(f'line {counter} done in {end_iner - start_iner}')
+            counter = counter + 1
+    end_outer = time.time()
+    print(f'apply rule  done in {end_outer - start_outer}')
 
-    # clear_redundancies(G)
+    apply_post_transformations(G)
+    print_graph(G)
 
     # create_subgraph(G, 1)
 
-    remove_children(G, 14)
+    # remove_descendants_from_node(G, 14)
 
-    graph = create_execute_rule(G)
-
-    # print_graph(G)
-
-    # print_graph(G)
-    # positioning = plot_graph(G)
-
-    # handle nodes with descendants that contain necessary attributes
-    for node in json_data["nodes_with_descendants"]:
-        # find parent node
-        parent_pattern = create_simple_pattern(node, node)
-        instances = G.find_matching(parent_pattern)
-
-        # get ids of all parent occurrences in the graph
-        if len(instances) != 0:
-            parent_type = list(parent_pattern._graph.nodes._nodes)[0]
-            parent_ids = get_ids(parent_type, instances)
-
-            # find its children names in json
-            descendants_patterns = []
-            for descendant_node in json_data["nodes_with_descendants"][node]:
-                descendant_pattern = create_simple_pattern(descendant_node, descendant_node)
-                descendants_patterns.append(descendant_pattern)
-
-            # get attributes of children
-            add_attrs_from_patterns(parent_ids, descendants_patterns, True, G)
-
-            # clear descendants
-            remove_descendants(G, parent_type, instances)
-
-    # handle simple nodes
-    for node in json_data["simple_nodes"]:
-        pattern = create_simple_pattern(json_data["simple_nodes"][node], json_data["simple_nodes"][node])
-        instances = G.find_matching(pattern)
-        if len(instances) != 0:
-            pattern_type = list(pattern._graph.nodes._nodes)[0]
-            remove_descendants(G, pattern_type, instances)
-
-    # handle comments
-    for node in json_data["nodes_to_completely_remove"]:
-        patterns_to_remove = create_simple_pattern(node, node)
-        instances = G.find_matching(patterns_to_remove)
-        if len(instances) != 0:
-            node_type = list(patterns_to_remove._graph.nodes._nodes)[0]
-            node_ids = get_ids(node_type, instances)
-            remove_nodes(G, node_ids)
-    import_dict = []
-    for node in json_data["import_save"]:
-        imports_to_save = create_simple_pattern(node, node)
-        instances = G.find_matching(imports_to_save)
-        if len(instances) != 0:
-            node_type = list(imports_to_save._graph.nodes._nodes)[0]
-            node_ids = get_ids(node_type, instances)
-            import_dict.append(save_imports(G, node_ids))
-            remove_nodes(G, node_ids)
-
-    return G
-
-
-def arrange_graph(G):
-    # read json file
-    f = open('knowledge_base/graph_clearing_patterns.json', "r")
-    json_data = json.loads(f.read())
-
-    # rearrange initially present nodes
-    G.remove_node(0)
-    current_node_list = []
-    for n, attr in G.nodes(data=True):
-        current_node_list.append(int(n))
-    i = 0
-    parent_id = 0
-    for n in current_node_list:
-        node_attrs = G.get_node(n)
-        if n != current_node_list[-1]:
-            try:
-                G.add_edge(n, current_node_list[i + 1])
-            except:
-                pass
-            node_attrs["child_id"] = current_node_list[i + 1]
-            i += 1
-        if parent_id != 0:
-            node_attrs.update({"parent_id": parent_id})
-        else:
-            node_attrs.update({"parent_id": -1})
-        G.update_node_attrs(n, node_attrs)
-        parent_id = n
-
-    # add nodes from nested functions
-    for node in json_data["nested_function_calls"]:
-        nested_calls = create_simple_pattern(node, node)
-        instances = G.find_matching(nested_calls)
-        if len(instances) != 0:
-            node_type = list(nested_calls._graph.nodes._nodes)[0]
-            node_ids = get_ids(node_type, instances)
-            for nested_function_call in json_data["nested_function_calls"][node]:
-                for id in node_ids:
-                    nested_function = (G.get_node(id))
-                    if nested_function_call in nested_function:
-                        nodes_to_refactor = (nested_function[nested_function_call])
-                        i = 1
-                        for node in nodes_to_refactor:
-                            for j in nested_function["argument_list"]:
-                                if node.decode("utf-8") in str(j):
-                                    nested_function["argument_list"] = {}
-                            node = node.decode("utf-8")
-                            node_dict = {"type": "default", "label": node + "()", "caller_function": node,
-                                         "parent_id": -1, "child_id": id}
-                            new_node_id = id * 10 + i
-                            i += 1
-                            G.add_node(new_node_id, node_dict)
-                            G.add_edge(new_node_id, id)
-
-    # add other hyperparameter nodes
-    for node in json_data["hyperparameters"]:
-        hyperparameter_pattern = create_simple_pattern(node, node)
-        instances = G.find_matching(hyperparameter_pattern)
-        if len(instances) != 0:
-            node_attribute = list(hyperparameter_pattern._graph.nodes._nodes)[0]
-            node_ids = get_ids(node_attribute, instances)
-            for node_attribute in json_data["hyperparameters"][node]:
-                for id in node_ids:
-                    node = (G.get_node(id))
-                    node_clone = node
-                    if node_attribute in node:
-                        nodes_to_refactor = (node[node_attribute])
-                        for n in nodes_to_refactor:
-                            n = n.decode("utf-8")
-                            n = n.replace("(", "").replace(")", "")
-                            # split arguments in the argument list
-                            splitted_list = n.split(", ")
-                            nodes_to_refactor = splitted_list
-                            node_clone.update({node_attribute: splitted_list})
-
-                        i = 1
-                        for node in nodes_to_refactor:
-                            # node = node.decode("utf-8")
-                            if "=" in node:
-                                node_name, node_value = node.split("=")
-                                node_dict = {"type": "input", "label": f'{node_name}={node_value}', "value": node_value,
-                                             "parent_id": -1, "child_id": id}
-                                new_node_id = id * 10 + i
-                                i += 1
-                                if node != "()":
-                                    G.add_node(new_node_id, node_dict)
-                                    G.add_edge(new_node_id, id)
-                    G.update_node_attrs(id, node_clone)
-                    # else:
-                    # node_name = node
-                    # node_value = ""
-
-    return G
-
-
-def arrange_graph_v3(G):
-    f = open('knowledge_base/graph_clearing_patterns.json', "r")
-    json_data = json.loads(f.read())
-
-    # remove module node
-    G.remove_node(0)
-
-    # delete all edges
-    for edge in list(G.edges()):
-        G.remove_edge(edge[0], edge[1])
-
-    for node1_id in list(G.nodes()):
-        node1 = G.get_node(node1_id)
-
-        if "variable_list" in list(node1.keys()):
-            # get the name of the variables as a list of strings
-            variables = list(node1["variable_list"])[0].decode("utf-8").split(',')
-            # clear whitespaces in the name of the variables
-            variables = [var.strip() for var in variables]
-
-            for node2_id in list(G.nodes()):
-                node2 = G.get_node(node2_id)
-
-                if "argument_list" in list(node2.keys()):
-
-                    arguments = list(node2["argument_list"])[0].decode("utf-8").split(',')
-                    arguments = [arg.strip() for arg in arguments]
-                    # remove parenthesis of first argument
-                    arguments[0] = arguments[0][1:]
-                    # remove parenthesis of last argument
-                    arguments[-1] = arguments[-1][:-1]
-
-                    for var in variables:
-                        if var in arguments and (node1_id, node2_id) not in list(G.edges()):
-                            G.add_edge(node1_id, node2_id)
-
-    new_node_id = max(list(G.nodes())) + 1
-    for node in json_data["nested_function_calls"]:
-        nested_calls = create_simple_pattern(node, node)
-        instances = G.find_matching(nested_calls)
-        if len(instances) != 0:
-            node_type = list(nested_calls._graph.nodes._nodes)[0]
-            node_ids = get_ids(node_type, instances)
-            for nested_function_call in json_data["nested_function_calls"][node]:
-                for id in node_ids:
-                    nested_function = (G.get_node(id))
-                    if nested_function_call in nested_function:
-                        nodes_to_refactor = (nested_function[nested_function_call])
-                        i = 1
-                        for node in nodes_to_refactor:
-                            for j in nested_function["argument_list"]:
-                                if node.decode("utf-8") in str(j):
-                                    nested_function["argument_list"] = {}
-                            node = node.decode("utf-8")
-                            node_dict = {"type": "default", "label": node + "()", "caller_function": node,
-                                         "parent_id": -1, "child_id": id}
-                            i += 1
-                            G.add_node(new_node_id, node_dict)
-                            G.add_edge(new_node_id, id)
-                            new_node_id += 1
-
-    for node1_id in list(G.nodes()):
-        node1 = G.get_node(node1_id)
-
-        if "caller_function" in list(node1.keys()):
-            caller_func = list(node1["caller_function"])[0]
-
-            if type(caller_func) == bytes:
-                caller_func = caller_func.decode("utf-8")
-
-            obj = caller_func.split('.')[0]
-
-            for node2_id in list(G.nodes()):
-                node2 = G.get_node(node2_id)
-
-                if "variable_list" in list(node2.keys()):
-                    variables = list(node2["variable_list"])[0].decode("utf-8").split(',')
-                    variables = [var.strip() for var in variables]
-
-                    if obj in variables:
-                        G.add_edge(node2_id, node1_id)
-
-        if "subscript_object" in list(node1.keys()):
-            sub_obj = list(node1["subscript_object"])[0].decode("utf-8").split('.')[0]
-
-            for node2_id in list(G.nodes()):
-                node2 = G.get_node(node2_id)
-
-                if "variable_list" in list(node2.keys()):
-                    variables = list(node2["variable_list"])[0].decode("utf-8").split(',')
-                    variables = [var.strip() for var in variables]
-
-                    if sub_obj in variables:
-                        G.add_edge(node2_id, node1_id)
-
-    return G
-
-
-def arrange_graph_v2(G):
-    # remove module node
-    G.remove_node(0)
-
-    # delete all edges
-    for edge in list(G.edges()):
-        G.remove_edge(edge[0], edge[1])
-
-    new_node_id = max(list(G.nodes())) + 1
-    variable_ids = []
-
-    # create new node for each variable in variable_list and add edge to expression_statement
-    for node_id in list(G.nodes()):
-        node = G.get_node(node_id)
-
-        if "variable_list" in list(node.keys()):
-            # get the name of the variables as a list of strings
-            variables = list(node["variable_list"])[0].decode("utf-8").split(',')
-            # clear whitespaces in the name of the variables
-            variables = [var.strip() for var in variables]
-
-            for var in variables:
-                G.add_node(new_node_id, {"type": "variable", "label": var})
-                G.add_edge(node_id, new_node_id)
-                variable_ids.append(new_node_id)
-                new_node_id += 1
-
-    # search if there is a variable for each argument in argument_list, and if so, connect variable to
-    # expression_statement
-    for node1_id in list(G.nodes()):
-        node1 = G.get_node(node1_id)
-
-        if "argument_list" in list(node1.keys()):
-            # convert argument_list into a list of strings
-            arguments = list(node1["argument_list"])[0].decode("utf-8").split(',')
-            # remove whitespaces
-            arguments = [arg.strip() for arg in arguments]
-            # remove parenthesis of first argument
-            arguments[0] = arguments[0][1:]
-            # remove parenthesis of last argument
-            arguments[-1] = arguments[-1][:-1]
-
-            for node2_id in list(G.nodes()):
-                node2 = G.get_node(node2_id)
-
-                if node2_id > node1_id and list(node2["type"])[0] == "variable":
-                    if list(node2["label"])[0] in arguments:
-                        G.add_edge(node2_id, node1_id)
-
-    # create a node for each argument that is not a variable
-    for node_id in list(G.nodes()):
-        node = G.get_node(node_id)
-
-        if "argument_list" in list(node.keys()):
-            # convert argument_list into a list of strings
-            arguments = list(node["argument_list"])[0].decode("utf-8").split(',')
-            # remove whitespaces
-            arguments = [arg.strip() for arg in arguments]
-            # remove parenthesis of first argument
-            arguments[0] = arguments[0][1:]
-            # remove parenthesis of last argument
-            arguments[-1] = arguments[-1][:-1]
-
-            for arg in arguments:
-                has_match = False
-                for var_id in variable_ids:
-                    var_node = G.get_node(var_id)
-
-                    if arg == list(var_node["label"])[0]:
-                        has_match = True
-
-                if not has_match:
-                    G.add_node(new_node_id, {"type": "argument", "label": arg})
-                    G.add_edge(new_node_id, node_id)
-                    new_node_id += 1
-
-    return G
-
-
-def rewrite_graph(G, language):
-    # read data from knowledge base
-    assert language != '', 'language is not set'
-    if language in ['python', 'snakemake']:
-        df = pd.read_csv("knowledge_base/signatures_p.csv")
-        f = open('knowledge_base/rewrite_rules_p.json', "r")
-    elif language == 'r':
-        df = pd.read_csv("knowledge_base/signatures_r.csv")
-        f = open('knowledge_base/rewrite_rules_r.json', "r")
-    mapping = dict(zip(df.name, df.category))
-
-    json_data = json.loads(f.read())
-
-    variable_list = []
-
-    # replace function calls
-    for node in json_data:
-        # get one node type from the rewrite rules file
-        pattern = create_simple_pattern(node, node)
-        instances = G.find_matching(pattern)
-        # For this specific node, find attribute type to read
-        # acc. to rewrite rules
-        attr_type = list(json_data[node].keys())[0]
-        # for this node type, find all graph nodes
-        if len(instances) != 0:
-            pattern_type = list(pattern._graph.nodes._nodes)[0]
-            pattern_ids = get_ids(pattern_type, instances)
-            # read attribute type for each node in pattern_ids
-            for pattern_id in pattern_ids:
-                node_attributes = G.get_node(pattern_id).get(attr_type)
-                # compare each attribute text with signatures
-                if bool(node_attributes) != 0:
-                    for attribute_bytes in node_attributes:
-                        if isinstance(attribute_bytes, (bytes, bytearray)):
-                            attribute = attribute_bytes.decode("utf-8")
-                        else:
-                            attribute = attribute_bytes
-                        dot = "."
-                        if dot in attribute and language == "python":
-                            attribute = trim(attribute)
-                        for name in mapping:
-                            new_attributes = G.get_node(pattern_id)
-                            if attribute == name:
-                                new_attributes["label"] = mapping[name]
-                                G.update_node_attrs(pattern_id, new_attributes)
-                                break
-                            else:
-                                if language == 'python':
-                                    new_label = new_attributes["caller_function"]
-                                    new_attributes["label"] = new_label
-                                else:
-                                    new_label = new_attributes["text"]
-                                    new_attributes["label"] = new_label
-                                G.update_node_attrs(pattern_id, new_attributes)
-                            # new_attributes["type"] = "operator"
-                            G.update_node_attrs(pattern_id, new_attributes)
-
-    rule = Rule.from_transform(G)
-    # plot_rule(rule)
     return G
 
 
