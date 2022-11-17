@@ -1,10 +1,17 @@
 class Python:
         code_0 = """   
-                X, y = make_classification(random_state=0)
-                X_train, X_test, y_train, y_test = train_test_split(X, y, random_state=0)
-                pipe.fit(X_train, y_train)
-                pipe.score(X_test, y_test)   
-                """
+        pipe = Pipeline()
+        X, y, z = make_classification(random_state=0)
+        X_train, X_test, y_train, y_test = train_test_split(X, y, random_state=z)
+        pipe.fit(X_train, y_train)
+        pipe.score(X_test, y_test)
+        """
+        code_backup = """
+        pipe = Pipeline()
+        X, y, z = make_classification(random_state=0)
+        X_train, X_test, y_train, y_test = train_test_split(X, y, random_state=z)
+        pipe.fit(X_train, y_train)
+        """
 
         code_1 = """
             import numpy as np

@@ -102,22 +102,20 @@ def trim(attribute):
 
 
 def apply_pre_transformations(G):
-    # descendants
-    redundant_descendants = [
-        "keyword_argument",
-        "attribute"
-    ]
-    for redundancy in redundant_descendants:
-        pattern = create_pattern("node_id", "type", redundancy)
-        instances = G.find_matching(pattern)
-        for instance in instances:
-            remove_descendants_from_node(G, instance["node_id"])
-
+    """# redundant descendants
+        redundant_descendants = [
+            "keyword_argument"
+        ]
+        for redundancy in redundant_descendants:
+            pattern = create_pattern("node_id", "type", redundancy)
+            instances = G.find_matching(pattern)
+            for instance in instances:
+                remove_descendants_from_node(G, instance["node_id"])"""
     return G
 
 
-def apply_post_transformations(G):
-    # remove redundancies
+def cleanup(G):
+    # redundant parents
     redundancy_list = [
         "expression_statement",
         "assignment",
@@ -130,47 +128,156 @@ def apply_post_transformations(G):
         instances = G.find_matching(redundancy_pattern)
         for instance in instances:
             remove_nodes(G, [instance["node_id"]])
+    return
 
-    # connect functions
-    output_pattern = NXGraph()
-    output_pattern.add_node(1, {'type': 'caller_function'})
-    output_pattern.add_node(2, {'type': 'identifier'})
-    output_pattern.add_edge(1, 2)
 
-    input_pattern = NXGraph()
-    input_pattern.add_node(1, {'type': 'identifier'})
-    input_pattern.add_node(2, {'type': 'caller_function'})
-    input_pattern.add_edge(1, 2)
-
-    output_instances = G.find_matching(output_pattern)
-    input_instances = G.find_matching(input_pattern)
-
-    removed_instances = []
+def compare_outputs_inputs(G, output_instances, input_instances, nodes_to_remove):
+    # check if same names, remove both nodes, add edge
     for output_instance in output_instances:
-        if output_instance in removed_instances:
-            continue
         output_identifier = output_instance[2]
+        #if output_identifier in removed_instances:
+            #continue
         output_caller_function = output_instance[1]
+        # print(output_caller_function)
         output_node = G.get_node(output_identifier)
         for input_instance in input_instances:
-            if input_instance in removed_instances:
-                continue
             input_identifier = input_instance[1]
+            #if input_identifier in removed_instances:
+                #continue
             input_caller_function = input_instance[2]
+            # print(input_caller_function)
             input_node = G.get_node(input_identifier)
+            # if same, remove nodes and add edge
             if output_node['text'] == input_node['text']:
-                # remove nodes
-                G.remove_node(output_identifier)
-                removed_instances.append(output_instance)
-                G.remove_node(input_identifier)
-                removed_instances.append(input_instance)
+                #G.remove_node(output_identifier)
+                if output_identifier not in nodes_to_remove:
+                    nodes_to_remove.append(output_identifier)
+                #G.remove_node(input_identifier)
+                if input_identifier not in nodes_to_remove:
+                    nodes_to_remove.append(input_identifier)
                 # add edge between caller functions
+                # if exists, add further attribute
                 try:
                     G.add_edge(output_caller_function, input_caller_function, {'text': output_node['text']})
                 except:
                     G.add_edge_attrs(output_caller_function, input_caller_function, {'text': output_node['text']})
 
                 continue
+
+    return G, output_instances, input_instances, nodes_to_remove
+
+
+def connect_variables(G):
+    """
+    1. search for childless identifiers
+    2. search for parentless identifiers
+    3. check if they have the same text values
+    4. if yes, remove both, make edge between parent of 1 and child of 2
+    5. save rest of identifiers as attribute of their parent or child respectfully
+    """
+
+    # if an identifier node is a child of a caller function, it is an output value of a function
+    output_pattern = NXGraph()
+    output_pattern.add_node(1, {'type': 'caller_function'})
+    output_pattern.add_node(2, {'type': 'output'})
+    output_pattern.add_edge(1, 2)
+
+    # if an identifier node is a parent to any node, it is an input value into that function
+    # check in known inputs
+    input_pattern = NXGraph()
+    input_pattern.add_node(1, {'type': 'input'})
+    input_pattern.add_node(2)
+    input_pattern.add_edge(1, 2)
+
+    nodes_to_remove = []
+
+    output_instances = G.find_matching(output_pattern)
+    input_instances = G.find_matching(input_pattern)
+
+    G, output_instances, input_instances, nodes_to_remove = compare_outputs_inputs(G, output_instances,
+                                                                                     input_instances, nodes_to_remove)
+    # go though leftover inputs, save them into their
+    # belonging functions as attribute
+    for input_instance in input_instances:
+
+        input_id = input_instance[1]
+        #if input_id in nodes_to_remove:
+            #continue
+        children = G.successors(input_id)
+        input_node = G.successors(input_id)
+        # save attr in child
+        input_node = G.get_node(input_id)
+        child_id = list(children)[0]
+        child_node = G.get_node(child_id)
+        if "input_variable" in child_node:
+            for elem in input_node["text"]:
+                child_node["input_variable"].add(elem)
+        else:
+            child_node["input_variable"] = input_node["text"]
+        G.update_node_attrs(child_id, child_node)
+        #G.remove_node(input_id)
+        if input_id not in nodes_to_remove:
+            nodes_to_remove.append(input_id)
+
+    # check the rest of the potential inputs
+    input_pattern = NXGraph()
+    input_pattern.add_node(1, {'type': 'identifier'})
+    input_pattern.add_node(2)
+    input_pattern.add_edge(1, 2)
+
+    input_instances = G.find_matching(input_pattern)
+    G, output_instances, input_instances, nodes_to_remove = compare_outputs_inputs(G, output_instances,
+                                                                                        input_instances, nodes_to_remove)
+    for input_instance in input_instances:
+
+        input_id = input_instance[1]
+        #if input_id in nodes_to_remove:
+            #continue
+        children = G.successors(input_id)
+        input_node = G.successors(input_id)
+        # save attr in child
+        input_node = G.get_node(input_id)
+        child_id = list(children)[0]
+        child_node = G.get_node(child_id)
+        if "identifier" in child_node:
+            for elem in input_node["text"]:
+                child_node["identifier"].add(elem)
+        else:
+            child_node["identifier"] = input_node["text"]
+        G.update_node_attrs(child_id, child_node)
+        #G.remove_node(input_id)
+        if input_id not in nodes_to_remove:
+            nodes_to_remove.append(input_id)
+
+    # go through leftover outputs, save them into their
+    # belonging functions as attribute
+    for output_instance in output_instances:
+
+        output_id = output_instance[2]
+        #if output_id in nodes_to_remove:
+            #continue
+        parents = G.predecessors(output_id)
+        # save attribute in parent
+        output_node = G.get_node(output_id)
+        parent_id = list(parents)[0]
+        parent_node = G.get_node(parent_id)
+        if "output_variable" in parent_node:
+            for elem in output_node["text"]:
+                parent_node["output_variable"].add(elem)
+        else:
+            parent_node["output_variable"] = output_node["text"]
+        G.update_node_attrs(parent_id, parent_node)
+        #G.remove_node(output_id)
+        if input_id not in nodes_to_remove:
+            nodes_to_remove.append(input_id)
+    for id in nodes_to_remove:
+        G.remove_node(id)
+    return
+
+
+def apply_post_transformations(G):
+    cleanup(G)
+    connect_variables(G)
     return
 
 
@@ -229,8 +336,9 @@ def apply_rule(G, json_rule):
     else:
         instances = G.find_matching(pattern)
 
-    #instances = G.find_matching(pattern)
+    # instances = G.find_matching(pattern)
     if instances:
+        print(json_rule)
         for instance in instances:
             G.rewrite(rule, instance)
 
@@ -239,7 +347,7 @@ def transform_graph(G):
     # read json file
     f = open('knowledge_base/graph_clearing_patterns.json', "r")
     json_data = json.loads(f.read())
-    # print_graph(G)
+    print_graph(G)
     apply_pre_transformations(G)
 
     start_outer = time.time()
@@ -254,7 +362,7 @@ def transform_graph(G):
             # if counter == 21:
             # print_graph(G)
             end_iner = time.time()
-            print(f'line {counter} done in {end_iner - start_iner}')
+            # print(f'line {counter} done in {end_iner - start_iner}')
             counter = counter + 1
     end_outer = time.time()
     print(f'apply rule  done in {end_outer - start_outer}')
