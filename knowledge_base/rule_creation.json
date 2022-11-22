@@ -3,46 +3,17 @@
     "nodes":[
       {
         "node_id": 1,
-        "type" : "expression_statement"
-      },
-      {
-        "node_id": 2,
-        "type" : "assignment"
-      },
-      {
-        "node_id": 3,
-        "type" : "identifier"
-      }
-    ],
-    "edges":[
-      {
-        "parent_node_id":1,
-        "child_node_id":2
+        "type" : "call"
       }
     ]
   },
   "transformations":{
-    "remove_edges": [
-          {
-              "parent_node_id" : 1,
-              "child_node_id" : 2
-          }
-      ],
-    "add_nodes_with_attributes":[
+    "update_node_attributes":[
         {
-          "node_id": 3,
-          "type" : "pattern_list"
+          "node_id" : 1,
+          "type" : "call",
+          "text" : "+"
         }
-      ],
-    "add_edges":[
-          {
-              "parent_node_id" : 1,
-              "child_node_id" : 3
-          },
-          {
-              "parent_node_id" : 3,
-              "child_node_id" : 2
-          }
       ]
   }
 }

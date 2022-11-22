@@ -6,6 +6,7 @@ import time
 import matplotlib.pyplot as plt
 import networkx as nx
 from regraph.backends.networkx.plotting import plot_rule
+import utils
 
 
 def remove_descendants_from_instances(G, node_type, instances):
@@ -101,17 +102,167 @@ def trim(attribute):
     return attribute
 
 
-def apply_pre_transformations(G):
-    """# redundant descendants
-        redundant_descendants = [
-            "keyword_argument"
-        ]
-        for redundancy in redundant_descendants:
-            pattern = create_pattern("node_id", "type", redundancy)
-            instances = G.find_matching(pattern)
-            for instance in instances:
-                remove_descendants_from_node(G, instance["node_id"])"""
+def flip_the_table(G: NXGraph):
+    root_node = utils.get_root_node_id(G)
+    flip_node(G, root_node)
+    return
+
+
+def flip_node(G: NXGraph, node_to_flip, id_to_ignore=-1):
+    if not G.successors(node_to_flip):
+        return
+    children = list()
+    for child in G.successors(node_to_flip):
+        children.append(child)
+    while children:
+        child = children.pop(0)
+        if child == id_to_ignore:
+            continue
+        G.add_edge(child, node_to_flip)
+        G.remove_edge(node_to_flip, child)
+        flip_node(G, child, node_to_flip)
+
+
+def sort_lists_tuples(G):
+    # handling tuples and lists
+    # find tuple list pairs
+    ltpattern = NXGraph()
+    ltpattern.add_node(1, {'type': 'list'})
+    ltpattern.add_node(2, {'type': 'tuple'})
+    ltpattern.add_edge(1, 2)
+
+    tlpattern = NXGraph()
+    tlpattern.add_node(1, {'type': 'tuple'})
+    tlpattern.add_node(2, {'type': 'list'})
+    tlpattern.add_edge(1, 2)
+
+    ltinstances = G.find_matching(ltpattern)
+    tlinstances = G.find_matching(tlpattern)
+
+    ltrule = Rule.from_transform(ltpattern)
+    tlrule = Rule.from_transform(tlpattern)
+
+    ltrule.inject_remove_edge(1, 2)
+    ltrule.inject_add_edge(2, 1)
+
+    tlrule.inject_remove_edge(1, 2)
+    tlrule.inject_add_edge(2, 1)
+
+    if ltinstances:
+        for instance in ltinstances:
+            G.rewrite(ltrule, instance)
+
+    if tlinstances:
+        for instance in tlinstances:
+            G.rewrite(tlrule, instance)
     return G
+
+
+def save_list_tuple_successors(G):
+    list_pattern = NXGraph()
+    list_pattern.add_node(1, {'type': 'list'})
+    instances = G.find_matching(list_pattern)
+
+    list_children = {}
+    if instances:
+        for instance in instances:
+            list_id = instance[1]
+            list_successors = G.successors(list_id)
+            list_children[list_id] = []
+            for successor in list_successors:
+                list_children[list_id].append(successor)
+    tuple_pattern = NXGraph()
+    tuple_pattern.add_node(1, {'type': 'tuple'})
+    instances = G.find_matching(tuple_pattern)
+
+    if instances:
+        for instance in instances:
+            tuple_id = instance[1]
+            tuple_successors = G.successors(tuple_id)
+            list_children[tuple_id] = []
+            for successor in tuple_successors:
+                list_children[tuple_id].append(successor)
+
+    return list_children
+
+
+def apply_pre_transformations(G):
+    list_children = save_list_tuple_successors(G)
+    sort_lists_tuples(G)
+    return list_children
+
+
+def sort_lists(G, list_children):
+    # handle rest of list children
+    list_pattern = NXGraph()
+    list_pattern.add_node(1, {'type': 'list'})
+    list_pattern.add_node(2)
+    list_pattern.add_edge(1, 2)
+
+    list_instance = G.find_matching(list_pattern)
+
+    list_rule = Rule.from_transform(list_pattern)
+    list_rule.inject_remove_edge(1, 2)
+    list_rule.inject_add_edge(2, 1)
+
+    for instance in list_instance:
+        list_id = instance[1]
+        list_child_id = instance[2]
+        if list_child_id in list_children[list_id]:
+            list_child_node = G.get_node(instance[2])
+            for elem in list_child_node["type"]:
+                if elem != "tuple" and elem != "call":
+                    G.rewrite(list_rule, instance)
+    # handle rest of tuple children
+    tuple_pattern = NXGraph()
+    tuple_pattern.add_node(1, {'type': 'tuple'})
+    tuple_pattern.add_node(2)
+    tuple_pattern.add_edge(1, 2)
+
+    tuple_instance = G.find_matching(tuple_pattern)
+
+    tuple_rule = Rule.from_transform(tuple_pattern)
+    tuple_rule.inject_remove_edge(1, 2)
+    tuple_rule.inject_add_edge(2, 1)
+
+    for instance in tuple_instance:
+        tuple_id = instance[1]
+        tuple_child_id = instance[2]
+        if tuple_child_id in list_children[tuple_id]:
+            tuple_child_node = G.get_node(instance[2])
+            for elem in tuple_child_node["type"]:
+                if elem != "list" and elem != "call":
+                    G.rewrite(tuple_rule, instance)
+
+    return G
+
+
+def replace_call(G, list_children):
+    # print(list_children)
+    # connect call and caller function children
+    call_pattern = NXGraph()
+    call_pattern.add_node(1, {'type': 'call'})
+    call_pattern.add_node(2, {'type': 'caller_function'})
+    call_pattern.add_edge(1, 2)
+
+    call_instances = G.find_matching(call_pattern)
+    if call_instances:
+        for instance in call_instances:
+            call_id = instance[1]
+            caller_function_id = instance[2]
+            call_parents = G.predecessors(call_id)
+            call_children = G.successors(call_id)
+            for parent in call_parents:
+                G.add_edge(parent, caller_function_id)
+            for child in call_children:
+                if child != caller_function_id:
+                    G.add_edge(caller_function_id, child)
+            # if call_id in list_children.values():
+            for key, value in list_children.items():
+                if call_id in value:
+                    list_children[key].append(caller_function_id)
+
+    return list_children
 
 
 def cleanup(G):
@@ -128,6 +279,23 @@ def cleanup(G):
         instances = G.find_matching(redundancy_pattern)
         for instance in instances:
             remove_nodes(G, [instance["node_id"]])
+    # keyword argument children
+    keyword_children_list = [
+        "string",
+        "integer",
+        "float",
+        "ture",
+        "false"
+    ]
+    for child in keyword_children_list:
+        keyword_pattern = NXGraph()
+        keyword_pattern.add_node(1, {'type': 'keyword_argument'})
+        keyword_pattern.add_node(2, {'type': child})
+        keyword_pattern.add_edge(1, 2)
+        keyword_instances = G.find_matching(keyword_pattern)
+        for keyword_instance in keyword_instances:
+            G.remove_node(keyword_instance[2])
+
     return
 
 
@@ -135,24 +303,24 @@ def compare_outputs_inputs(G, output_instances, input_instances, nodes_to_remove
     # check if same names, remove both nodes, add edge
     for output_instance in output_instances:
         output_identifier = output_instance[2]
-        #if output_identifier in removed_instances:
-            #continue
+        # if output_identifier in removed_instances:
+        # continue
         output_caller_function = output_instance[1]
         # print(output_caller_function)
         output_node = G.get_node(output_identifier)
         for input_instance in input_instances:
             input_identifier = input_instance[1]
-            #if input_identifier in removed_instances:
-                #continue
+            # if input_identifier in removed_instances:
+            # continue
             input_caller_function = input_instance[2]
             # print(input_caller_function)
             input_node = G.get_node(input_identifier)
             # if same, remove nodes and add edge
             if output_node['text'] == input_node['text']:
-                #G.remove_node(output_identifier)
+                # G.remove_node(output_identifier)
                 if output_identifier not in nodes_to_remove:
                     nodes_to_remove.append(output_identifier)
-                #G.remove_node(input_identifier)
+                # G.remove_node(input_identifier)
                 if input_identifier not in nodes_to_remove:
                     nodes_to_remove.append(input_identifier)
                 # add edge between caller functions
@@ -181,6 +349,13 @@ def connect_variables(G):
     output_pattern.add_node(1, {'type': 'caller_function'})
     output_pattern.add_node(2, {'type': 'output'})
     output_pattern.add_edge(1, 2)
+    output_instances = G.find_matching(output_pattern)
+
+    output_pattern = NXGraph()
+    output_pattern.add_node(1, {'type': 'attribute'})
+    output_pattern.add_node(2, {'type': 'output'})
+    output_pattern.add_edge(1, 2)
+    output_instances = output_instances + (G.find_matching(output_pattern))
 
     # if an identifier node is a parent to any node, it is an input value into that function
     # check in known inputs
@@ -188,38 +363,37 @@ def connect_variables(G):
     input_pattern.add_node(1, {'type': 'input'})
     input_pattern.add_node(2)
     input_pattern.add_edge(1, 2)
-
-    nodes_to_remove = []
-
-    output_instances = G.find_matching(output_pattern)
     input_instances = G.find_matching(input_pattern)
 
+    nodes_to_remove = []
+    # print(type(output_instances))
+
     G, output_instances, input_instances, nodes_to_remove = compare_outputs_inputs(G, output_instances,
-                                                                                     input_instances, nodes_to_remove)
+                                                                                   input_instances, nodes_to_remove)
     # go though leftover inputs, save them into their
     # belonging functions as attribute
     for input_instance in input_instances:
 
         input_id = input_instance[1]
-        #if input_id in nodes_to_remove:
-            #continue
+        # if input_id in nodes_to_remove:
+        # continue
         children = G.successors(input_id)
         input_node = G.successors(input_id)
         # save attr in child
         input_node = G.get_node(input_id)
         child_id = list(children)[0]
         child_node = G.get_node(child_id)
-        if "input_variable" in child_node:
+        if "input_variables" in child_node:
             for elem in input_node["text"]:
-                child_node["input_variable"].add(elem)
+                child_node["input_variables"].add(elem)
         else:
-            child_node["input_variable"] = input_node["text"]
+            child_node["input_variables"] = input_node["text"]
         G.update_node_attrs(child_id, child_node)
-        #G.remove_node(input_id)
+        # G.remove_node(input_id)
         if input_id not in nodes_to_remove:
             nodes_to_remove.append(input_id)
 
-    # check the rest of the potential inputs
+    # check identifiers fpr potential inputs
     input_pattern = NXGraph()
     input_pattern.add_node(1, {'type': 'identifier'})
     input_pattern.add_node(2)
@@ -227,55 +401,55 @@ def connect_variables(G):
 
     input_instances = G.find_matching(input_pattern)
     G, output_instances, input_instances, nodes_to_remove = compare_outputs_inputs(G, output_instances,
-                                                                                        input_instances, nodes_to_remove)
+                                                                                   input_instances, nodes_to_remove)
     for input_instance in input_instances:
-
         input_id = input_instance[1]
-        #if input_id in nodes_to_remove:
-            #continue
         children = G.successors(input_id)
-        input_node = G.successors(input_id)
         # save attr in child
         input_node = G.get_node(input_id)
         child_id = list(children)[0]
         child_node = G.get_node(child_id)
-        if "identifier" in child_node:
-            for elem in input_node["text"]:
-                child_node["identifier"].add(elem)
+        # if we met this node before, it is an object or a variable
+        if input_id in nodes_to_remove:
+            child_node["var"] = input_node["text"]
         else:
-            child_node["identifier"] = input_node["text"]
+            if "identifier" in child_node:
+                for elem in input_node["text"]:
+                    child_node["identifier"].add(elem)
+            else:
+                child_node["identifier"] = input_node["text"]
         G.update_node_attrs(child_id, child_node)
-        #G.remove_node(input_id)
         if input_id not in nodes_to_remove:
             nodes_to_remove.append(input_id)
 
     # go through leftover outputs, save them into their
     # belonging functions as attribute
     for output_instance in output_instances:
-
         output_id = output_instance[2]
-        #if output_id in nodes_to_remove:
-            #continue
+        # if output_id in nodes_to_remove:
+        # continue
         parents = G.predecessors(output_id)
         # save attribute in parent
         output_node = G.get_node(output_id)
         parent_id = list(parents)[0]
         parent_node = G.get_node(parent_id)
-        if "output_variable" in parent_node:
+        if "output_variables" in parent_node:
             for elem in output_node["text"]:
-                parent_node["output_variable"].add(elem)
+                parent_node["output_variables"].add(elem)
         else:
-            parent_node["output_variable"] = output_node["text"]
+            parent_node["output_variables"] = output_node["text"]
         G.update_node_attrs(parent_id, parent_node)
-        #G.remove_node(output_id)
-        if input_id not in nodes_to_remove:
-            nodes_to_remove.append(input_id)
+        # G.remove_node(output_id)
+        if output_id not in nodes_to_remove:
+            nodes_to_remove.append(output_id)
     for id in nodes_to_remove:
         G.remove_node(id)
     return
 
 
-def apply_post_transformations(G):
+def apply_post_transformations(G, list_children):
+    list_children = replace_call(G, list_children)
+    sort_lists(G, list_children)
     cleanup(G)
     connect_variables(G)
     return
@@ -339,7 +513,9 @@ def apply_rule(G, json_rule):
     # instances = G.find_matching(pattern)
     if instances:
         print(json_rule)
+        # print_graph(G)
         for instance in instances:
+            # print(type(instances))
             G.rewrite(rule, instance)
 
 
@@ -348,7 +524,10 @@ def transform_graph(G):
     f = open('knowledge_base/graph_clearing_patterns.json', "r")
     json_data = json.loads(f.read())
     print_graph(G)
-    apply_pre_transformations(G)
+    #flip_the_table(G)
+    #print_graph(G)
+    return
+    list_children = apply_pre_transformations(G)
 
     start_outer = time.time()
     counter = 1
@@ -367,7 +546,7 @@ def transform_graph(G):
     end_outer = time.time()
     print(f'apply rule  done in {end_outer - start_outer}')
 
-    apply_post_transformations(G)
+    apply_post_transformations(G, list_children)
     print_graph(G)
 
     # create_subgraph(G, 1)

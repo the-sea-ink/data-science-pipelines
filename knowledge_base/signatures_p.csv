@@ -517,5 +517,3 @@ id,name,long_name,url,package_id,category
 516,seed,numpy.random.seed,https://docs.scipy.org/doc/numpy-1.15.1/reference/generated/numpy.random.seed.html,3,configuration
 517,print,print,output,user_output,user_output
 518,inverse_transform,inverse_transform,https://scikit-learn.org/stable/modules/generated/sklearn.preprocessing.StandardScaler.html#sklearn.preprocessing.StandardScaler,5,data_scaling
-519,score,score,score,get_score,get_score
-520,predict,predict,predict,make_prediction,make_prediction

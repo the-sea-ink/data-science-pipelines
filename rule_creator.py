@@ -94,6 +94,7 @@ def create_rule_from_json(pattern, path):
         for node in attrs_to_update:
             node_id = node.pop("node_id")
             node_attrs_to_update = node
+            print(node_attrs_to_update)
             rule.inject_update_node_attrs(node_id, node_attrs_to_update)
 
     # get nodes to add

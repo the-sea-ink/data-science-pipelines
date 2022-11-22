@@ -1,16 +1,11 @@
 class Python:
         code_0 = """   
-        pipe = Pipeline()
-        X, y, z = make_classification(random_state=0)
-        X_train, X_test, y_train, y_test = train_test_split(X, y, random_state=z)
-        pipe.fit(X_train, y_train)
-        pipe.score(X_test, y_test)
+        X, y = make_classification(random_state=0)
+        X_train, X_test, y_train, y_test = train_test_split(X, y, random_state=0)
         """
         code_backup = """
-        pipe = Pipeline()
-        X, y, z = make_classification(random_state=0)
-        X_train, X_test, y_train, y_test = train_test_split(X, y, random_state=z)
-        pipe.fit(X_train, y_train)
+        a = 5
+        X = dataset.iloc[:, 1:a].values
         """
 
         code_1 = """
@@ -35,8 +30,6 @@ class Python:
             # and avoids leaking the test set into the train set
             pipe.fit(X_train, y_train)
             pipe.score(X_test, y_test)
-            np.array()
-            np()
             """
 
         code_3 = """
