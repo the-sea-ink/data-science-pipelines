@@ -64,6 +64,12 @@ def create_pattern(id, attr_name, node_type):
     return pattern
 
 
+##TODO restrict subgraph deepness
+def create_ancestors_subgraph(G:NXGraph, node_id):
+    subg_nodes = list(G.ancestors(node_id))
+    subg_nodes.append(node_id)
+    return subg_nodes
+
 def create_subgraph(G, node_id):
     subg_nodes = list(G.descendants(node_id))
     subg_nodes.append(node_id)
@@ -123,146 +129,76 @@ def flip_node(G: NXGraph, node_to_flip, id_to_ignore=-1):
         flip_node(G, child, node_to_flip)
 
 
-def sort_lists_tuples(G):
-    # handling tuples and lists
-    # find tuple list pairs
-    ltpattern = NXGraph()
-    ltpattern.add_node(1, {'type': 'list'})
-    ltpattern.add_node(2, {'type': 'tuple'})
-    ltpattern.add_edge(1, 2)
+def adjust_call(G: NXGraph):
+    # add identifier attribute to call node, remove identifier node
+    pattern = NXGraph()
+    pattern.add_node(1, {'type': 'identifier'})
+    pattern.add_node(2, {'type': 'call'})
+    pattern.add_edge(1, 2)
 
-    tlpattern = NXGraph()
-    tlpattern.add_node(1, {'type': 'tuple'})
-    tlpattern.add_node(2, {'type': 'list'})
-    tlpattern.add_edge(1, 2)
+    instances = []
+    instances.extend(G.find_matching(pattern))
 
-    ltinstances = G.find_matching(ltpattern)
-    tlinstances = G.find_matching(tlpattern)
-
-    ltrule = Rule.from_transform(ltpattern)
-    tlrule = Rule.from_transform(tlpattern)
-
-    ltrule.inject_remove_edge(1, 2)
-    ltrule.inject_add_edge(2, 1)
-
-    tlrule.inject_remove_edge(1, 2)
-    tlrule.inject_add_edge(2, 1)
-
-    if ltinstances:
-        for instance in ltinstances:
-            G.rewrite(ltrule, instance)
-
-    if tlinstances:
-        for instance in tlinstances:
-            G.rewrite(tlrule, instance)
-    return G
+    for instance in instances:
+        identifier_id = instance[1]
+        call_id = instance[2]
+        identifier_attrs = G.get_node(identifier_id)
+        identifier_text = identifier_attrs["text"]
+        G.update_node_attrs(call_id, {"type": "call", "text": identifier_text})
+        G.remove_node(identifier_id)
+    return
 
 
-def save_list_tuple_successors(G):
-    list_pattern = NXGraph()
-    list_pattern.add_node(1, {'type': 'list'})
-    instances = G.find_matching(list_pattern)
+def adjust_attributes(G: NXGraph):
+    pattern = NXGraph()
+    pattern.add_node(1, {'type': 'attribute'})
+    instances = G.find_matching(pattern)
+    for instance in instances:
+        attribute_id = instance[1]
+        attribute_attrs = G.get_node(attribute_id)
+        parents = G.predecessors(attribute_id)
+        children = G.successors(attribute_id)
+        for child in children:
+            print(child)
+            child_node = G.get_node(child)
+            for elem in child_node["type"]:
+                if elem == "call":
+                    G.update_node_attrs(child, {"type": "call", "text": attribute_attrs["text"]})
+            for parent in parents:
+                G.add_edge(parent, child)
+        G.remove_node(attribute_id)
+    return
 
-    list_children = {}
-    if instances:
-        for instance in instances:
-            list_id = instance[1]
-            list_successors = G.successors(list_id)
-            list_children[list_id] = []
-            for successor in list_successors:
-                list_children[list_id].append(successor)
-    tuple_pattern = NXGraph()
-    tuple_pattern.add_node(1, {'type': 'tuple'})
-    instances = G.find_matching(tuple_pattern)
 
-    if instances:
-        for instance in instances:
-            tuple_id = instance[1]
-            tuple_successors = G.successors(tuple_id)
-            list_children[tuple_id] = []
-            for successor in tuple_successors:
-                list_children[tuple_id].append(successor)
+def adjust_arguments(G: NXGraph):
+    # connect parents and children of argument list, remove argument list node
+    pattern = NXGraph()
+    pattern.add_node(1, {'type': 'argument_list'})
+    instances = G.find_matching(pattern)
+    for instance in instances:
+        argument_id = instance[1]
+        parents = G.predecessors(argument_id)
+        children = G.successors(argument_id)
+        for child in children:
+            for parent in parents:
+                G.add_edge(parent, child)
+                parent_node = G.get_node(parent)
+                # if it is an identifier, rename to input variable
+                for elem in parent_node["type"]:
+                    if elem == "identifier":
+                        G.update_node_attrs(parent, {"text": parent_node["text"], "type": "input_variable"})
+        G.remove_node(argument_id)
+    return
 
-    return list_children
+def process_assignment(G):
+    return
 
 
 def apply_pre_transformations(G):
-    list_children = save_list_tuple_successors(G)
-    sort_lists_tuples(G)
-    return list_children
-
-
-def sort_lists(G, list_children):
-    # handle rest of list children
-    list_pattern = NXGraph()
-    list_pattern.add_node(1, {'type': 'list'})
-    list_pattern.add_node(2)
-    list_pattern.add_edge(1, 2)
-
-    list_instance = G.find_matching(list_pattern)
-
-    list_rule = Rule.from_transform(list_pattern)
-    list_rule.inject_remove_edge(1, 2)
-    list_rule.inject_add_edge(2, 1)
-
-    for instance in list_instance:
-        list_id = instance[1]
-        list_child_id = instance[2]
-        if list_child_id in list_children[list_id]:
-            list_child_node = G.get_node(instance[2])
-            for elem in list_child_node["type"]:
-                if elem != "tuple" and elem != "call":
-                    G.rewrite(list_rule, instance)
-    # handle rest of tuple children
-    tuple_pattern = NXGraph()
-    tuple_pattern.add_node(1, {'type': 'tuple'})
-    tuple_pattern.add_node(2)
-    tuple_pattern.add_edge(1, 2)
-
-    tuple_instance = G.find_matching(tuple_pattern)
-
-    tuple_rule = Rule.from_transform(tuple_pattern)
-    tuple_rule.inject_remove_edge(1, 2)
-    tuple_rule.inject_add_edge(2, 1)
-
-    for instance in tuple_instance:
-        tuple_id = instance[1]
-        tuple_child_id = instance[2]
-        if tuple_child_id in list_children[tuple_id]:
-            tuple_child_node = G.get_node(instance[2])
-            for elem in tuple_child_node["type"]:
-                if elem != "list" and elem != "call":
-                    G.rewrite(tuple_rule, instance)
-
+    adjust_call(G)
+    #adjust_attributes(G)
+    adjust_arguments(G)
     return G
-
-
-def replace_call(G, list_children):
-    # print(list_children)
-    # connect call and caller function children
-    call_pattern = NXGraph()
-    call_pattern.add_node(1, {'type': 'call'})
-    call_pattern.add_node(2, {'type': 'caller_function'})
-    call_pattern.add_edge(1, 2)
-
-    call_instances = G.find_matching(call_pattern)
-    if call_instances:
-        for instance in call_instances:
-            call_id = instance[1]
-            caller_function_id = instance[2]
-            call_parents = G.predecessors(call_id)
-            call_children = G.successors(call_id)
-            for parent in call_parents:
-                G.add_edge(parent, caller_function_id)
-            for child in call_children:
-                if child != caller_function_id:
-                    G.add_edge(caller_function_id, child)
-            # if call_id in list_children.values():
-            for key, value in list_children.items():
-                if call_id in value:
-                    list_children[key].append(caller_function_id)
-
-    return list_children
 
 
 def cleanup(G):
@@ -271,8 +207,7 @@ def cleanup(G):
         "expression_statement",
         "assignment",
         "pattern_list",
-        "call",
-        "argument_list"
+        "module"
     ]
     for redundancy in redundancy_list:
         redundancy_pattern = create_pattern("node_id", "type", redundancy)
@@ -280,47 +215,39 @@ def cleanup(G):
         for instance in instances:
             remove_nodes(G, [instance["node_id"]])
     # keyword argument children
-    keyword_children_list = [
+    keyword_parents = [
         "string",
         "integer",
         "float",
-        "ture",
+        "true",
         "false"
     ]
-    for child in keyword_children_list:
+    for parent in keyword_parents:
         keyword_pattern = NXGraph()
-        keyword_pattern.add_node(1, {'type': 'keyword_argument'})
-        keyword_pattern.add_node(2, {'type': child})
+        keyword_pattern.add_node(1, {'type': parent})
+        keyword_pattern.add_node(2, {'type': 'keyword_argument'})
         keyword_pattern.add_edge(1, 2)
         keyword_instances = G.find_matching(keyword_pattern)
         for keyword_instance in keyword_instances:
-            G.remove_node(keyword_instance[2])
+            G.remove_node(keyword_instance[1])
 
-    return
+    return G
 
 
 def compare_outputs_inputs(G, output_instances, input_instances, nodes_to_remove):
     # check if same names, remove both nodes, add edge
     for output_instance in output_instances:
         output_identifier = output_instance[2]
-        # if output_identifier in removed_instances:
-        # continue
         output_caller_function = output_instance[1]
-        # print(output_caller_function)
         output_node = G.get_node(output_identifier)
         for input_instance in input_instances:
             input_identifier = input_instance[1]
-            # if input_identifier in removed_instances:
-            # continue
             input_caller_function = input_instance[2]
-            # print(input_caller_function)
             input_node = G.get_node(input_identifier)
             # if same, remove nodes and add edge
             if output_node['text'] == input_node['text']:
-                # G.remove_node(output_identifier)
                 if output_identifier not in nodes_to_remove:
                     nodes_to_remove.append(output_identifier)
-                # G.remove_node(input_identifier)
                 if input_identifier not in nodes_to_remove:
                     nodes_to_remove.append(input_identifier)
                 # add edge between caller functions
@@ -337,8 +264,8 @@ def compare_outputs_inputs(G, output_instances, input_instances, nodes_to_remove
 
 def connect_variables(G):
     """
-    1. search for childless identifiers
-    2. search for parentless identifiers
+    1. search for outputs
+    2. search for inputs
     3. check if they have the same text values
     4. if yes, remove both, make edge between parent of 1 and child of 2
     5. save rest of identifiers as attribute of their parent or child respectfully
@@ -346,25 +273,20 @@ def connect_variables(G):
 
     # if an identifier node is a child of a caller function, it is an output value of a function
     output_pattern = NXGraph()
-    output_pattern.add_node(1, {'type': 'caller_function'})
-    output_pattern.add_node(2, {'type': 'output'})
+    output_pattern.add_node(1, {'type': 'call'})
+    output_pattern.add_node(2, {'type': 'output_variable'})
     output_pattern.add_edge(1, 2)
     output_instances = G.find_matching(output_pattern)
-
-    output_pattern = NXGraph()
-    output_pattern.add_node(1, {'type': 'attribute'})
-    output_pattern.add_node(2, {'type': 'output'})
-    output_pattern.add_edge(1, 2)
-    output_instances = output_instances + (G.find_matching(output_pattern))
 
     # if an identifier node is a parent to any node, it is an input value into that function
     # check in known inputs
     input_pattern = NXGraph()
-    input_pattern.add_node(1, {'type': 'input'})
+    input_pattern.add_node(1, {'type': 'input_variable'})
     input_pattern.add_node(2)
     input_pattern.add_edge(1, 2)
     input_instances = G.find_matching(input_pattern)
 
+    print(output_instances)
     nodes_to_remove = []
     # print(type(output_instances))
 
@@ -447,12 +369,12 @@ def connect_variables(G):
     return
 
 
-def apply_post_transformations(G, list_children):
-    list_children = replace_call(G, list_children)
-    sort_lists(G, list_children)
-    cleanup(G)
+def apply_post_transformations(G):
+    # list_children = replace_call(G, list_children)
+    # sort_lists(G, list_children)
+    G = cleanup(G)
     connect_variables(G)
-    return
+    return G
 
 
 def arrange_variables():
@@ -474,19 +396,17 @@ def read_rule_from_line(line):
     return rule
 
 
-def get_subgraphs(G, pattern, pattern_digraph):
-    # find root
-    root_id = [n for n, d in pattern_digraph.in_degree() if d == 0]
-    root_node = pattern.get_node(root_id[0])
-
+def get_ascendant_subgraphs_by_pattern(G:NXGraph, pattern:NXGraph):
+    anti_root_id = [node for node in pattern.nodes() if len(pattern.descendants(node)) == 0][0]
+    anti_root_attrs = pattern.get_node(anti_root_id)
     # find all instances of root in graph
     root_pattern = NXGraph()
-    root_pattern.add_node(root_id[0], root_node)
+    root_pattern.add_node(anti_root_id, anti_root_attrs)
     instances = G.find_matching(root_pattern)
     subgraphs = []
     if instances:
         for instance in instances:
-            subgraphs.append(create_subgraph(G, instance[1]))
+            subgraphs.append(create_ancestors_subgraph(G, list(instance.values())[0]))
     return subgraphs
 
 
@@ -494,19 +414,13 @@ def apply_rule(G, json_rule):
     rule = Rule.from_json(json_rule)
     pattern = rule.lhs
 
-    # check if pattern is a tree
-    nodes = pattern.nodes()
-    edges = pattern.edges()
-    pattern_digraph = nx.DiGraph()
-    pattern_digraph.add_nodes_from(nodes)
-    pattern_digraph.add_edges_from(edges)
-
     instances = []
-    # get subgraphs
-    if nx.is_tree(pattern_digraph):
-        subgraphs = get_subgraphs(G, pattern, pattern_digraph)
+
+    if utils.pattern_connected(pattern):
+        # get subgraphs
+        subgraphs = get_ascendant_subgraphs_by_pattern(G, pattern)
         for subgraph in subgraphs:
-            instances.extend(subgraph.find_matching(pattern))
+            instances.extend(G.find_matching(pattern, subgraph))
     else:
         instances = G.find_matching(pattern)
 
@@ -518,35 +432,37 @@ def apply_rule(G, json_rule):
             # print(type(instances))
             G.rewrite(rule, instance)
 
+    return G
+
 
 def transform_graph(G):
     # read json file
     f = open('knowledge_base/graph_clearing_patterns.json', "r")
     json_data = json.loads(f.read())
+    # print_graph(G)
+
+    flip_the_table(G)
     print_graph(G)
-    #flip_the_table(G)
-    #print_graph(G)
-    return
-    list_children = apply_pre_transformations(G)
+
+    G = apply_pre_transformations(G)
+    # print_graph(G)
 
     start_outer = time.time()
-    counter = 1
     with open("knowledge_base/rule_base.txt") as file:
-        for line in file:
+        for counter, line in enumerate(file, 1):
             start_iner = time.time()
             json_rule = read_rule_from_line(line)
-            # if counter == 22:
             # print_graph(G)
-            apply_rule(G, json_rule)
+            print(f'Applying rule #{counter}')
+            G = apply_rule(G, json_rule)
             # if counter == 21:
             # print_graph(G)
             end_iner = time.time()
-            # print(f'line {counter} done in {end_iner - start_iner}')
-            counter = counter + 1
+            print(f'line {counter} done in {end_iner - start_iner}')
     end_outer = time.time()
     print(f'apply rule  done in {end_outer - start_outer}')
 
-    apply_post_transformations(G, list_children)
+    G = apply_post_transformations(G)
     print_graph(G)
 
     # create_subgraph(G, 1)
