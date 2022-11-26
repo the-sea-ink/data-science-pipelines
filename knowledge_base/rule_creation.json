@@ -7,15 +7,11 @@
       },
       {
         "node_id": 2,
-        "type" : "pattern_list"
-      },
-      {
-        "node_id": 3,
         "type" : "assignment"
       },
       {
-        "node_id": 4,
-        "type" : "call"
+        "node_id": 3,
+        "type" : "attribute"
       }
     ],
     "edges":[
@@ -24,13 +20,8 @@
         "child_node_id":2
       },
       {
-        "parent_node_id":2,
-        "child_node_id":3
-
-      },
-      {
-        "parent_node_id":4,
-        "child_node_id":3
+        "parent_node_id":3,
+        "child_node_id":2
 
       }
     ]
@@ -42,17 +33,21 @@
               "child_node_id" : 2
           }
       ],
+    "add_nodes_with_attributes":[
+        {
+          "node_id": 4,
+          "type" : "pattern_list"
+        }
+      ],
     "add_edges":[
         {
-              "parent_node_id" : 4,
-              "child_node_id" : 1
-          }
-      ],
-    "update_node_attributes":[
+              "parent_node_id" : 1,
+              "child_node_id" : 4
+          },
         {
-          "node_id" : 1,
-          "type" : "output"
-        }
+              "parent_node_id" : 4,
+              "child_node_id" : 2
+          }
       ]
   }
 }

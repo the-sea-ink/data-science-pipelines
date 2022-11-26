@@ -150,23 +150,24 @@ def adjust_call(G: NXGraph):
 
 
 def adjust_attributes(G: NXGraph):
+    # rename attribute into call
     pattern = NXGraph()
     pattern.add_node(1, {'type': 'attribute'})
+    pattern.add_node(2, {'type': 'call'})
+    pattern.add_edge(1, 2)
     instances = G.find_matching(pattern)
     for instance in instances:
-        attribute_id = instance[1]
-        attribute_attrs = G.get_node(attribute_id)
-        parents = G.predecessors(attribute_id)
-        children = G.successors(attribute_id)
+        attr_id = instance[1]
+        call_id = instance[2]
+        attr_attrs = G.get_node(attr_id)
+        attr_text = attr_attrs["text"]
+        G.update_node_attrs(call_id, {"type": "call", "text": attr_text})
+        parents = G.predecessors(attr_id)
+        children = G.successors(attr_id)
         for child in children:
-            print(child)
-            child_node = G.get_node(child)
-            for elem in child_node["type"]:
-                if elem == "call":
-                    G.update_node_attrs(child, {"type": "call", "text": attribute_attrs["text"]})
             for parent in parents:
                 G.add_edge(parent, child)
-        G.remove_node(attribute_id)
+        G.remove_node(attr_id)
     return
 
 
@@ -196,7 +197,7 @@ def process_assignment(G):
 
 def apply_pre_transformations(G):
     adjust_call(G)
-    #adjust_attributes(G)
+    adjust_attributes(G)
     adjust_arguments(G)
     return G
 
@@ -273,7 +274,7 @@ def connect_variables(G):
 
     # if an identifier node is a child of a caller function, it is an output value of a function
     output_pattern = NXGraph()
-    output_pattern.add_node(1, {'type': 'call'})
+    output_pattern.add_node(1)
     output_pattern.add_node(2, {'type': 'output_variable'})
     output_pattern.add_edge(1, 2)
     output_instances = G.find_matching(output_pattern)
@@ -333,7 +334,7 @@ def connect_variables(G):
         child_node = G.get_node(child_id)
         # if we met this node before, it is an object or a variable
         if input_id in nodes_to_remove:
-            child_node["var"] = input_node["text"]
+            child_node["variables"] = input_node["text"]
         else:
             if "identifier" in child_node:
                 for elem in input_node["text"]:
