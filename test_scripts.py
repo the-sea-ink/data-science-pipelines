@@ -1,7 +1,6 @@
 class Python:
-        code_0 = """   
-        a = [q,w,e]
-
+        code_0 = """  
+        y = np.squeeze(sc_Y.fit_transform(y.reshape(+1, 1)))
         """
         code_backup = """
         a = 5

@@ -11,7 +11,11 @@
       },
       {
         "node_id": 3,
-        "type" : "attribute"
+        "type" : "="
+      },
+      {
+        "node_id": 4,
+        "type" : "tuple"
       }
     ],
     "edges":[
@@ -23,31 +27,20 @@
         "parent_node_id":3,
         "child_node_id":2
 
+      },
+      {
+        "parent_node_id":4,
+        "child_node_id":2
+
       }
     ]
   },
   "transformations":{
-    "remove_edges": [
-          {
-              "parent_node_id" : 1,
-              "child_node_id" : 2
-          }
-      ],
-    "add_nodes_with_attributes":[
+    "update_node_attributes":[
         {
-          "node_id": 4,
-          "type" : "pattern_list"
+          "node_id" : 2,
+          "type" : "variable_assignment"
         }
-      ],
-    "add_edges":[
-        {
-              "parent_node_id" : 1,
-              "child_node_id" : 4
-          },
-        {
-              "parent_node_id" : 4,
-              "child_node_id" : 2
-          }
       ]
   }
 }
