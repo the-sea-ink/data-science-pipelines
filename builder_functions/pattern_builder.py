@@ -46,6 +46,7 @@ def save_imports(G, node_ids):
     return import_dict
 
 
+
 # gets the ids of all the nodes of a certain "type" in an instance of a graph
 def get_ids(node_type, instances):
     ids = []
@@ -65,7 +66,7 @@ def create_pattern(id, attr_name, node_type):
 
 
 ##TODO restrict subgraph deepness
-def create_ancestors_subgraph(G: NXGraph, node_id):
+def get_ancestors_nodes(G: NXGraph, node_id):
     subg_nodes = list(G.ancestors(node_id))
     subg_nodes.append(node_id)
     return subg_nodes
@@ -194,11 +195,62 @@ def adjust_arguments(G: NXGraph):
 
 
 def process_assignment(G):
-    #TODO vadd 2 identifiers
+    # TODO add 2 identifiers
+    return
+
+
+def save_import_aliases(G: NXGraph):
+    # create pattern for aliases
+    pattern = NXGraph()
+    pattern.add_node(1, {'type': 'aliased_import'})
+    pattern.add_node(2, {'type': 'dotted_name'})
+    pattern.add_node(3, {'type': 'identifier'})
+    pattern.add_edge(2, 1)
+    pattern.add_edge(3, 1)
+
+    instances = G.find_matching(pattern)
+
+    aliased_dict = {}
+
+    # save all aliases
+    for instance in instances:
+        aliased_import_id = instance[1]
+        dotted_name_id = instance[2]
+        identifier_id = instance[3]
+
+        dotted_name = G.get_node(dotted_name_id)
+        identifier = G.get_node(identifier_id)
+        for key, value in zip(identifier["text"], dotted_name["text"]):
+            aliased_dict[key] = value
+    return
+
+
+def remove_import_statements(G: NXGraph):
+    instances = []
+    pattern = NXGraph()
+    pattern.add_node(1, {'type': 'import_statement'})
+    instances.extend(G.find_matching(pattern))
+
+    pattern = NXGraph()
+    pattern.add_node(1, {'type': 'import_from_statement'})
+    instances.extend(G.find_matching(pattern))
+    if instances:
+        for instance in instances:
+            print(instance[1])
+            nodes = get_ancestors_nodes(G, instance[1])
+            for node in nodes:
+                G.remove_node(node)
+    return
+
+
+def change_aliases_in_functions(G:NXGraph, aliases_dict):
+    # TODO check for identifier -> node pattern, adjust display names
     return
 
 
 def apply_pre_transformations(G):
+    save_import_aliases(G)
+    remove_import_statements(G)
     adjust_call(G)
     adjust_attributes(G)
     adjust_arguments(G)
@@ -291,7 +343,7 @@ def connect_variables(G):
     input_pattern.add_edge(1, 2)
     input_instances = G.find_matching(input_pattern)
 
-    #print(output_instances)
+    # print(output_instances)
     nodes_to_remove = []
     # print(type(output_instances))
 
@@ -349,7 +401,6 @@ def connect_variables(G):
         if input_id not in nodes_to_remove:
             nodes_to_remove.append(input_id)
 
-
     # go through leftover outputs, save them into their
     # belonging functions as attribute
     for output_instance in output_instances:
@@ -391,7 +442,7 @@ def adjust_subscript(G: NXGraph):
     return
 
 
-def adjust_slice(G:NXGraph):
+def adjust_slice(G: NXGraph):
     # connect parents and children of slice, remove slice node
     pattern = NXGraph()
     pattern.add_node(1, {'type': 'slice'})
@@ -407,13 +458,21 @@ def adjust_slice(G:NXGraph):
     return
 
 
-def adjust_attributes(G:NXGraph):
+def adjust_attributes(G: NXGraph):
+    instances = []
+
     pattern = NXGraph()
     pattern.add_node(1, {'type': 'attribute'})
     pattern.add_node(2, {'type': 'attribute'})
     pattern.add_edge(2, 1)
+    instances.extend(G.find_matching(pattern))
 
-    instances = G.find_matching(pattern)
+    pattern = NXGraph()
+    pattern.add_node(1, {'type': 'call'})
+    pattern.add_node(2, {'type': 'attribute'})
+    pattern.add_edge(2, 1)
+    instances.extend(G.find_matching(pattern))
+
     for instance in instances:
         node_id_to_go = instance[2]
         node_id_to_stay = instance[1]
@@ -422,16 +481,15 @@ def adjust_attributes(G:NXGraph):
         for child in children:
             for parent in parents:
                 G.add_edge(parent, child)
-        node_to_go = G.get_node(node_id_to_go)
         # remove type, append rest of the attrs to node to stay
+        node_to_go = G.get_node(node_id_to_go)
+        node_to_go.pop("type")
         node_to_stay = G.get_node(node_id_to_stay)
         for key in node_to_go.keys():
             if key in node_to_stay:
                 for elem in node_to_go[key]:
                     node_to_stay[key].add(elem)
         G.remove_node(node_id_to_go)
-    print_graph(G)
-
     return
 
 
@@ -442,12 +500,8 @@ def apply_post_transformations(G):
     adjust_slice(G)
     adjust_attributes(G)
     cleanup(G)
-    connect_variables(G)
+    #connect_variables(G)
     return G
-
-
-def arrange_variables():
-    return
 
 
 def execute_rule(G, pattern, rule):
@@ -475,7 +529,7 @@ def get_ascendant_subgraphs_by_pattern(G: NXGraph, pattern: NXGraph):
     subgraphs = []
     if instances:
         for instance in instances:
-            subgraphs.append(create_ancestors_subgraph(G, list(instance.values())[0]))
+            subgraphs.append(get_ancestors_nodes(G, list(instance.values())[0]))
     return subgraphs
 
 
@@ -495,7 +549,7 @@ def apply_rule(G, json_rule):
 
     # instances = G.find_matching(pattern)
     if instances:
-        #print(json_rule)
+        # print(json_rule)
         # print_graph(G)
         for instance in instances:
             # print(type(instances))
@@ -513,7 +567,7 @@ def transform_graph(G):
     flip_the_table(G)
     print_graph(G)
 
-    G = apply_pre_transformations(G)
+    apply_pre_transformations(G)
     # print_graph(G)
 
     start_outer = time.time()
@@ -522,14 +576,14 @@ def transform_graph(G):
             start_iner = time.time()
             json_rule = read_rule_from_line(line)
             # print_graph(G)
-            #print(f'Applying rule #{counter}')
+            # print(f'Applying rule #{counter}')
             G = apply_rule(G, json_rule)
             # if counter == 21:
             # print_graph(G)
             end_iner = time.time()
-            #print(f'line {counter} done in {end_iner - start_iner}')
+            # print(f'line {counter} done in {end_iner - start_iner}')
     end_outer = time.time()
-    #print(f'apply rule  done in {end_outer - start_outer}')
+    # print(f'apply rule  done in {end_outer - start_outer}')
 
     G = apply_post_transformations(G)
     print_graph(G)

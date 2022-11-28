@@ -1,7 +1,7 @@
 class Python:
         code_0 = """  
-        a = {}
-        X = dataset(a) 
+        import matplotlib.pyplot as plt
+        plt.xlabel("label")
         """
         code_backup = """
         a = 5
