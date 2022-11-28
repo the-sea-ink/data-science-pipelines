@@ -1,10 +1,15 @@
 class Python:
         code_0 = """  
-        y = np.squeeze(sc_Y.fit_transform(y.reshape(+1, 1)))
+        a = {}
+        X = dataset(a) 
         """
         code_backup = """
         a = 5
         X = dataset.iloc[:, 1:a].values
+        """
+
+        error_code = """
+        data = data[[“ENGINESIZE”,”CO2EMISSIONS”]]
         """
 
         code_1 = """

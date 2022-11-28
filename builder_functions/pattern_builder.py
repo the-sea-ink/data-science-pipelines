@@ -65,10 +65,11 @@ def create_pattern(id, attr_name, node_type):
 
 
 ##TODO restrict subgraph deepness
-def create_ancestors_subgraph(G:NXGraph, node_id):
+def create_ancestors_subgraph(G: NXGraph, node_id):
     subg_nodes = list(G.ancestors(node_id))
     subg_nodes.append(node_id)
     return subg_nodes
+
 
 def create_subgraph(G, node_id):
     subg_nodes = list(G.descendants(node_id))
@@ -191,7 +192,9 @@ def adjust_arguments(G: NXGraph):
         G.remove_node(argument_id)
     return
 
+
 def process_assignment(G):
+    #TODO vadd 2 identifiers
     return
 
 
@@ -208,7 +211,8 @@ def cleanup(G):
         "expression_statement",
         "assignment",
         "pattern_list",
-        "module"
+        "module",
+        "slice"
     ]
     for redundancy in redundancy_list:
         redundancy_pattern = create_pattern("node_id", "type", redundancy)
@@ -287,7 +291,7 @@ def connect_variables(G):
     input_pattern.add_edge(1, 2)
     input_instances = G.find_matching(input_pattern)
 
-    print(output_instances)
+    #print(output_instances)
     nodes_to_remove = []
     # print(type(output_instances))
 
@@ -306,11 +310,11 @@ def connect_variables(G):
         input_node = G.get_node(input_id)
         child_id = list(children)[0]
         child_node = G.get_node(child_id)
-        if "input_variables" in child_node:
+        if "input_variable" in child_node:
             for elem in input_node["text"]:
-                child_node["input_variables"].add(elem)
+                child_node["input_variable"].add(elem)
         else:
-            child_node["input_variables"] = input_node["text"]
+            child_node["input_variable"] = input_node["text"]
         G.update_node_attrs(child_id, child_node)
         # G.remove_node(input_id)
         if input_id not in nodes_to_remove:
@@ -334,7 +338,7 @@ def connect_variables(G):
         child_node = G.get_node(child_id)
         # if we met this node before, it is an object or a variable
         if input_id in nodes_to_remove:
-            child_node["variables"] = input_node["text"]
+            child_node["variable"] = input_node["text"]
         else:
             if "identifier" in child_node:
                 for elem in input_node["text"]:
@@ -344,6 +348,7 @@ def connect_variables(G):
         G.update_node_attrs(child_id, child_node)
         if input_id not in nodes_to_remove:
             nodes_to_remove.append(input_id)
+
 
     # go through leftover outputs, save them into their
     # belonging functions as attribute
@@ -356,11 +361,11 @@ def connect_variables(G):
         output_node = G.get_node(output_id)
         parent_id = list(parents)[0]
         parent_node = G.get_node(parent_id)
-        if "output_variables" in parent_node:
+        if "output_variable" in parent_node:
             for elem in output_node["text"]:
-                parent_node["output_variables"].add(elem)
+                parent_node["output_variable"].add(elem)
         else:
-            parent_node["output_variables"] = output_node["text"]
+            parent_node["output_variable"] = output_node["text"]
         G.update_node_attrs(parent_id, parent_node)
         # G.remove_node(output_id)
         if output_id not in nodes_to_remove:
@@ -370,10 +375,73 @@ def connect_variables(G):
     return
 
 
+def adjust_subscript(G: NXGraph):
+    # connect parents and children of subscript, remove subscript node
+    pattern = NXGraph()
+    pattern.add_node(1, {'type': 'subscript'})
+    instances = G.find_matching(pattern)
+    for instance in instances:
+        node_id = instance[1]
+        parents = G.predecessors(node_id)
+        children = G.successors(node_id)
+        for child in children:
+            for parent in parents:
+                G.add_edge(parent, child)
+        G.remove_node(node_id)
+    return
+
+
+def adjust_slice(G:NXGraph):
+    # connect parents and children of slice, remove slice node
+    pattern = NXGraph()
+    pattern.add_node(1, {'type': 'slice'})
+    instances = G.find_matching(pattern)
+    for instance in instances:
+        node_id = instance[1]
+        parents = G.predecessors(node_id)
+        children = G.successors(node_id)
+        for child in children:
+            for parent in parents:
+                G.add_edge(parent, child)
+        G.remove_node(node_id)
+    return
+
+
+def adjust_attributes(G:NXGraph):
+    pattern = NXGraph()
+    pattern.add_node(1, {'type': 'attribute'})
+    pattern.add_node(2, {'type': 'attribute'})
+    pattern.add_edge(2, 1)
+
+    instances = G.find_matching(pattern)
+    for instance in instances:
+        node_id_to_go = instance[2]
+        node_id_to_stay = instance[1]
+        parents = G.predecessors(node_id_to_go)
+        children = G.successors(node_id_to_go)
+        for child in children:
+            for parent in parents:
+                G.add_edge(parent, child)
+        node_to_go = G.get_node(node_id_to_go)
+        # remove type, append rest of the attrs to node to stay
+        node_to_stay = G.get_node(node_id_to_stay)
+        for key in node_to_go.keys():
+            if key in node_to_stay:
+                for elem in node_to_go[key]:
+                    node_to_stay[key].add(elem)
+        G.remove_node(node_id_to_go)
+    print_graph(G)
+
+    return
+
+
 def apply_post_transformations(G):
     # list_children = replace_call(G, list_children)
     # sort_lists(G, list_children)
-    G = cleanup(G)
+    adjust_subscript(G)
+    adjust_slice(G)
+    adjust_attributes(G)
+    cleanup(G)
     connect_variables(G)
     return G
 
@@ -397,7 +465,7 @@ def read_rule_from_line(line):
     return rule
 
 
-def get_ascendant_subgraphs_by_pattern(G:NXGraph, pattern:NXGraph):
+def get_ascendant_subgraphs_by_pattern(G: NXGraph, pattern: NXGraph):
     anti_root_id = [node for node in pattern.nodes() if len(pattern.descendants(node)) == 0][0]
     anti_root_attrs = pattern.get_node(anti_root_id)
     # find all instances of root in graph
@@ -427,7 +495,7 @@ def apply_rule(G, json_rule):
 
     # instances = G.find_matching(pattern)
     if instances:
-        print(json_rule)
+        #print(json_rule)
         # print_graph(G)
         for instance in instances:
             # print(type(instances))
@@ -454,14 +522,14 @@ def transform_graph(G):
             start_iner = time.time()
             json_rule = read_rule_from_line(line)
             # print_graph(G)
-            print(f'Applying rule #{counter}')
+            #print(f'Applying rule #{counter}')
             G = apply_rule(G, json_rule)
             # if counter == 21:
             # print_graph(G)
             end_iner = time.time()
-            print(f'line {counter} done in {end_iner - start_iner}')
+            #print(f'line {counter} done in {end_iner - start_iner}')
     end_outer = time.time()
-    print(f'apply rule  done in {end_outer - start_outer}')
+    #print(f'apply rule  done in {end_outer - start_outer}')
 
     G = apply_post_transformations(G)
     print_graph(G)
