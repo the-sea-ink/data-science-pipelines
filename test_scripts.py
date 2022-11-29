@@ -1,7 +1,7 @@
 class Python:
         code_0 = """  
-        import matplotlib.pyplot as plt
-        plt.xlabel("label")
+        import numpy as np
+        y = np.squeeze(sc_Y.fit_transform(y.reshape(-1, 1)))
         """
         code_backup = """
         a = 5

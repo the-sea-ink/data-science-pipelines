@@ -46,7 +46,6 @@ def save_imports(G, node_ids):
     return import_dict
 
 
-
 # gets the ids of all the nodes of a certain "type" in an instance of a graph
 def get_ids(node_type, instances):
     ids = []
@@ -210,7 +209,7 @@ def save_import_aliases(G: NXGraph):
 
     instances = G.find_matching(pattern)
 
-    aliased_dict = {}
+    aliases_dict = {}
 
     # save all aliases
     for instance in instances:
@@ -221,8 +220,8 @@ def save_import_aliases(G: NXGraph):
         dotted_name = G.get_node(dotted_name_id)
         identifier = G.get_node(identifier_id)
         for key, value in zip(identifier["text"], dotted_name["text"]):
-            aliased_dict[key] = value
-    return
+            aliases_dict[key] = value
+    return aliases_dict
 
 
 def remove_import_statements(G: NXGraph):
@@ -236,25 +235,24 @@ def remove_import_statements(G: NXGraph):
     instances.extend(G.find_matching(pattern))
     if instances:
         for instance in instances:
-            print(instance[1])
             nodes = get_ancestors_nodes(G, instance[1])
             for node in nodes:
                 G.remove_node(node)
     return
 
 
-def change_aliases_in_functions(G:NXGraph, aliases_dict):
+def change_aliases_in_functions(G: NXGraph, aliases_dict):
     # TODO check for identifier -> node pattern, adjust display names
     return
 
 
 def apply_pre_transformations(G):
-    save_import_aliases(G)
+    aliases_dict = save_import_aliases(G)
     remove_import_statements(G)
     adjust_call(G)
     adjust_attributes(G)
     adjust_arguments(G)
-    return G
+    return aliases_dict
 
 
 def cleanup(G):
@@ -485,22 +483,47 @@ def adjust_attributes(G: NXGraph):
         node_to_go = G.get_node(node_id_to_go)
         node_to_go.pop("type")
         node_to_stay = G.get_node(node_id_to_stay)
+        node_to_stay.pop("text")
         for key in node_to_go.keys():
             if key in node_to_stay:
                 for elem in node_to_go[key]:
                     node_to_stay[key].add(elem)
+            else:
+                G.add_node_attrs(node_id_to_stay, {key: node_to_go[key]})
         G.remove_node(node_id_to_go)
     return
 
 
-def apply_post_transformations(G):
-    # list_children = replace_call(G, list_children)
-    # sort_lists(G, list_children)
+def add_library_attribute(G: NXGraph, alieses_dict: dict):
+    for key in alieses_dict:
+        pattern = NXGraph()
+        pattern.add_node(1, {'identifier': key})
+        instances = (G.find_matching(pattern))
+        for instance in instances:
+            # remove short identifier from identifiers list
+            node_id = instance[1]
+            node_attrs = G.get_node(node_id)
+            G.remove_node_attrs(node_id, {'identifier': key})
+            # add "library" attribute and put full function name there
+            G.add_node_attrs(node_id, {"library": alieses_dict[key]})
+            # add full function call to the node
+            for value in node_attrs["text"]:
+                node_text = value.decode("utf-8")
+                short_name = key.decode("utf-8")
+                long_name = alieses_dict[key].decode("utf-8")
+                if short_name in node_text:
+                    full_name = long_name + node_text[len(short_name):]
+                    G.add_node_attrs(node_id, {"full_function_call": full_name})
+    return
+
+
+def apply_post_transformations(G, aliases_dict):
     adjust_subscript(G)
     adjust_slice(G)
     adjust_attributes(G)
     cleanup(G)
-    #connect_variables(G)
+    connect_variables(G)
+    add_library_attribute(G, aliases_dict)
     return G
 
 
@@ -562,12 +585,11 @@ def transform_graph(G):
     # read json file
     f = open('knowledge_base/graph_clearing_patterns.json', "r")
     json_data = json.loads(f.read())
-    # print_graph(G)
 
     flip_the_table(G)
     print_graph(G)
 
-    apply_pre_transformations(G)
+    aliases_dict = apply_pre_transformations(G)
     # print_graph(G)
 
     start_outer = time.time()
@@ -585,7 +607,7 @@ def transform_graph(G):
     end_outer = time.time()
     # print(f'apply rule  done in {end_outer - start_outer}')
 
-    G = apply_post_transformations(G)
+    apply_post_transformations(G, aliases_dict)
     print_graph(G)
 
     # create_subgraph(G, 1)
