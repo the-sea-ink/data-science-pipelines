@@ -15,9 +15,9 @@ def language_init():
 
         # Include one or more languages
         [
-            'playground/parsers/tree-sitter-python',
-            'playground/parsers/tree-sitter-r',
-            'playground/parsers/tree-sitter-snakemake-pure'
+            'parsers/tree-sitter-python',
+            'parsers/tree-sitter-r',
+            'parsers/tree-sitter-snakemake-pure'
         ]
     )
 
