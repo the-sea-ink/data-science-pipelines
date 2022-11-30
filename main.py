@@ -1,18 +1,11 @@
 from pathlib import Path
-from typing import Optional
-import traceback
-import json
-from enum import Enum
 
-from fastapi import FastAPI, WebSocket, File, UploadFile, Form
+from fastapi import FastAPI, File, UploadFile, Form
 from fastapi.responses import FileResponse
 
-from builder_functions.graph_builder import bfs_tree_traverser
-from builder_functions.pattern_builder import *
+from parser import bfs_tree_traverser
+from rule_executioner import *
 from tree_sitter import Language, Parser
-import test_scripts
-from regraph import NXGraph, Rule
-from regraph.backends.networkx.plotting import plot_rule
 
 
 class Extractor:
@@ -23,9 +16,9 @@ class Extractor:
 
             # Include one or more languages
             [
-                'playground/parsers/tree-sitter-python',
-                'playground/parsers/tree-sitter-r',
-                'playground/parsers/tree-sitter-snakemake-pure'
+                'parsers/tree-sitter-python',
+                'parsers/tree-sitter-r',
+                'parsers/tree-sitter-snakemake-pure'
             ]
         )
 

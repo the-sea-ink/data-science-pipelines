@@ -1,15 +1,15 @@
 class Python:
         code_0 = """  
-        import numpy as np
-        y = np.squeeze(sc_Y.fit_transform(y.reshape(-1, 1)))
+        np.random.function.RandomState(1)
+
         """
         code_backup = """
         a = 5
         X = dataset.iloc[:, 1:a].values
         """
 
-        error_code = """
-        data = data[[“ENGINESIZE”,”CO2EMISSIONS”]]
+        error_code_1 = """
+        rng = np.random.RandomState(1)
         """
 
         code_1 = """

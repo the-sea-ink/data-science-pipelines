@@ -149,9 +149,8 @@ def adjust_call(G: NXGraph):
         G.remove_node(identifier_id)
     return
 
-
+# TODO fix needed, failing example error_code_1
 def adjust_attributes(G: NXGraph):
-    # rename attribute into call
     pattern = NXGraph()
     pattern.add_node(1, {'type': 'attribute'})
     pattern.add_node(2, {'type': 'call'})
@@ -207,7 +206,15 @@ def save_import_aliases(G: NXGraph):
     pattern.add_edge(2, 1)
     pattern.add_edge(3, 1)
 
-    instances = G.find_matching(pattern)
+    instances = []
+
+    if utils.pattern_connected(pattern):
+        # get subgraphs
+        subgraphs = get_ascendant_subgraphs_by_pattern(G, pattern)
+        for subgraph in subgraphs:
+            instances.extend(G.find_matching(pattern, subgraph))
+    else:
+        instances = G.find_matching(pattern)
 
     aliases_dict = {}
 
@@ -247,7 +254,9 @@ def change_aliases_in_functions(G: NXGraph, aliases_dict):
 
 
 def apply_pre_transformations(G):
+
     aliases_dict = save_import_aliases(G)
+
     remove_import_statements(G)
     adjust_call(G)
     adjust_attributes(G)
@@ -326,6 +335,7 @@ def connect_variables(G):
     5. save rest of identifiers as attribute of their parent or child respectfully
     """
 
+    # TODO eventually optimization needed, since node 1 has no attrs
     # if an identifier node is a child of a caller function, it is an output value of a function
     output_pattern = NXGraph()
     output_pattern.add_node(1)
@@ -455,15 +465,15 @@ def adjust_slice(G: NXGraph):
         G.remove_node(node_id)
     return
 
-
-def adjust_attributes(G: NXGraph):
+#  TODO redo algorithm into recursion
+def adjust_attributes_2(G: NXGraph):
     instances = []
 
     pattern = NXGraph()
-    pattern.add_node(1, {'type': 'attribute'})
-    pattern.add_node(2, {'type': 'attribute'})
-    pattern.add_edge(2, 1)
-    instances.extend(G.find_matching(pattern))
+    #pattern.add_node(1, {'type': 'attribute'})
+    #pattern.add_node(2, {'type': 'attribute'})
+    #pattern.add_edge(2, 1)
+    #instances.extend(G.find_matching(pattern))
 
     pattern = NXGraph()
     pattern.add_node(1, {'type': 'call'})
@@ -520,7 +530,8 @@ def add_library_attribute(G: NXGraph, alieses_dict: dict):
 def apply_post_transformations(G, aliases_dict):
     adjust_subscript(G)
     adjust_slice(G)
-    adjust_attributes(G)
+    #adjust_attributes(G)
+    #adjust_attributes_2(G)
     cleanup(G)
     connect_variables(G)
     add_library_attribute(G, aliases_dict)
@@ -590,6 +601,7 @@ def transform_graph(G):
     print_graph(G)
 
     aliases_dict = apply_pre_transformations(G)
+
     # print_graph(G)
 
     start_outer = time.time()
@@ -603,7 +615,7 @@ def transform_graph(G):
             # if counter == 21:
             # print_graph(G)
             end_iner = time.time()
-            # print(f'line {counter} done in {end_iner - start_iner}')
+            #print(f'line {counter} done in {end_iner - start_iner}')
     end_outer = time.time()
     # print(f'apply rule  done in {end_outer - start_outer}')
 
