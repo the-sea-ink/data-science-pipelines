@@ -23,8 +23,10 @@ export default function Coder(props: Props) {
       extensions={[javascript({ jsx: true })]}
 
       onChange={(value, viewUpdate) => {
+
         var backendJson=JSON.stringify(value);
-        setCode(JSON.parse(backendJson))
+        setCode(JSON.parse(backendJson));
+        props.onCodeChange(value);
       }}
     />
   );

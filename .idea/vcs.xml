@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="VcsDirectoryMappings">
+    <mapping directory="$PROJECT_DIR$" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/playground/parsers/tree-sitter-ebnf-generator" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/playground/parsers/tree-sitter-python" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/playground/parsers/tree-sitter-r" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/playground/parsers/tree-sitter-r/tree-sitter-r" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/third_party/ReGraph" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/third_party/ReGraph/ReGraph" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/tree-sitter-javascript" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/tree-sitter-python" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/tree-sitter-r" vcs="Git" />
+  </component>
+</project>

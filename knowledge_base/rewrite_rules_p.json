@@ -1,0 +1,14 @@
+{
+  "expression_statement" : {
+    "caller_function" : "caller_function",
+    "identifier" : "identifier"
+  },
+  "call" : {
+    "identifier" : "identifier",
+    "call" : "call",
+    "function" : "function"
+  },
+  "default" : {
+    "caller_function" : "caller_function"
+  }
+}

@@ -1,0 +1,31 @@
+{
+  "redundancies": [".", ",", ")", "(",  "[", "]", ":", ";", "*", "+", "=", "-", "\"", "$", "<-", "\n", "null", "%"],
+
+  "nodes_with_descendants" : {
+    "left_assignment" : ["identifier"],
+    "equals_assignment" : ["identifier"],
+    "import_statement": ["imported","import_path","alias"],
+    "import_from_statement" : ["import_path","imported"],
+    "expression_statement" : ["variable_list", "caller_function", "function", "argument_list", "subscript_object"],
+    "function_definition" : ["function", "parameters"],
+    "call" : ["identifier"]
+  },
+
+  "simple_nodes" : ["assignment"],
+
+  "nodes_to_completely_remove" : ["comment"],
+
+  "import_save": {
+    "import_statement" : ["text", "import_path", "alias"],
+    "import_from_statement" : ["text", "import_path", "import_path", "alias", "imported"]
+  },
+
+  "nested_function_calls" : {
+    "expression_statement" : ["function"]
+  },
+
+  "hyperparameters" : {
+    "expression_statement" : ["argument_list", "variable_list"]
+  }
+
+}

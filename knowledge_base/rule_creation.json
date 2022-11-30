@@ -1,0 +1,60 @@
+{
+  "pattern":{
+    "nodes":[
+      {
+        "node_id": 1,
+        "type" : "identifier"
+      },
+      {
+        "node_id": 2,
+        "type" : "assignment"
+      },
+      {
+        "node_id": 3,
+        "type" : "="
+      },
+      {
+        "node_id": 4,
+        "type" : "subscript"
+      }
+    ],
+    "edges":[
+      {
+        "parent_node_id":1,
+        "child_node_id":2
+      },
+      {
+        "parent_node_id":3,
+        "child_node_id":2
+      },
+      {
+        "parent_node_id":4,
+        "child_node_id":2
+      }
+    ]
+  },
+  "transformations":{
+    "update_node_attributes":[
+      {
+        "node_id": 1,
+        "type": "output_variable"
+      },
+      {
+          "node_id" : 2,
+          "type" : "variable_assignment"
+        }
+      ],
+    "remove_edges": [
+          {
+              "parent_node_id" : 1,
+              "child_node_id" : 2
+          }
+      ],
+    "add_edges":[
+          {
+              "parent_node_id" : 2,
+              "child_node_id" : 1
+          }
+      ]
+  }
+}
