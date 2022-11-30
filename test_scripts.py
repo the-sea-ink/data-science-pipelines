@@ -1,7 +1,6 @@
 class Python:
         code_0 = """  
-        np.random.function.RandomState(1)
-
+        rng = np.random.RandomState(1)
         """
         code_backup = """
         a = 5

@@ -38,14 +38,8 @@ class Extractor:
 
     def _get_graph(self, tree):
         nxgraph = bfs_tree_traverser(tree)
-
-        # rewrite graph
-        rename_graph_types(nxgraph, self.language)
         G = transform_graph(nxgraph)
-        G = arrange_graph_v3(G)
-        G = rewrite_graph(G, self.language)
-        json_graph = convert_graph_to_json(G)
-        return json_graph
+        return G
 
     def produce(self, code: str, language: str):
         return self._get_graph(self._parse(code, language))

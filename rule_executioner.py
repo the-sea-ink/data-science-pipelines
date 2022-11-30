@@ -526,15 +526,22 @@ def add_library_attribute(G: NXGraph, alieses_dict: dict):
                     G.add_node_attrs(node_id, {"full_function_call": full_name})
     return
 
+def add_labels(G:NXGraph):
+    nodes = G.nodes()
+    for node_id in nodes:
+        node = G.get_node(node_id)
+        node_text = node["text"]
+        G.add_node_attrs(node_id, {"label": node_text})
+    return
 
 def apply_post_transformations(G, aliases_dict):
     adjust_subscript(G)
     adjust_slice(G)
-    #adjust_attributes(G)
     #adjust_attributes_2(G)
     cleanup(G)
     connect_variables(G)
     add_library_attribute(G, aliases_dict)
+    add_labels(G)
     return G
 
 
@@ -625,8 +632,9 @@ def transform_graph(G):
     # create_subgraph(G, 1)
 
     # remove_descendants_from_node(G, 14)
-
-    return G
+    graph_dict = convert_graph_to_json(G)
+    print(graph_dict)
+    return graph_dict
 
 
 def jsonify_finite_set(param):

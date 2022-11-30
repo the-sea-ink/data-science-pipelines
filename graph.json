@@ -1,7 +1,7 @@
 {
     "nodes": [
         {
-            "id": "1",
+            "id": "9",
             "type": "default",
             "targetPosition": "top",
             "position": {
@@ -9,15 +9,145 @@
                 "y": 0
             },
             "data": {
-                "type": "expression_statement",
-                "text": "df_preprocessed = pd.concat([df_scaled,dummies,target],axis=1)",
-                "parent_id": 0,
-                "variable_list": "df_preprocessed",
-                "caller_function": "pd.concat",
-                "argument_list": "([df_scaled,dummies,target],axis=1)",
-                "label": "pd.concat"
+                "type": "call",
+                "text": "pd.read_csv",
+                "identifier": [
+                    "pd",
+                    "read_csv"
+                ],
+                "output_variable": "dataset",
+                "label": "pd.read_csv"
+            }
+        },
+        {
+            "id": "12",
+            "type": "default",
+            "targetPosition": "top",
+            "position": {
+                "x": 0,
+                "y": 0
+            },
+            "data": {
+                "type": "attribute",
+                "text": "dataset.iloc[:, 1:2].values",
+                "identifier": "values",
+                "output_variable": "X",
+                "label": "dataset.iloc[:, 1:2].values"
+            }
+        },
+        {
+            "id": "15",
+            "type": "default",
+            "targetPosition": "top",
+            "position": {
+                "x": 0,
+                "y": 0
+            },
+            "data": {
+                "type": "attribute",
+                "text": "dataset.iloc[:, -1].values",
+                "identifier": "values",
+                "output_variable": "y",
+                "label": "dataset.iloc[:, -1].values"
+            }
+        },
+        {
+            "id": "28",
+            "type": "default",
+            "targetPosition": "top",
+            "position": {
+                "x": 0,
+                "y": 0
+            },
+            "data": {
+                "type": "string",
+                "text": "'../input/Position_Salaries.csv'",
+                "label": "'../input/Position_Salaries.csv'"
+            }
+        },
+        {
+            "id": "30",
+            "type": "default",
+            "targetPosition": "top",
+            "position": {
+                "x": 0,
+                "y": 0
+            },
+            "data": {
+                "type": "attribute",
+                "text": "dataset.iloc",
+                "variable": "dataset",
+                "identifier": "iloc",
+                "label": "dataset.iloc"
+            }
+        },
+        {
+            "id": "36",
+            "type": "default",
+            "targetPosition": "top",
+            "position": {
+                "x": 0,
+                "y": 0
+            },
+            "data": {
+                "type": "attribute",
+                "text": "dataset.iloc",
+                "variable": "dataset",
+                "identifier": "iloc",
+                "label": "dataset.iloc"
+            }
+        },
+        {
+            "id": "40",
+            "type": "default",
+            "targetPosition": "top",
+            "position": {
+                "x": 0,
+                "y": 0
+            },
+            "data": {
+                "type": "unary_operator",
+                "text": "-1",
+                "label": "-1"
             }
         }
     ],
-    "edges": []
+    "edges": [
+        {
+            "id": "edge-1",
+            "source": "9",
+            "target": "36",
+            "type": "smoothstep"
+        },
+        {
+            "id": "edge-2",
+            "source": "9",
+            "target": "30",
+            "type": "smoothstep"
+        },
+        {
+            "id": "edge-3",
+            "source": "28",
+            "target": "9",
+            "type": "smoothstep"
+        },
+        {
+            "id": "edge-4",
+            "source": "30",
+            "target": "12",
+            "type": "smoothstep"
+        },
+        {
+            "id": "edge-5",
+            "source": "36",
+            "target": "15",
+            "type": "smoothstep"
+        },
+        {
+            "id": "edge-6",
+            "source": "40",
+            "target": "15",
+            "type": "smoothstep"
+        }
+    ]
 }
