@@ -2,7 +2,7 @@
 <project version="4">
   <component name="ProjectModuleManager">
     <modules>
-      <module fileurl="file://$PROJECT_DIR$/.idea/DBPRO.IMPRO.SS22-parsing-ds-source-code.iml" filepath="$PROJECT_DIR$/.idea/DBPRO.IMPRO.SS22-parsing-ds-source-code.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/data-science-pipelines.iml" filepath="$PROJECT_DIR$/.idea/data-science-pipelines.iml" />
     </modules>
   </component>
 </project>
