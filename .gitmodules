@@ -1,16 +1,3 @@
-[submodule "playground/parsers/tree-sitter-ebnf-generator"]
-	path = playground/parsers/tree-sitter-ebnf-generator
-	url = https://github.com/eatkins/tree-sitter-ebnf-generator.git
-[submodule "playground/parsers/tree-sitter-python"]
-	path = playground/parsers/tree-sitter-python
-	url = https://github.com/tree-sitter/tree-sitter-python.git
-[submodule "playground/parsers/tree-sitter-r"]
-	path = playground/parsers/tree-sitter-r
-	url = https://github.com/r-lib/tree-sitter-r.git
 [submodule "third_party/ReGraph"]
 	path = third_party/ReGraph
-	url = https://github.com/sergred/ReGraph.git
-	branch = main
-[submodule "playground/parsers/tree-sitter-json"]
-	path = playground/parsers/tree-sitter-json
-	url = https://github.com/tree-sitter/tree-sitter-json.git
+	url = https://github.com/Kappa-Dev/ReGraph
