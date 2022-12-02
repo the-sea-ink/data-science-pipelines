@@ -4,6 +4,11 @@ To begin with (assuming Python is set), [install NVM](https://github.com/nvm-sh/
 ```
 python -m pip install -r requirements.txt
 ```
+Switch to virtual environment and install Regraph by executing 
+```
+python setup.py install
+```
+inside the third_library/Regraph folder.
 
 To start a test server
 ```
