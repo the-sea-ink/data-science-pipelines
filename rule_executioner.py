@@ -298,8 +298,8 @@ def cleanup(G):
     return G
 
 
-def compare_outputs_inputs(G, output_instances, input_instances, nodes_to_remove):
-    # check if same names, remove both nodes, add edge
+def compare_outputs_inputs(G:NXGraph, output_instances, input_instances, nodes_to_remove):
+    # check if same names, remove input node, update output attriute
     for output_instance in output_instances:
         output_identifier = output_instance[2]
         output_caller_function = output_instance[1]
@@ -310,16 +310,14 @@ def compare_outputs_inputs(G, output_instances, input_instances, nodes_to_remove
             input_node = G.get_node(input_identifier)
             # if same, remove nodes and add edge
             if output_node['text'] == input_node['text']:
-                if output_identifier not in nodes_to_remove:
-                    nodes_to_remove.append(output_identifier)
+                #if output_identifier not in nodes_to_remove:
+                    #nodes_to_remove.append(output_identifier)
                 if input_identifier not in nodes_to_remove:
                     nodes_to_remove.append(input_identifier)
+                G.update_node_attrs(output_identifier, {"type": "passable_data", "text": output_node['text']})
                 # add edge between caller functions
                 # if exists, add further attribute
-                try:
-                    G.add_edge(output_caller_function, input_caller_function, {'text': output_node['text']})
-                except:
-                    G.add_edge_attrs(output_caller_function, input_caller_function, {'text': output_node['text']})
+                G.add_edge(output_identifier, input_caller_function)
 
                 continue
 
@@ -376,7 +374,6 @@ def connect_variables(G):
         else:
             child_node["input_variable"] = input_node["text"]
         G.update_node_attrs(child_id, child_node)
-        # G.remove_node(input_id)
         if input_id not in nodes_to_remove:
             nodes_to_remove.append(input_id)
 
@@ -426,9 +423,8 @@ def connect_variables(G):
         else:
             parent_node["output_variable"] = output_node["text"]
         G.update_node_attrs(parent_id, parent_node)
-        # G.remove_node(output_id)
-        if output_id not in nodes_to_remove:
-            nodes_to_remove.append(output_id)
+        #if output_id not in nodes_to_remove:
+            #nodes_to_remove.append(output_id)
     for id in nodes_to_remove:
         G.remove_node(id)
     return
