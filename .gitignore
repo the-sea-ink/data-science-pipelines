@@ -259,3 +259,5 @@ dist
 .pnp.*
 
 .idea/
+graph.json
+test_scripts.py
