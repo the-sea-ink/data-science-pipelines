@@ -3,9 +3,6 @@ from regraph import NXGraph, Rule, FiniteSet, plot_graph
 import json
 import ast
 import time
-import matplotlib.pyplot as plt
-import networkx as nx
-from regraph.backends.networkx.plotting import plot_rule
 import utils
 
 
@@ -149,7 +146,7 @@ def adjust_call(G: NXGraph):
         G.remove_node(identifier_id)
     return
 
-# TODO fix needed, failing example error_code_1
+
 def adjust_attributes(G: NXGraph):
     pattern = NXGraph()
     pattern.add_node(1, {'type': 'attribute'})
@@ -192,8 +189,28 @@ def adjust_arguments(G: NXGraph):
     return
 
 
-def process_assignment(G):
-    # TODO add 2 identifiers
+def process_assignment(G: NXGraph):
+    pattern = NXGraph()
+    pattern.add_node(1, {'type': 'identifier'})
+    pattern.add_node(2, {'type': 'assignment'})
+    pattern.add_node(3, {'type': 'identifier'})
+    pattern.add_edge(1, 2)
+    pattern.add_edge(3, 2)
+    instances = G.find_matching(pattern)
+    if instances:
+        for instance in instances:
+            if instance[1] < instance[3]:
+                G.remove_edge(instance[1], instance[2])
+                G.add_edge(instance[2], instance[1])
+                attrs_output_variable = G.get_node(instance[1])
+                attrs_output_variable["type"] = "output_variable"
+                attrs_assignment = G.get_node(instance[2])
+                attrs_assignment["type"] = "variable_assignment"
+                attrs_input_variable = G.get_node(instance[3])
+                attrs_input_variable["type"] = "input_variable"
+                G.update_node_attrs(instance[1], attrs_output_variable)
+                G.update_node_attrs(instance[2], attrs_assignment)
+                G.update_node_attrs(instance[3], attrs_input_variable)
     return
 
 
@@ -248,16 +265,10 @@ def remove_import_statements(G: NXGraph):
     return
 
 
-def change_aliases_in_functions(G: NXGraph, aliases_dict):
-    # TODO check for identifier -> node pattern, adjust display names
-    return
-
-
 def apply_pre_transformations(G):
-
     aliases_dict = save_import_aliases(G)
-
     remove_import_statements(G)
+    process_assignment(G)
     adjust_call(G)
     adjust_attributes(G)
     adjust_arguments(G)
@@ -298,7 +309,7 @@ def cleanup(G):
     return G
 
 
-def compare_outputs_inputs(G:NXGraph, output_instances, input_instances, nodes_to_remove):
+def compare_outputs_inputs(G: NXGraph, output_instances, input_instances, nodes_to_remove):
     # check if same names, remove input node, update output attriute
     for output_instance in output_instances:
         output_identifier = output_instance[2]
@@ -310,8 +321,8 @@ def compare_outputs_inputs(G:NXGraph, output_instances, input_instances, nodes_t
             input_node = G.get_node(input_identifier)
             # if same, remove nodes and add edge
             if output_node['text'] == input_node['text']:
-                #if output_identifier not in nodes_to_remove:
-                    #nodes_to_remove.append(output_identifier)
+                # if output_identifier not in nodes_to_remove:
+                # nodes_to_remove.append(output_identifier)
                 if input_identifier not in nodes_to_remove:
                     nodes_to_remove.append(input_identifier)
                 G.update_node_attrs(output_identifier, {"type": "passable_data", "text": output_node['text']})
@@ -423,8 +434,8 @@ def connect_variables(G):
         else:
             parent_node["output_variable"] = output_node["text"]
         G.update_node_attrs(parent_id, parent_node)
-        #if output_id not in nodes_to_remove:
-            #nodes_to_remove.append(output_id)
+        # if output_id not in nodes_to_remove:
+        # nodes_to_remove.append(output_id)
     for id in nodes_to_remove:
         G.remove_node(id)
     return
@@ -461,46 +472,8 @@ def adjust_slice(G: NXGraph):
         G.remove_node(node_id)
     return
 
-#  TODO redo algorithm into recursion
-def adjust_attributes_2(G: NXGraph):
-    instances = []
 
-    pattern = NXGraph()
-    #pattern.add_node(1, {'type': 'attribute'})
-    #pattern.add_node(2, {'type': 'attribute'})
-    #pattern.add_edge(2, 1)
-    #instances.extend(G.find_matching(pattern))
-
-    pattern = NXGraph()
-    pattern.add_node(1, {'type': 'call'})
-    pattern.add_node(2, {'type': 'attribute'})
-    pattern.add_edge(2, 1)
-    instances.extend(G.find_matching(pattern))
-
-    for instance in instances:
-        node_id_to_go = instance[2]
-        node_id_to_stay = instance[1]
-        parents = G.predecessors(node_id_to_go)
-        children = G.successors(node_id_to_go)
-        for child in children:
-            for parent in parents:
-                G.add_edge(parent, child)
-        # remove type, append rest of the attrs to node to stay
-        node_to_go = G.get_node(node_id_to_go)
-        node_to_go.pop("type")
-        node_to_stay = G.get_node(node_id_to_stay)
-        node_to_stay.pop("text")
-        for key in node_to_go.keys():
-            if key in node_to_stay:
-                for elem in node_to_go[key]:
-                    node_to_stay[key].add(elem)
-            else:
-                G.add_node_attrs(node_id_to_stay, {key: node_to_go[key]})
-        G.remove_node(node_id_to_go)
-    return
-
-
-def add_library_attribute(G: NXGraph, alieses_dict: dict):
+def add_module_attributes(G: NXGraph, alieses_dict: dict):
     for key in alieses_dict:
         pattern = NXGraph()
         pattern.add_node(1, {'identifier': key})
@@ -510,8 +483,8 @@ def add_library_attribute(G: NXGraph, alieses_dict: dict):
             node_id = instance[1]
             node_attrs = G.get_node(node_id)
             G.remove_node_attrs(node_id, {'identifier': key})
-            # add "library" attribute and put full function name there
-            G.add_node_attrs(node_id, {"library": alieses_dict[key]})
+            # add "module" attribute and put full function name there
+            G.add_node_attrs(node_id, {"module": alieses_dict[key]})
             # add full function call to the node
             for value in node_attrs["text"]:
                 node_text = value.decode("utf-8")
@@ -522,7 +495,13 @@ def add_library_attribute(G: NXGraph, alieses_dict: dict):
                     G.add_node_attrs(node_id, {"full_function_call": full_name})
     return
 
-def add_labels(G:NXGraph):
+
+def search_knowledge_base(G: NXGraph):
+
+    return
+
+
+def add_labels(G: NXGraph):
     nodes = G.nodes()
     for node_id in nodes:
         node = G.get_node(node_id)
@@ -533,10 +512,10 @@ def add_labels(G:NXGraph):
 def apply_post_transformations(G, aliases_dict):
     adjust_subscript(G)
     adjust_slice(G)
-    #adjust_attributes_2(G)
     cleanup(G)
     connect_variables(G)
-    add_library_attribute(G, aliases_dict)
+    add_module_attributes(G, aliases_dict)
+    search_knowledge_base(G)
     add_labels(G)
     return G
 
@@ -618,7 +597,7 @@ def transform_graph(G):
             # if counter == 21:
             # print_graph(G)
             end_iner = time.time()
-            #print(f'line {counter} done in {end_iner - start_iner}')
+            # print(f'line {counter} done in {end_iner - start_iner}')
     end_outer = time.time()
     # print(f'apply rule  done in {end_outer - start_outer}')
 
@@ -629,7 +608,7 @@ def transform_graph(G):
 
     # remove_descendants_from_node(G, 14)
     graph_dict = convert_graph_to_json(G)
-    print(graph_dict)
+    # print(graph_dict)
     return graph_dict
 
 
