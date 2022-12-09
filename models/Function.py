@@ -34,17 +34,21 @@ class Function:
         index, name, description, link = parsed_string[0], parsed_string[1], parsed_string[2], parsed_string[3]
         # parse arguments
         parsed_args = parsed_string[4:]
+        # strip " at start and end of argument list
+        parsed_args[0] = parsed_args[0][1:]
+        parsed_args[-1] = parsed_args[-1][:-1]
         arguments = list()
         for arg in parsed_args:
             if "*args" in arg:
-                arguments.append(Function.Argument(arg.strip("\""), "args", parsed_args.index(arg), None))
+                arguments.append(Function.Argument(arg, "args", parsed_args.index(arg), None))
             elif "**kwargs" in arg:
-                arguments.append(Function.Argument(arg.strip("\""), "kwargs", parsed_args.index(arg), None))
+                arguments.append(Function.Argument(arg, "kwargs", parsed_args.index(arg), None))
             elif "=" in arg:
                 arg_name, arg_value = arg.split("=")[0], arg.split("=")[1]
-                arguments.append(Function.Argument(arg_name.strip("\""), "hyperparameter", parsed_args.index(arg), arg_value.strip("\"")))
+                arguments.append(Function.Argument(arg_name, "hyperparameter", parsed_args.index(arg), arg_value))
             else:
-                arguments.append(Function.Argument(arg.strip("\""), "positional_argument", parsed_args.index(arg), None))
+                arguments.append(Function.Argument(arg, "positional_argument", parsed_args.index(arg), None))
+        # create function
         function = Function(index, name, description, link, arguments)
         return function
 
