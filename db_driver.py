@@ -11,7 +11,7 @@ def init_db():
     cursor.execute("drop table arguments")
     cursor.execute("CREATE TABLE functions(module_name, id, title, description, link, PRIMARY KEY (module_name, id))")
     cursor.execute(
-        "CREATE TABLE arguments(module_name, id, argument_name, argument_type, argument_position, default_value)")
+        "CREATE TABLE arguments(module_name, title, argument_name, argument_type, argument_position, default_value)")
     return
 
 
@@ -28,10 +28,16 @@ def init_pandas():
             if function.args is not None:
                 for arg in function.args:
                     cursor.execute("INSERT INTO arguments VALUES(?, ?, ?, ?, ?, ?)",
-                                   ['pandas', function.index, arg.name, arg.type, arg.position, arg.default_value])
+                                   ['pandas', function.name, arg.name, arg.type, arg.position, arg.default_value])
     connection.commit()
     return
 
+def test():
+    result = Function.parse_from_db(connection, cursor, "pandas", "pandas.HDFStore.append")
+    print(result)
+    return
 
-init_db()
-init_pandas()
+#init_db()
+#init_pandas()
+test()
+connection.close()

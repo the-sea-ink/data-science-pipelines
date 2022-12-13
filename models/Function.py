@@ -1,3 +1,5 @@
+import sqlite3
+
 class Function:
     class Argument:
 
@@ -51,6 +53,24 @@ class Function:
             i += 1
         # create function
         function = Function(index, name, description, link, arguments)
+        return function
+
+    @staticmethod
+    def parse_from_db(connection, cursor, module_name, title):
+        cursor.execute("SELECT module_name, id, title, description, link FROM functions WHERE module_name = ? AND title =?", (module_name, title))
+        func = cursor.fetchall()
+        cursor.execute("SELECT argument_name, argument_type, argument_position, default_value FROM arguments WHERE module_name = ? AND title =?", (module_name, title))
+        args = cursor.fetchall()
+        if len(args) == 0:
+            return Function(func[0][1], func[0][2], func[0][3], func[0][4], None)
+        else:
+            arguments = []
+            for arg in args:
+                if arg[1] != "hyperparameter":
+                    arguments.append(Function.Argument(arg[0], arg[1], arg[2], None))
+                else:
+                    arguments.append(Function.Argument(arg[0], arg[1], arg[2], arg[3]))
+        function = Function(func[0][1], func[0][2], func[0][3], func[0][4], arguments)
         return function
 
 
