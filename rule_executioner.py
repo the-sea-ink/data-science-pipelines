@@ -1,6 +1,4 @@
-import csv
 import sqlite3
-
 from regraph import NXGraph, Rule, FiniteSet, plot_graph
 import json
 import ast
@@ -9,107 +7,7 @@ import utils
 from models.Function import Function
 
 
-def remove_descendants_from_instances(G, node_type, instances):
-    removed_nodes = []
-    for ins in instances:
-        node_id = ins[node_type]
-        # handling nested function calls;
-        # checking if we deleted a subgraph of a nested function yet
-        if node_id not in removed_nodes:
-            desc = G.descendants(node_id)
-            for id in list(desc):
-                G.remove_node(id)
-                removed_nodes.append(id)
-    return removed_nodes
-
-
-def remove_descendants_from_node(G, node_id):
-    removed_nodes = []
-    children = G.descendants(node_id)
-    for child in list(children):
-        G.remove_node(child)
-        removed_nodes.append(child)
-    return removed_nodes
-
-
-def remove_nodes(G, ids):
-    for id in ids:
-        G.remove_node(id)
-    return
-
-
-def save_imports(G, node_ids):
-    import_dict = []
-    for id in node_ids:
-        node_attributes = G.get_node(id)
-        import_dict.append(node_attributes)
-    return import_dict
-
-
-# gets the ids of all the nodes of a certain "type" in an instance of a graph
-def get_ids(node_type, instances):
-    ids = []
-    for instance in instances:
-        node_id = instance[node_type]
-        ids.append(node_id)
-    return ids
-
-
-# creates a pattern to filter a graph based on "node type"
-# attr_name -> name given to the variable used to identify this node type
-# node_type -> the type of node that wants to be filtered
-def create_pattern(id, attr_name, node_type):
-    pattern = NXGraph()
-    pattern.add_node(id, {attr_name: node_type})
-    return pattern
-
-
-##TODO restrict subgraph deepness
-def get_ancestors_nodes(G: NXGraph, node_id):
-    subg_nodes = list(G.ancestors(node_id))
-    subg_nodes.append(node_id)
-    return subg_nodes
-
-
-def create_subgraph(G, node_id):
-    subg_nodes = list(G.descendants(node_id))
-    subg_nodes.append(node_id)
-    subgraph = G.generate_subgraph(G, subg_nodes)
-    return subgraph
-
-
-def print_graph(G):
-    # print clear view of all nodes and their edges
-    print("List of nodes: ")
-    for n, attrs in G.nodes(data=True):
-        print("\t", n, attrs)
-    print()
-    print("List of edges: ")
-    for s, t, attrs in G.edges(data=True):
-        print("\t{}->{}".format(s, t), attrs)
-
-
-def sort_instances(all_instances, last_node_type):
-    """
-    Sorts all the instances, by the index of the last node's type. Since the initial parsed tree is traversed using
-    breadth-first-search, by sorting by the last index in the tree you are also sorting the indexes of all the other
-    node's types.
-    """
-    return sorted(all_instances, key=lambda x: (x[last_node_type]))
-
-
-def print_nodes(graph, node_ids):
-    for id in node_ids:
-        print(graph.get_node(id))
-
-
-def trim(attribute):
-    pos = attribute.find(".")
-    attribute = attribute[pos + 1:]
-    return attribute
-
-
-def flip_the_table(G: NXGraph):
+def flip_tree(G: NXGraph):
     root_node = utils.get_root_node_id(G)
     flip_node(G, root_node)
     return
@@ -262,7 +160,7 @@ def remove_import_statements(G: NXGraph):
     instances.extend(G.find_matching(pattern))
     if instances:
         for instance in instances:
-            nodes = get_ancestors_nodes(G, instance[1])
+            nodes = utils.get_ancestors_nodes(G, instance[1])
             for node in nodes:
                 G.remove_node(node)
     return
@@ -278,10 +176,10 @@ def cleanup(G):
         "slice"
     ]
     for redundancy in redundancy_list:
-        redundancy_pattern = create_pattern("node_id", "type", redundancy)
+        redundancy_pattern = utils.create_pattern("node_id", "type", redundancy)
         instances = G.find_matching(redundancy_pattern)
         for instance in instances:
-            remove_nodes(G, [instance["node_id"]])
+            utils.remove_nodes(G, [instance["node_id"]])
     # keyword argument children
     keyword_parents = [
         "string",
@@ -495,11 +393,6 @@ def add_module_attributes(G: NXGraph, alieses_dict: dict, cursor):
     return
 
 
-def search_knowledge_base(G: NXGraph):
-
-    return
-
-
 def add_labels(G: NXGraph):
     nodes = G.nodes()
     for node_id in nodes:
@@ -533,7 +426,7 @@ def get_ascendant_subgraphs_by_pattern(G: NXGraph, pattern: NXGraph):
     subgraphs = []
     if instances:
         for instance in instances:
-            subgraphs.append(get_ancestors_nodes(G, list(instance.values())[0]))
+            subgraphs.append(utils.get_ancestors_nodes(G, list(instance.values())[0]))
     return subgraphs
 
 
@@ -562,11 +455,56 @@ def apply_rule(G, json_rule):
     return G
 
 
+def jsonify_finite_set(param):
+    if len(param.to_json()["data"]) > 1:
+        result_list = list()
+        for element in param.to_json()["data"]:
+            if isinstance(element, (bytes, bytearray)):
+                result_list.append(element.decode("utf-8"))
+            else:
+                result_list.append(element)
+        return result_list
+    data = param.to_json()["data"][0]
+    if isinstance(data, (bytes, bytearray)):
+        data = data.decode("utf-8")
+    return data
+
+
+
+def convert_graph_to_json(G):
+    graph_dict = {"nodes": [], "edges": []}
+    for n, attrs in G.nodes(data=True):
+        if str(attrs["type"]) == "{'input'}":
+            metadata = {"id": str(n), "type": "input", "targetPosition": "top", "position": {"x": 0, "y": 0},
+                        "data": {}}
+        else:
+            metadata = {"id": str(n), "type": "default", "targetPosition": "top", "position": {"x": 0, "y": 0},
+                        "data": {}}
+        # node_attrs = {}
+        node_raw_attrs = G.get_node(n)
+        for key in node_raw_attrs:
+            metadata["data"].update({key: jsonify_finite_set(node_raw_attrs[key])})
+
+        # node_attrs.update(G.get_node(n))
+        graph_data = {}
+        graph_dict["nodes"].append(metadata)
+        # graph_dict["nodes"].append(graph_data)
+    i = 1
+    for s, t, attrs in G.edges(data=True):
+        edge_id = "edge-" + str(i)
+        edge_attrs = {"id": edge_id, "source": str(s), "target": str(t), 'type': 'smoothstep'}
+        graph_dict["edges"].append(edge_attrs)
+        i += 1
+    with open('graph.json', 'w') as fp:
+        json.dump(graph_dict, fp, indent=4)
+    return graph_dict
+
+
 def transform_graph(G):
     connection = sqlite3.connect("knowledge_base.db")
     cursor = connection.cursor()
-    flip_the_table(G)
-    print_graph(G)
+    flip_tree(G)
+    utils.print_graph(G)
     aliases_dict = save_import_aliases(G)
     remove_import_statements(G)
     process_assignment(G)
@@ -599,55 +537,10 @@ def transform_graph(G):
     add_module_attributes(G, aliases_dict, cursor)
     add_labels(G)
 
-    print_graph(G)
+    utils.print_graph(G)
 
     # create_subgraph(G, 1)
 
-    # remove_descendants_from_node(G, 14)
     graph_dict = convert_graph_to_json(G)
     # print(graph_dict)
-    return graph_dict
-
-
-def jsonify_finite_set(param):
-    if len(param.to_json()["data"]) > 1:
-        result_list = list()
-        for element in param.to_json()["data"]:
-            if isinstance(element, (bytes, bytearray)):
-                result_list.append(element.decode("utf-8"))
-            else:
-                result_list.append(element)
-        return result_list
-    data = param.to_json()["data"][0]
-    if isinstance(data, (bytes, bytearray)):
-        data = data.decode("utf-8")
-    return data
-
-
-def convert_graph_to_json(G):
-    graph_dict = {"nodes": [], "edges": []}
-    for n, attrs in G.nodes(data=True):
-        if str(attrs["type"]) == "{'input'}":
-            metadata = {"id": str(n), "type": "input", "targetPosition": "top", "position": {"x": 0, "y": 0},
-                        "data": {}}
-        else:
-            metadata = {"id": str(n), "type": "default", "targetPosition": "top", "position": {"x": 0, "y": 0},
-                        "data": {}}
-        # node_attrs = {}
-        node_raw_attrs = G.get_node(n)
-        for key in node_raw_attrs:
-            metadata["data"].update({key: jsonify_finite_set(node_raw_attrs[key])})
-
-        # node_attrs.update(G.get_node(n))
-        graph_data = {}
-        graph_dict["nodes"].append(metadata)
-        # graph_dict["nodes"].append(graph_data)
-    i = 1
-    for s, t, attrs in G.edges(data=True):
-        edge_id = "edge-" + str(i)
-        edge_attrs = {"id": edge_id, "source": str(s), "target": str(t), 'type': 'smoothstep'}
-        graph_dict["edges"].append(edge_attrs)
-        i += 1
-    with open('graph.json', 'w') as fp:
-        json.dump(graph_dict, fp, indent=4)
     return graph_dict
