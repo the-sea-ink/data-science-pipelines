@@ -1,9 +1,12 @@
 import csv
+import sqlite3
+
 from regraph import NXGraph, Rule, FiniteSet, plot_graph
 import json
 import ast
 import time
 import utils
+from models.Function import Function
 
 
 def remove_descendants_from_instances(G, node_type, instances):
@@ -265,16 +268,6 @@ def remove_import_statements(G: NXGraph):
     return
 
 
-def apply_pre_transformations(G):
-    aliases_dict = save_import_aliases(G)
-    remove_import_statements(G)
-    process_assignment(G)
-    adjust_call(G)
-    adjust_attributes(G)
-    adjust_arguments(G)
-    return aliases_dict
-
-
 def cleanup(G):
     # redundant parents
     redundancy_list = [
@@ -473,26 +466,32 @@ def adjust_slice(G: NXGraph):
     return
 
 
-def add_module_attributes(G: NXGraph, alieses_dict: dict):
+def add_module_attributes(G: NXGraph, alieses_dict: dict, cursor):
     for key in alieses_dict:
         pattern = NXGraph()
         pattern.add_node(1, {'identifier': key})
         instances = (G.find_matching(pattern))
-        for instance in instances:
-            # remove short identifier from identifiers list
-            node_id = instance[1]
-            node_attrs = G.get_node(node_id)
-            G.remove_node_attrs(node_id, {'identifier': key})
-            # add "module" attribute and put full function name there
-            G.add_node_attrs(node_id, {"module": alieses_dict[key]})
-            # add full function call to the node
-            for value in node_attrs["text"]:
-                node_text = value.decode("utf-8")
-                short_name = key.decode("utf-8")
-                long_name = alieses_dict[key].decode("utf-8")
-                if short_name in node_text:
-                    full_name = long_name + node_text[len(short_name):]
-                    G.add_node_attrs(node_id, {"full_function_call": full_name})
+        if instances:
+            for instance in instances:
+                # remove short identifier from identifiers list
+                node_id = instance[1]
+                node_attrs = G.get_node(node_id)
+                G.remove_node_attrs(node_id, {'identifier': key})
+                # add "module" attribute and put full function name there
+                module_name = alieses_dict[key].decode("utf-8")
+                G.add_node_attrs(node_id, {"module": module_name})
+                # add full function call to the node
+                for value in node_attrs["text"]:
+                    node_text = value.decode("utf-8")
+                    short_name = key.decode("utf-8")
+                    long_name = alieses_dict[key].decode("utf-8")
+                    if short_name in node_text:
+                        full_name = long_name + node_text[len(short_name):]
+                        G.add_node_attrs(node_id, {"full_function_call": full_name})
+                # get knowledge base entry
+                kb_function = Function.parse_from_db(cursor, module_name, full_name)
+                G.add_node_attrs(node_id, {"description": kb_function.description})
+
     return
 
 
@@ -509,23 +508,12 @@ def add_labels(G: NXGraph):
         G.add_node_attrs(node_id, {"label": node_text})
     return
 
-def apply_post_transformations(G, aliases_dict):
-    adjust_subscript(G)
-    adjust_slice(G)
-    cleanup(G)
-    connect_variables(G)
-    add_module_attributes(G, aliases_dict)
-    search_knowledge_base(G)
-    add_labels(G)
-    return G
-
 
 def execute_rule(G, pattern, rule):
     pattern_instances = G.find_matching(pattern)
     if pattern_instances:
         for instance in pattern_instances:
             G.rewrite(rule, instance)
-
     return
 
 
@@ -575,14 +563,17 @@ def apply_rule(G, json_rule):
 
 
 def transform_graph(G):
-    # read json file
-    f = open('knowledge_base/graph_clearing_patterns.json', "r")
-    json_data = json.loads(f.read())
-
+    connection = sqlite3.connect("knowledge_base.db")
+    cursor = connection.cursor()
     flip_the_table(G)
     print_graph(G)
+    aliases_dict = save_import_aliases(G)
+    remove_import_statements(G)
+    process_assignment(G)
+    adjust_call(G)
+    adjust_attributes(G)
+    adjust_arguments(G)
 
-    aliases_dict = apply_pre_transformations(G)
 
     # print_graph(G)
 
@@ -601,7 +592,13 @@ def transform_graph(G):
     end_outer = time.time()
     # print(f'apply rule  done in {end_outer - start_outer}')
 
-    apply_post_transformations(G, aliases_dict)
+    adjust_subscript(G)
+    adjust_slice(G)
+    cleanup(G)
+    connect_variables(G)
+    add_module_attributes(G, aliases_dict, cursor)
+    add_labels(G)
+
     print_graph(G)
 
     # create_subgraph(G, 1)

@@ -56,7 +56,7 @@ class Function:
         return function
 
     @staticmethod
-    def parse_from_db(connection, cursor, module_name, title):
+    def parse_from_db(cursor, module_name, title):
         cursor.execute("SELECT module_name, id, title, description, link FROM functions WHERE module_name = ? AND title =?", (module_name, title))
         func = cursor.fetchall()
         cursor.execute("SELECT argument_name, argument_type, argument_position, default_value FROM arguments WHERE module_name = ? AND title =?", (module_name, title))
