@@ -61,25 +61,27 @@ class Function:
         func = cursor.fetchall()
         cursor.execute("SELECT argument_name, argument_type, argument_position, default_value FROM arguments WHERE module_name = ? AND title =?", (module_name, title))
         args = cursor.fetchall()
-        if len(args) == 0:
+        if len(args) == 0 and len(func) != 0:
             return Function(func[0][1], func[0][2], func[0][3], func[0][4], None)
-        else:
+        elif len(func) != 0:
             arguments = []
             for arg in args:
                 if arg[1] != "hyperparameter":
                     arguments.append(Function.Argument(arg[0], arg[1], arg[2], None))
                 else:
                     arguments.append(Function.Argument(arg[0], arg[1], arg[2], arg[3]))
-        function = Function(func[0][1], func[0][2], func[0][3], func[0][4], arguments)
-        return function
+        if len(func) != 0:
+            function = Function(func[0][1], func[0][2], func[0][3], func[0][4], arguments)
+            return function
+        return -1
 
 
 def test():
     f = ['2202', 'pandas.read_pickle', 'Load pickled pandas object (or any object) from file.', 'https://pandas.pydata.org/docs/reference/api/pandas.read_pickle.html', "filepath_or_buffer,compression='infer',storage_options=None"]
     s = "2,pandas.HDFStore.append,Append to Table in file.,https://pandas.pydata.org/docs/reference/api/pandas.HDFStore.append.html,\"key,value,format=None,axes=None,index=True,append=True,complib=None,complevel=None,columns=None,min_itemsize=None,nan_rep=None,chunksize=None,expectedrows=None,dropna=None,data_columns=None,encoding=None,errors='strict'\""
     function = Function.parse_from_list(f)
-    print(function)
+    #print(function)
 
 
-test()
+#test()
 

@@ -90,7 +90,7 @@ def adjust_arguments(G: NXGraph):
     return
 
 
-def process_assignment(G: NXGraph):
+def adjust_assignment(G: NXGraph):
     pattern = NXGraph()
     pattern.add_node(1, {'type': 'identifier'})
     pattern.add_node(2, {'type': 'assignment'})
@@ -147,6 +147,41 @@ def save_import_aliases(G: NXGraph):
         for key, value in zip(identifier["text"], dotted_name["text"]):
             aliases_dict[key] = value
     return aliases_dict
+
+
+def save_imported_functions(G: NXGraph):
+    pattern = NXGraph()
+    pattern.add_node(1, {'type': 'dotted_name'})
+    pattern.add_node(2, {'type': 'import_from_statement'})
+    pattern.add_node(3, {'type': 'dotted_name'})
+    pattern.add_edge(1, 2)
+    pattern.add_edge(3, 2)
+
+    instances = []
+
+    if utils.pattern_connected(pattern):
+        # get subgraphs
+        subgraphs = get_ascendant_subgraphs_by_pattern(G, pattern)
+        for subgraph in subgraphs:
+            instances.extend(G.find_matching(pattern, subgraph))
+    else:
+        instances = G.find_matching(pattern)
+
+    functions_dict = {}
+    if instances:
+        for instance in instances:
+            if instance[1] < instance[3]:
+                module_name = G.get_node(instance[1])["text"]
+                function_name = G.get_node(instance[3])["text"]
+                for mod_name, func_name in zip(module_name, function_name):
+                    functions_dict[func_name] = mod_name.decode("utf-8") + "." + func_name.decode("utf-8")
+                    print(functions_dict)
+    return functions_dict
+
+
+# todo import lib -> lib.function
+def save_imported_modules(G):
+    return  # module_dict
 
 
 def remove_import_statements(G: NXGraph):
@@ -364,7 +399,7 @@ def adjust_slice(G: NXGraph):
     return
 
 
-def add_module_attributes(G: NXGraph, alieses_dict: dict, cursor):
+def add_attributes_from_import_aliases(G: NXGraph, alieses_dict: dict, cursor):
     for key in alieses_dict:
         pattern = NXGraph()
         pattern.add_node(1, {'identifier': key})
@@ -388,8 +423,29 @@ def add_module_attributes(G: NXGraph, alieses_dict: dict, cursor):
                         G.add_node_attrs(node_id, {"full_function_call": full_name})
                 # get knowledge base entry
                 kb_function = Function.parse_from_db(cursor, module_name, full_name)
-                G.add_node_attrs(node_id, {"description": kb_function.description})
+                if kb_function != -1:
+                    G.add_node_attrs(node_id, {"description": kb_function.description})
+    return
 
+
+def add_attributes_from_functions_dict(G: NXGraph, functions_dict: dict, cursor):
+    for key in functions_dict:
+        pattern = NXGraph()
+        pattern.add_node(1, {'text': key})
+        instances = (G.find_matching(pattern))
+        for instance in instances:
+            # add "module" attribute and put full function name there
+            node_id = instance[1]
+            index = functions_dict[key].find(".")
+            module_name = functions_dict[key][:index]
+            G.add_node_attrs(node_id, {"module": module_name})
+            # add full function call to the node
+            full_name = functions_dict[key]
+            G.add_node_attrs(node_id, {"full_function_call": full_name})
+            # get knowledge base entry
+            kb_function = Function.parse_from_db(cursor, module_name, full_name)
+            if kb_function != -1:
+                G.add_node_attrs(node_id, {"description": kb_function.description})
     return
 
 
@@ -402,7 +458,7 @@ def add_labels(G: NXGraph):
     return
 
 
-def execute_rule(G, pattern, rule):
+def execute_rule(G:NXGraph, pattern, rule):
     pattern_instances = G.find_matching(pattern)
     if pattern_instances:
         for instance in pattern_instances:
@@ -470,7 +526,6 @@ def jsonify_finite_set(param):
     return data
 
 
-
 def convert_graph_to_json(G):
     graph_dict = {"nodes": [], "edges": []}
     for n, attrs in G.nodes(data=True):
@@ -497,6 +552,7 @@ def convert_graph_to_json(G):
         i += 1
     with open('graph.json', 'w') as fp:
         json.dump(graph_dict, fp, indent=4)
+    print(graph_dict)
     return graph_dict
 
 
@@ -506,12 +562,13 @@ def transform_graph(G):
     flip_tree(G)
     utils.print_graph(G)
     aliases_dict = save_import_aliases(G)
+    functions_dict = save_imported_functions(G)
+    module_dict = save_imported_modules(G)
     remove_import_statements(G)
-    process_assignment(G)
+    adjust_assignment(G)
     adjust_call(G)
     adjust_attributes(G)
     adjust_arguments(G)
-
 
     # print_graph(G)
 
@@ -534,7 +591,8 @@ def transform_graph(G):
     adjust_slice(G)
     cleanup(G)
     connect_variables(G)
-    add_module_attributes(G, aliases_dict, cursor)
+    add_attributes_from_import_aliases(G, aliases_dict, cursor)
+    add_attributes_from_functions_dict(G, functions_dict, cursor)
     add_labels(G)
 
     utils.print_graph(G)
