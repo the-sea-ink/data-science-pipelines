@@ -33,6 +33,7 @@ class Function:
         # extract all attributes but arguments
         name, description, link = input_list[0], input_list[1], input_list[2]
         # extract arguments
+        # TODO fix argument separation, around 25 functions arguments are separated wrong
         parsed_args = input_list[3:][0]
 
         if parsed_args == '':
@@ -42,13 +43,13 @@ class Function:
         for arg in parsed_args.split(","):
             if "=" in arg:
                 arg_name, arg_value = arg.split("=")[0], arg.split("=")[1]
-                arguments.append(Function.Argument(arg_name, "hyperparameter", i, arg_value))
+                arguments.append(Function.Argument(arg_name, "hyperparameter", i+1, arg_value))
             elif "*args" in arg or arg == "*":
-                arguments.append(Function.Argument(arg, "args", i, None))
+                arguments.append(Function.Argument(arg, "args", i+1, None))
             elif "**" in arg:
-                arguments.append(Function.Argument(arg, "kwargs", i, None))
+                arguments.append(Function.Argument(arg, "kwargs", i+1, None))
             else:
-                arguments.append(Function.Argument(arg, "positional_argument", i, None))
+                arguments.append(Function.Argument(arg, "positional_argument", i+1, None))
             i += 1
         # create function
         function = Function(name, description, link, arguments)

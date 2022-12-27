@@ -9,7 +9,7 @@ cursor = connection.cursor()
 def init_db():
     cursor.execute("drop table functions")
     cursor.execute("drop table arguments")
-    cursor.execute("CREATE TABLE functions(function_id INTEGER PRIMARY KEY, module_name, function_title, description, link)")
+    cursor.execute("CREATE TABLE functions(function_id INTEGER PRIMARY KEY, module_name, function_title type UNIQUE, description, link)")
     cursor.execute(
         "CREATE TABLE arguments(function_id, argument_name, argument_type, argument_position, default_value, FOREIGN KEY(function_id) REFERENCES functions(function_id))")
     return
@@ -34,9 +34,9 @@ def init_module(filename, module_name):
     return
 
 def test():
-    init_db()
-    init_module("knowledge_base/pandas.csv", "pandas")
-    init_module("knowledge_base/sklearn.csv", "sklearn")
+    #init_db()
+    #init_module("knowledge_base/pandas.csv", "pandas")
+    #init_module("knowledge_base/sklearn.csv", "sklearn")
     result = Function.parse_from_db(cursor, "sklearn", "sklearn.utils.validation.has_fit_parameter")
     print(result)
     return
