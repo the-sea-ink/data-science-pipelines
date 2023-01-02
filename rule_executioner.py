@@ -179,9 +179,28 @@ def save_imported_functions(G: NXGraph):
     return functions_dict
 
 
-# todo import lib -> lib.function
-def save_imported_modules(G):
-    return  # module_dict
+def save_imported_modules(G:NXGraph):
+    pattern = NXGraph()
+    pattern.add_node(1, {'type': 'dotted_name'})
+    pattern.add_node(2, {'type': 'import_statement'})
+    pattern.add_edge(1, 2)
+    instances = []
+
+    if utils.pattern_connected(pattern):
+        # get subgraphs
+        subgraphs = get_ascendant_subgraphs_by_pattern(G, pattern)
+        for subgraph in subgraphs:
+            instances.extend(G.find_matching(pattern, subgraph))
+    else:
+        instances = G.find_matching(pattern)
+
+    imported_modules = []
+    if instances:
+        for instance in instances:
+            imported_modules.append(G.get_node(instance[1])["text"])
+    print(imported_modules)
+
+    return imported_modules
 
 
 def remove_import_statements(G: NXGraph):
@@ -449,6 +468,26 @@ def add_attributes_from_functions_dict(G: NXGraph, functions_dict: dict, cursor)
     return
 
 
+def add_attributes_from_module_list(G:NXGraph, imported_modules: list, cursor):
+    for module in imported_modules:
+        for module_name in module:
+            pattern = NXGraph()
+            pattern.add_node(1, {'identifier': module_name})
+            instances = (G.find_matching(pattern))
+            for instance in instances:
+                # add "module" attribute and put full function name there
+                node_id = instance[1]
+                function_call = G.get_node(node_id)["text"]
+                for function_name in function_call:
+                    G.add_node_attrs(node_id, {"module": module_name.decode("utf-8")})
+                    # add full function call
+                    G.add_node_attrs(node_id, {"full_function_call": function_name.decode("utf-8")})
+                    kb_function = Function.parse_from_db(cursor, module_name.decode("utf-8"), function_name.decode("utf-8"))
+                    if kb_function != -1:
+                        G.add_node_attrs(node_id, {"description": kb_function.description})
+    pass
+
+
 def add_labels(G: NXGraph):
     nodes = G.nodes()
     for node_id in nodes:
@@ -503,7 +542,6 @@ def apply_rule(G, json_rule):
     # instances = G.find_matching(pattern)
     if instances:
         # print(json_rule)
-        # print_graph(G)
         for instance in instances:
             # print(type(instances))
             G.rewrite(rule, instance)
@@ -556,6 +594,7 @@ def convert_graph_to_json(G):
     return graph_dict
 
 
+
 def transform_graph(G):
     connection = sqlite3.connect("knowledge_base.db")
     cursor = connection.cursor()
@@ -563,7 +602,7 @@ def transform_graph(G):
     utils.print_graph(G)
     aliases_dict = save_import_aliases(G)
     functions_dict = save_imported_functions(G)
-    module_dict = save_imported_modules(G)
+    imported_modules = save_imported_modules(G)
     remove_import_statements(G)
     adjust_assignment(G)
     adjust_call(G)
@@ -593,6 +632,7 @@ def transform_graph(G):
     connect_variables(G)
     add_attributes_from_import_aliases(G, aliases_dict, cursor)
     add_attributes_from_functions_dict(G, functions_dict, cursor)
+    add_attributes_from_module_list(G, imported_modules, cursor)
     add_labels(G)
 
     utils.print_graph(G)
