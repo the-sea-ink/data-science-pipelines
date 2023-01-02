@@ -44,9 +44,9 @@ class Function:
             if "=" in arg:
                 arg_name, arg_value = arg.split("=")[0], arg.split("=")[1]
                 arguments.append(Function.Argument(arg_name, "hyperparameter", i+1, arg_value))
-            elif "*args" in arg or arg == "*":
+            elif arg.count("*") == 1:
                 arguments.append(Function.Argument(arg, "args", i+1, None))
-            elif "**" in arg:
+            elif arg.count("*") == 2:
                 arguments.append(Function.Argument(arg, "kwargs", i+1, None))
             else:
                 arguments.append(Function.Argument(arg, "positional_argument", i+1, None))
