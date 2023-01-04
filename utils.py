@@ -66,3 +66,12 @@ def print_nodes(graph, node_ids):
     for id in node_ids:
         print(graph.get_node(id))
 
+
+def nxraph_to_digraph(nxgraph: NXGraph):
+    digraph = nx.DiGraph()
+    for node_id, node_attrs in nxgraph.nodes(data=True):
+        digraph.add_nodes_from([(node_id, {name: attr}) for (name, attr) in node_attrs.items()])
+    for s, t, attrs in nxgraph.edges(data=True):
+        digraph.add_edges_from([(s, t, {name: attr}) for (name, attr) in attrs.items()])
+    print_graph(digraph)
+    return digraph
