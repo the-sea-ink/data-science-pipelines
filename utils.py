@@ -1,5 +1,7 @@
 from regraph.backends.networkx.graphs import NXGraph
 import networkx as nx
+from networkx.drawing.nx_pydot import graphviz_layout
+import matplotlib.pyplot as plt
 
 
 def get_root_node_id(G: NXGraph):
@@ -73,5 +75,87 @@ def nxraph_to_digraph(nxgraph: NXGraph):
         digraph.add_nodes_from([(node_id, {name: attr}) for (name, attr) in node_attrs.items()])
     for s, t, attrs in nxgraph.edges(data=True):
         digraph.add_edges_from([(s, t, {name: attr}) for (name, attr) in attrs.items()])
-    print_graph(digraph)
+    # print_graph(digraph)
     return digraph
+
+
+def draw_graph(G, attribute="type", id=False):
+    # set graph structure to tree
+    pos = graphviz_layout(G, prog="dot")
+    if not id:
+        labels = nx.get_node_attributes(G, attribute)
+        # transform labels from finite set to strings
+        for k in labels:
+            for value in labels[k]:
+                labels[k] = value.replace("'", "")
+        nx.draw(G, pos=pos,
+                with_labels=True,
+                node_color="lightgrey",
+                edge_color="lightgrey",
+                labels=labels,
+                alpha=0.9,
+                width=2,
+                node_size=2200,
+                arrowsize=20)
+    else:
+        nx.draw(G, pos=pos,
+                with_labels=True,
+                node_color="lightgrey",
+                edge_color="lightgrey",
+                alpha=0.9,
+                width=2,
+                node_size=2200,
+                arrowsize=20)
+    plt.show()
+
+
+def draw_diffgraph(Gdiff):
+    # construct graph
+    labels = nx.get_node_attributes(Gdiff, 'type')
+    # transform labels from finite set to strings
+    for k in labels:
+        for value in labels[k]:
+            labels[k] = value.replace("'", "")
+
+    pos = graphviz_layout(Gdiff, prog="dot")
+    # color different nodes depending on the labels
+    val_map = {"both": "lightgrey",
+               "G1": "red",
+               "G2": "green",
+               "updated": "lightblue"
+               }
+    node_colors = []
+    for node, attrs in Gdiff.nodes(data=True):
+        if len(attrs["origin"]) == 2:
+            node_colors.append(val_map["both"])
+        elif len(attrs["origin"]) == 1:
+            for elem in attrs["origin"]:
+                if elem == "G1":
+                    node_colors.append(val_map["G1"])
+                elif elem == "G2":
+                    node_colors.append(val_map["G2"])
+                elif elem == "updated":
+                    node_colors.append(val_map["updated"])
+    edge_colors = []
+    for s, t, attrs in Gdiff.edges(data=True):
+        if len(attrs["origin"]) == 2:
+            edge_colors.append(val_map["both"])
+        elif len(attrs["origin"]) == 1:
+            for elem in attrs["origin"]:
+                if elem == "G1":
+                    edge_colors.append(val_map["G1"])
+                elif elem == "G2":
+                    edge_colors.append(val_map["G2"])
+    # add labels=labels, for different labeling
+    # add node_color='lightblue' for one colored nodes
+    nx.draw(Gdiff, pos=pos,
+            with_labels=True,
+            cmap=plt.get_cmap('inferno'),
+            node_color=node_colors,
+            edge_color=edge_colors,
+            labels=labels,
+            alpha=0.9,
+            width=2,
+            node_size=2200,
+            arrowsize=20)
+    plt.show()

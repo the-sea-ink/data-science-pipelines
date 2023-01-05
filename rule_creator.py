@@ -4,11 +4,11 @@ from regraph import NXGraph, Rule
 
 def main():
     # create rule
-    pattern = get_pattern_from_json('knowledge_base/rule_creation.json')
-    rule = create_rule_from_json(pattern, 'knowledge_base/rule_creation.json')
+    rule_dict = get_dict_from_json('knowledge_base/rule_creation.json')
+    pattern = create_pattern_from_dict(rule_dict)
+    rule = create_rule_from_dict(pattern, rule_dict)
 
     # check if rule already exists
-
     with open("knowledge_base/rule_base.txt") as file:
         for line in file:
             if str(rule) == line.strip():
@@ -20,14 +20,16 @@ def main():
 
     print(rule)
     print("Rule created successfully!")
-    # TODO fix opening file twice
 
 
-def get_pattern_from_json(path):
+def get_dict_from_json(path):
     # read json file
     f = open(path, "r")
     rule_dict = json.loads(f.read())
+    return rule_dict
 
+
+def create_pattern_from_dict(rule_dict):
     # create pattern
     pattern = NXGraph()
 
@@ -61,13 +63,9 @@ def get_pattern_from_json(path):
     return pattern
 
 
-def create_rule_from_json(pattern, path):
+def create_rule_from_dict(pattern, rule_dict):
     # create rule
     rule = Rule.from_transform(pattern)
-
-    # read json file
-    f = open(path, "r")
-    rule_dict = json.loads(f.read())
 
     # transformations
     # get nodes to remove
