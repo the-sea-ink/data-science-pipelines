@@ -1,6 +1,8 @@
 import networkx as nx
 from regraph import NXGraph
-from utils import print_graph
+from utils import print_graph, nxraph_to_digraph
+from networkx.drawing.nx_pydot import graphviz_layout
+import matplotlib.pyplot as plt
 
 
 def calculate_diff_graph(G1: NXGraph, G2: NXGraph):
@@ -24,7 +26,7 @@ def calculate_diff_graph(G1: NXGraph, G2: NXGraph):
         elif g2_node in hash_table_nodes:
             hash_table_nodes[g2_node] = g2_attr.copy()
             nodes_to_update[g2_node] = g2_attr.copy()
-            g2_attr["origin"] = "G2"
+            g2_attr["origin"] = "updated"
             Gdiff.update_node_attrs(g2_node, g2_attr)
             nodes_to_delete.remove(g2_node)
         # new node
@@ -40,7 +42,6 @@ def calculate_diff_graph(G1: NXGraph, G2: NXGraph):
         edge_attr = {"origin": "G1"}
         Gdiff.add_edge(s, t, edge_attr)
         edges_to_delete.append((s, t))
-    print(hash_table_edges)
 
     # traverse E2 and check if current edge is in the Gdiff graph yet
     for s, t in G2.edges():
@@ -81,14 +82,19 @@ def find_subgraph_from_node_list(G: nx.DiGraph, nodelist: list):
     return subgraph
 
 
+def translate_changes_into_rule(Gdiff, pattern, nodes_to_add, nodes_to_update, nodes_to_delete, edges_to_add,
+                                edges_to_delete):
+    return
+
+
 def test_diff():
     G1, G2 = NXGraph(), NXGraph()
-    G1.add_nodes_from([(0, {"type": "root"}), (1, {"type": "child"}), (2, {"type": "child"}), (3, {"type": "child"}),
-                       (4, {"type": "child"}), (6, {"type": "child"})])
+    G1.add_nodes_from([(0, {"type": "A"}), (1, {"type": "B"}), (2, {"type": "D"}), (3, {"type": "E"}),
+                       (4, {"type": "F"}), (6, {"type": "H"})])
     G1.add_edges_from([(0, 1), (1, 2), (0, 3), (2, 4), (4, 6)])
 
-    G2.add_nodes_from([(0, {"type": "root"}), (1, {"type": "leaf"}), (2, {"type": "child"}), (3, {"type": "child"}),
-                       (4, {"type": "child"}), (5, {"type": "child"})])
+    G2.add_nodes_from([(0, {"type": "A"}), (1, {"type": "C"}), (2, {"type": "D"}), (3, {"type": "E"}),
+                       (4, {"type": "F"}), (5, {"type": "G"})])
     G2.add_edges_from([(0, 1), (1, 2), (0, 3), (3, 4), (4, 5)])
 
     Gdiff, nodes_to_add, nodes_to_update, nodes_to_delete, edges_to_add, edges_to_delete = calculate_diff_graph(G1, G2)
@@ -103,6 +109,55 @@ def test_diff():
             changed_nodes.append(edge[1])
     print(changed_nodes)
 
+    # transform NXGraph into an nx DiGraph
+    GDidiff = nxraph_to_digraph(Gdiff)
+    print_graph(GDidiff)
+
+    # construct graph
+    labels = nx.get_node_attributes(GDidiff, 'type')
+    pos = graphviz_layout(GDidiff, prog="dot")
+    # color different nodes depending on the labels
+    val_map = {"both": "orange",
+               "G1": "red",
+               "G2": "green",
+               "updated": "lightblue"
+               }
+    node_colors = []
+    for node, attrs in GDidiff.nodes(data=True):
+        if len(attrs["origin"]) == 2:
+            node_colors.append(val_map["both"])
+        elif len(attrs["origin"]) == 1:
+            for elem in attrs["origin"]:
+                if elem == "G1":
+                    node_colors.append(val_map["G1"])
+                elif elem == "G2":
+                    node_colors.append(val_map["G2"])
+                elif elem == "updated":
+                    node_colors.append(val_map["updated"])
+    edge_colors = []
+    for s, t, attrs in GDidiff.edges(data=True):
+        if len(attrs["origin"]) == 2:
+            edge_colors.append(val_map["both"])
+        elif len(attrs["origin"]) == 1:
+            for elem in attrs["origin"]:
+                if elem == "G1":
+                    edge_colors.append(val_map["G1"])
+                elif elem == "G2":
+                    edge_colors.append(val_map["G2"])
+    # add labels=labels, for different labeling
+    # add node_color='lightblue' for one colored nodes
+    nx.draw(GDidiff, pos=pos,
+            with_labels=True,
+            cmap=plt.get_cmap('inferno'),
+            node_color=node_colors,
+            edge_color=edge_colors,
+            labels=labels,
+            alpha=0.9,
+            width=4,
+            node_size=2200,
+            arrowsize=20)
+    plt.show()
+
 
 def test_subgraph():
     G = nx.DiGraph()
@@ -110,7 +165,6 @@ def test_subgraph():
     G.add_edges_from(edges)
     nodelist = [0, 4, 6, 7, 9]
     subgraph = find_subgraph_from_node_list(G, nodelist)
-    print_graph(subgraph)
 
 
 # test_subgraph()
