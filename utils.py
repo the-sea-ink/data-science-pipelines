@@ -62,6 +62,7 @@ def print_graph(G):
     print("List of edges: ")
     for s, t, attrs in G.edges(data=True):
         print("\t{}->{}".format(s, t), attrs)
+    print()
 
 
 def print_nodes(graph, node_ids):
@@ -74,20 +75,24 @@ def nxraph_to_digraph(nxgraph: NXGraph):
     for node_id, node_attrs in nxgraph.nodes(data=True):
         digraph.add_nodes_from([(node_id, {name: attr}) for (name, attr) in node_attrs.items()])
     for s, t, attrs in nxgraph.edges(data=True):
-        digraph.add_edges_from([(s, t, {name: attr}) for (name, attr) in attrs.items()])
+        if len(attrs.items()) != 0:
+            digraph.add_edges_from([(s, t, {name: attr}) for (name, attr) in attrs.items()])
+        else:
+            digraph.add_edge(s, t)
     # print_graph(digraph)
     return digraph
 
 
-def draw_graph(G, attribute="type", id=False):
+def draw_graph(G, attribute="text", id=False):
     # set graph structure to tree
     pos = graphviz_layout(G, prog="dot")
     if not id:
+        ids = G.nodes()
         labels = nx.get_node_attributes(G, attribute)
         # transform labels from finite set to strings
-        for k in labels:
+        for id, k in zip(ids, labels):
             for value in labels[k]:
-                labels[k] = value.replace("'", "")
+                labels[k] = id, value.replace("'", "")
         nx.draw(G, pos=pos,
                 with_labels=True,
                 node_color="lightgrey",
@@ -109,13 +114,14 @@ def draw_graph(G, attribute="type", id=False):
     plt.show()
 
 
-def draw_diffgraph(Gdiff):
-    # construct graph
-    labels = nx.get_node_attributes(Gdiff, 'type')
+def draw_diffgraph(Gdiff, attribute="text"):
     # transform labels from finite set to strings
-    for k in labels:
+    ids = Gdiff.nodes()
+    labels = nx.get_node_attributes(Gdiff, attribute)
+    # transform labels from finite set to strings
+    for id, k in zip(ids, labels):
         for value in labels[k]:
-            labels[k] = value.replace("'", "")
+            labels[k] = id, value.replace("'", "")
 
     pos = graphviz_layout(Gdiff, prog="dot")
     # color different nodes depending on the labels
