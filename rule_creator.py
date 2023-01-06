@@ -66,7 +66,6 @@ def create_pattern_from_dict(rule_dict):
 def create_rule_from_dict(pattern, rule_dict):
     # create rule
     rule = Rule.from_transform(pattern)
-
     # transformations
     # get nodes to remove
     if "remove_nodes" in rule_dict["transformations"]:
