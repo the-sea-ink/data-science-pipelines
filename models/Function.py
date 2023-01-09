@@ -67,7 +67,7 @@ class Function:
             (func_id,))
         args = cursor.fetchall()
         if len(args) == 0 and len(func) != 0:
-            return Function(func[0][1], func[0][2], func[0][3],  None)
+            return Function(func[0][2], func[0][3], func[0][4],  None)
         elif len(func) != 0:
             arguments = []
             for arg in args:
@@ -76,7 +76,7 @@ class Function:
                 else:
                     arguments.append(Function.Argument(arg[0], arg[1], arg[2], arg[3]))
         if len(func) != 0:
-            function = Function(func[0][1], func[0][2], func[0][3], arguments)
+            function = Function(func[0][2], func[0][3], func[0][4], arguments)
             return function
         return -1
 
