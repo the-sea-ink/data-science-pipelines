@@ -4,6 +4,7 @@ from utils import print_graph, nxraph_to_digraph, draw_diffgraph, draw_graph
 from rule_creator import create_rule_from_dict, create_pattern_from_dict
 
 
+# TODO type and text or just type comparison
 def calculate_diff_graph(G1: NXGraph, G2: NXGraph):
     # add G1 nodes to Gdiff, label them as of G1 origin, add nodes to hash table
     Gdiff = NXGraph()
@@ -28,15 +29,26 @@ def calculate_diff_graph(G1: NXGraph, G2: NXGraph):
             nodes_to_update[g2_node]["old"] = G1.get_node(g2_node)
             nodes_to_update[g2_node]["new"] = g2_attr.copy()
             g2_attr["origin"] = "updated"
+            # save old attrs
+            # are they always in the same order?
+            for old_attr, new_attr in zip(G1.get_node(g2_node), hash_table_nodes[g2_node]) :
+                if G1.get_node(g2_node)[old_attr] != hash_table_nodes[g2_node][new_attr]:
+                    old_attr_name = "old_"+old_attr
+                    g2_attr[old_attr_name] = G1.get_node(g2_node)[old_attr]
+
+
+
+            # g2_attr["old_attributes"]
             Gdiff.update_node_attrs(g2_node, g2_attr)
             nodes_to_delete.pop(g2_node)
+
         # new node
         else:
             hash_table_nodes[g2_node] = g2_attr.copy()
             nodes_to_add[g2_node] = g2_attr.copy()
             g2_attr["origin"] = "G2"
             Gdiff.add_node(g2_node, g2_attr)
-
+    print(nodes_to_update)
     # add all E1 edges to diff graph and to hash table, label them as of G1 origin
     for s, t in G1.edges():
         hash_table_edges.append((s, t))
@@ -188,6 +200,11 @@ def translate_changes_into_rule(raw_pattern, nodes_to_add: dict, nodes_to_update
     pattern_dict = {"pattern": pattern}
     transformation_dict = {"transformations": transformations}
     return pattern_dict, transformation_dict
+
+
+def visualize_rule():
+
+    return
 
 
 def test_diff():
