@@ -2,11 +2,15 @@ import json
 from regraph import NXGraph, Rule
 
 
-def main():
+def create_rule(rule_dict=None, path=None):
     # create rule
-    rule_dict = get_dict_from_json('knowledge_base/rule_creation.json')
-    pattern = create_pattern_from_dict(rule_dict)
-    rule = create_rule_from_dict(pattern, rule_dict)
+    if rule_dict:
+        pattern = create_pattern_from_dict(rule_dict)
+        rule = create_rule_from_dict(pattern, rule_dict)
+    elif path:
+        rule_dict = get_dict_from_json(path)
+        pattern = create_pattern_from_dict(rule_dict)
+        rule = create_rule_from_dict(pattern, rule_dict)
 
     # check if rule already exists
     with open("knowledge_base/rule_base.txt") as file:
@@ -15,7 +19,7 @@ def main():
                 raise ValueError('This rule already exists!')
 
     out_file = open("knowledge_base/rule_base.txt", "a")
-    out_file.write(str(rule) + "\n")
+    #out_file.write(str(rule) + "\n")
     out_file.close()
 
     print(rule)
@@ -91,7 +95,6 @@ def create_rule_from_dict(pattern, rule_dict):
         for node in attrs_to_update:
             node_id = node.pop("node_id")
             node_attrs_to_update = node
-            print(node_attrs_to_update)
             rule.inject_update_node_attrs(node_id, node_attrs_to_update)
 
     # get nodes to add
@@ -178,5 +181,4 @@ def create_rule_from_dict(pattern, rule_dict):
     return rule
 
 
-if __name__ == "__main__":
-    main()
+create_rule(path="knowledge_base/rule_creation.json")
