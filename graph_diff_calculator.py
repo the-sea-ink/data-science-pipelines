@@ -1,5 +1,5 @@
 import networkx as nx
-from regraph import NXGraph
+from regraph import NXGraph, Rule
 from utils import print_graph, nxraph_to_digraph, draw_diffgraph, draw_graph
 from rule_creator import create_rule_from_dict, create_pattern_from_dict
 
@@ -35,10 +35,6 @@ def calculate_diff_graph(G1: NXGraph, G2: NXGraph):
                 if G1.get_node(g2_node)[old_attr] != hash_table_nodes[g2_node][new_attr]:
                     old_attr_name = "old_"+old_attr
                     g2_attr[old_attr_name] = G1.get_node(g2_node)[old_attr]
-
-
-
-            # g2_attr["old_attributes"]
             Gdiff.update_node_attrs(g2_node, g2_attr)
             nodes_to_delete.pop(g2_node)
 
@@ -48,7 +44,6 @@ def calculate_diff_graph(G1: NXGraph, G2: NXGraph):
             nodes_to_add[g2_node] = g2_attr.copy()
             g2_attr["origin"] = "G2"
             Gdiff.add_node(g2_node, g2_attr)
-    print(nodes_to_update)
     # add all E1 edges to diff graph and to hash table, label them as of G1 origin
     for s, t in G1.edges():
         hash_table_edges.append((s, t))
@@ -88,7 +83,6 @@ def find_subgraph_from_node_list(G: nx.DiGraph, changed_nodes: list, new_nodes: 
 
     # create all combinations
     H = nx.to_undirected(G)
-    print(changed_nodes)
     paths = []
     for i in range(len(changed_nodes) - 1):
         if len(changed_nodes) == 1:
@@ -122,6 +116,14 @@ def find_subgraph_from_node_list(G: nx.DiGraph, changed_nodes: list, new_nodes: 
     # create subgraph
     subgraph = nx.subgraph(G, subgraph_nodes)
 
+    # change updated nodes labels
+    for id, attrs in subgraph.nodes(data=True):
+        for attr in attrs:
+            if attr == "old_text":
+                attrs["text"] = attrs["old_text"]
+            if attr == "old_type":
+                attrs["type"] = attrs["old_type"]
+
     # trim G2 nodes and edges
     nodes_to_remove = []
     edges_to_remove = []
@@ -137,10 +139,10 @@ def find_subgraph_from_node_list(G: nx.DiGraph, changed_nodes: list, new_nodes: 
                     nodes_to_remove.append(id)
 
     pattern = nx.DiGraph(subgraph)
-    print_graph(pattern)
     pattern.remove_edges_from(edges_to_remove)
     pattern.remove_nodes_from(nodes_to_remove)
-    print_graph(pattern)
+
+
     return pattern
 
 
@@ -192,19 +194,31 @@ def translate_changes_into_rule(raw_pattern, nodes_to_add: dict, nodes_to_update
         for node in nodes_to_delete:
             transformations["remove_nodes"].append({"node_id": node})
 
-    print("pattern:")
-    print(pattern)
-    print("transformations:")
-    print(transformations)
+    #print("pattern:")
+    #print(pattern)
+    #print("transformations:")
+    #print(transformations)
 
     pattern_dict = {"pattern": pattern}
     transformation_dict = {"transformations": transformations}
     return pattern_dict, transformation_dict
 
 
-def visualize_rule():
-
-    return
+# pattern | result
+def visualize_rule(pattern: NXGraph, rule: dict):
+    #print_graph(pattern)
+    rule = Rule.from_json(rule)
+    result = NXGraph()
+    result.add_nodes_from(pattern.nodes(data=True))
+    result.add_edges_from(pattern.edges(data=True))
+    instances = result.find_matching(pattern)
+    for instance in instances:
+        result.rewrite(rule, instance)
+    print("pattern:")
+    print_graph(pattern)
+    print("result:")
+    print_graph(result)
+    return pattern, result
 
 
 def test_diff():
@@ -252,9 +266,10 @@ def test_diff():
     pattern, transformations = translate_changes_into_rule(pattern, nodes_to_add, nodes_to_update, nodes_to_delete,
                                                            edges_to_add,
                                                            edges_to_delete)
-    pattern = create_pattern_from_dict(pattern)
-    create_rule_from_dict(pattern, transformations)
+    pattern_nxgraph = create_pattern_from_dict(pattern)
+    rule = create_rule_from_dict(pattern_nxgraph, transformations)
 
+    visualize_rule(pattern_nxgraph, rule)
 
 # test_subgraph()
 test_diff()
