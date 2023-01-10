@@ -70,6 +70,16 @@ def print_nodes(graph, node_ids):
         print(graph.get_node(id))
 
 
+def convert_nxgraph_to_graph(NXGraph):
+    """
+    Extracts and nx.Graph from the NXGraph
+    :param NXGraph
+    :return: nx.Graph
+    """
+    nxGraph = nx.Graph(NXGraph._graph)
+    return nxGraph
+
+
 def nxraph_to_digraph(nxgraph: NXGraph):
     digraph = nx.DiGraph()
     for node_id, node_attrs in nxgraph.nodes(data=True):
@@ -84,6 +94,8 @@ def nxraph_to_digraph(nxgraph: NXGraph):
 
 
 def draw_graph(G, attribute="text", id=False):
+    if type(G) is NXGraph:
+        G = nxraph_to_digraph(G)
     # set graph structure to tree
     pos = graphviz_layout(G, prog="dot")
     if not id:
@@ -116,6 +128,8 @@ def draw_graph(G, attribute="text", id=False):
 
 def draw_diffgraph(Gdiff, attribute="text"):
     # transform labels from finite set to strings
+    if type(Gdiff) is NXGraph:
+        Gdiff = nxraph_to_digraph(Gdiff)
     ids = Gdiff.nodes()
     labels = nx.get_node_attributes(Gdiff, attribute)
     # transform labels from finite set to strings
