@@ -7,7 +7,7 @@ from regraph import NXGraph
 import networkx as nx
 
 
-class Extractor():
+class GraphExtractor:
 
     def __init__(self):
         Language.build_library(
@@ -24,7 +24,6 @@ class Extractor():
     def process_code_to_graph(self, code, language):
         assert language != '', 'language is not set'
         parser = Parser()
-        assert language != '', 'language is not set'
         parser.set_language(Language('build/my-languages.so', language))
         tree = parser.parse(bytes(code, "utf8"))
         nxgraph = self.bfs_tree_traverser(tree)
@@ -120,7 +119,7 @@ def main():
     language = 'python'
     code = test_scripts.Python.code_0
     start = time.time()
-    extractor = Extractor()
+    extractor = GraphExtractor()
     tree_sitter = extractor.process_code_to_graph(language, code)
 
     # traverse tree-sitter -> get NXGraph

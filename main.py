@@ -3,27 +3,29 @@ from pathlib import Path
 from fastapi import FastAPI, File, UploadFile, Form
 from fastapi.responses import FileResponse
 
-from parser import Extractor
-from rule_executioner import *
-from tree_sitter import Language, Parser
+from graph_extractor import GraphExtractor
 
 app = FastAPI()
 
 jsons = Path('.')
 frontend = Path('dist/')
-processor = Extractor()
+extractor = GraphExtractor()
+
 
 @app.get("/")
 async def root():
     return FileResponse(frontend / 'index.html')
 
+
 @app.get("/main.js")
 async def js():
     return FileResponse(frontend / 'main.js')
 
+
 @app.get("/main.css")
 async def css():
     return FileResponse(frontend / 'main.css')
+
 
 @app.post("/upload")
 async def upload_data(file: UploadFile = File(...), language: str = Form(...)):
@@ -31,7 +33,7 @@ async def upload_data(file: UploadFile = File(...), language: str = Form(...)):
     while content := await file.read(1024):  # async read chunk
         code += content  # async write chunk
 
-    data = processor.process_code_to_graph(code, language)
+    data = extractor.process_code_to_graph(code, language)
     # print(data)
     return {
         "type": "graph",
@@ -43,9 +45,10 @@ async def upload_data(file: UploadFile = File(...), language: str = Form(...)):
         }
     }
 
+
 @app.post("/update")
 async def update_code(code: str = Form(...), language: str = Form(...)):
-    data = processor.process_code_to_graph(code, language)
+    data = extractor.process_code_to_graph(code, language)
     # print(data)
     return {
         "type": "graph",
