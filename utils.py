@@ -2,7 +2,7 @@ from regraph.backends.networkx.graphs import NXGraph
 import networkx as nx
 from networkx.drawing.nx_pydot import graphviz_layout
 import matplotlib.pyplot as plt
-
+import numpy as np
 
 def get_root_node_id(G: NXGraph):
     # TODO: rewrite to search for a real root node
@@ -93,7 +93,8 @@ def nxraph_to_digraph(nxgraph: NXGraph):
     return digraph
 
 
-def draw_graph(G, attribute="text", id=False):
+def draw_graph(G, attribute="text", id=False, fig_num=1):
+    fig = plt.figure(fig_num)
     if type(G) is NXGraph:
         G = nxraph_to_digraph(G)
     # set graph structure to tree
@@ -104,7 +105,10 @@ def draw_graph(G, attribute="text", id=False):
         # transform labels from finite set to strings
         for id, k in zip(ids, labels):
             for value in labels[k]:
-                labels[k] = id, value.replace("'", "")
+                if isinstance(value, str):
+                    labels[k] = id, value.replace("'", "")
+                else:
+                    labels[k] = id, value.decode("utf-8").replace("'", "")
         nx.draw(G, pos=pos,
                 with_labels=True,
                 node_color="lightgrey",
@@ -123,7 +127,9 @@ def draw_graph(G, attribute="text", id=False):
                 width=2,
                 node_size=2200,
                 arrowsize=20)
+    plt.figure(figsize=(20, 20))
     plt.show()
+    return fig
 
 
 def draw_diffgraph(Gdiff, attribute="text"):
@@ -136,7 +142,6 @@ def draw_diffgraph(Gdiff, attribute="text"):
     for id, k in zip(ids, labels):
         for value in labels[k]:
             labels[k] = id, value.replace("'", "")
-
     pos = graphviz_layout(Gdiff, prog="dot")
     # color different nodes depending on the labels
     val_map = {"both": "lightgrey",
@@ -178,4 +183,4 @@ def draw_diffgraph(Gdiff, attribute="text"):
             width=2,
             node_size=2200,
             arrowsize=20)
-    plt.show()
+    #plt.show()
