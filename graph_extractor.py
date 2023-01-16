@@ -23,9 +23,11 @@ class GraphExtractor:
 
     def process_code_to_graph(self, code, language):
         assert language != '', 'language is not set'
+        language = Language('build/my-languages.so', language)
         parser = Parser()
-        parser.set_language(Language('build/my-languages.so', language))
-        tree = parser.parse(bytes(code, "utf8"))
+        parser.set_language(language)
+        b = bytes(code, "utf8")
+        tree = parser.parse(b)
         nxgraph = self.bfs_tree_traverser(tree)
         G = transform_graph(nxgraph)
         return G
@@ -120,11 +122,11 @@ def main():
     code = test_scripts.Python.code_0
     start = time.time()
     extractor = GraphExtractor()
-    tree_sitter = extractor.process_code_to_graph(language, code)
+    extractor.process_code_to_graph(code, language)
 
     # traverse tree-sitter -> get NXGraph
-    nxgraph = extractor.bfs_tree_traverser(tree_sitter)
-    G = transform_graph(nxgraph)
+    #nxgraph = extractor.bfs_tree_traverser(tree_sitter)
+    #G = transform_graph(nxgraph)
 
 
 if __name__ == "__main__":
