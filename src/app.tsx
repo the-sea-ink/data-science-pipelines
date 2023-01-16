@@ -82,6 +82,8 @@ function SimpleDialog(props: SimpleDialogProps) {
   );
 }
 
+var globalChangesCounter = 0;
+
 export default function App() {
     const [code, setCode] = useState<string>('hello world');
     const [nodes, setNodes] = useState<Node[]>([]);
@@ -96,9 +98,20 @@ export default function App() {
     function handleDrawerToggle(): boolean { return true };
     const drawerWidth = 48;
 
-    function onCodeChange(c: string): void {
-        setCode(c);
-        upd(c);
+    let lastChange = 0
+
+    async function onCodeChange(c: string): Promise<void> {
+        globalChangesCounter += 1;
+        let localChangesCounter = globalChangesCounter;
+        setTimeout(() => {
+                if (globalChangesCounter == localChangesCounter) {
+                    setCode(c);
+                    upd(c);
+                }
+        },
+            1000
+        );
+
     }
 
     async function upd(c: string): Promise<void> {
