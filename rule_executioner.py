@@ -302,7 +302,8 @@ def post_cleanup(G: NXGraph):
         "%",
         "-",
         "<",
-        ">"
+        ">",
+        "expression_list"
     ]
     clean_from_list(G, redundancy_list)
 
@@ -422,8 +423,9 @@ def connect_variables(G):
         else:
             child_node["input_variable"] = input_node["text"]
         G.update_node_attrs(child_id, child_node)
-        if input_id not in nodes_to_remove:
-            nodes_to_remove.append(input_id)
+        # uncomment this for input nodes visibility
+        #if input_id not in nodes_to_remove:
+            #nodes_to_remove.append(input_id)
 
     # check identifiers fpr potential inputs
     input_pattern = NXGraph()
@@ -731,6 +733,7 @@ def transform_graph(G):
     connect_parents_children_drop_node(G, "subscript")
     connect_parents_children_drop_node(G, "slice")
     connect_parents_children_drop_node(G, "binary_operator")
+    connect_parents_children_drop_node(G, "expression_list")
     post_cleanup(G)
     connect_variables(G)
     add_attributes_from_import_aliases(G, aliases_dict, cursor)
@@ -754,12 +757,14 @@ def draw_rule():
     with open("knowledge_base/rule_base.txt") as file:
         for counter, line in enumerate(file, 1):
             rule_dict = read_rule_from_line(line)
-            if counter == 29:
+            if counter == 14:
                 rule = Rule.from_json(rule_dict)
                 pattern = rule.lhs
                 extractor = RuleExtractor()
                 result = extractor.get_transformation_result(pattern, rule_dict)
                 pattern_fig = draw_graph(pattern, fig_num=2)
                 result_fig = draw_graph(result, fig_num=3)
-                # plt.show()
+                plt.show()
     return
+
+draw_rule()
