@@ -1,3 +1,4 @@
+import datetime
 import sqlite3
 import csv
 from models.Function import Function
@@ -7,22 +8,29 @@ cursor = connection.cursor()
 
 
 def init_db():
-    cursor.execute("drop table functions")
-    cursor.execute("drop table arguments")
-    cursor.execute("CREATE TABLE functions(function_id INTEGER PRIMARY KEY, module_name, function_title type UNIQUE, description, link)")
+    cursor.execute("DROP TABLE functions")
+    cursor.execute("DROP TABLE arguments")
+    cursor.execute("DROP TABLE modules")
+    cursor.execute("CREATE TABLE modules(module_id INTEGER NOT NULL, module_name PRIMARY KEY, version, date)")
+    cursor.execute(
+        "CREATE TABLE functions(function_id INTEGER PRIMARY KEY, module_name, function_title type UNIQUE, description, link, FOREIGN KEY(module_name) REFERENCES modules(module_name))")
     cursor.execute(
         "CREATE TABLE arguments(function_id, argument_name, argument_type, argument_position, default_value, FOREIGN KEY(function_id) REFERENCES functions(function_id))")
     return
 
 
-# todo adapt to ini any
-def init_module(filename, module_name):
+def init_module(filename, module_name, version, date):
     with open(filename, newline='') as csvfile:
         csvreader = csv.reader(csvfile)
         header = next(csvreader)
-        for row in csvreader:
-            # add function values
+        cursor.execute("SELECT COUNT(*) FROM modules")
+        module_id = cursor.fetchall()[0][0] + 1
+        # add module info
+        cursor.execute("INSERT INTO modules(module_id, module_name, version, date) VALUES(?, ?, ?, ?)",
+                       [module_id, module_name, version, date])
+        for (index, row) in enumerate(csvreader):
             function = Function.parse_from_list(row)
+            # add function values
             cursor.execute("INSERT INTO functions(module_name, function_title, description, link) VALUES(?, ?, ?, ?)",
                            [module_name, function.name, function.description, function.link])
             added_function_id = cursor.lastrowid
@@ -33,13 +41,16 @@ def init_module(filename, module_name):
     connection.commit()
     return
 
+
 def test():
-    #init_db()
-    #init_module("knowledge_base/pandas.csv", "pandas")
-    #init_module("knowledge_base/sklearn.csv", "sklearn")
+    init_db()
+    date = datetime.date(2023, 1, 17)
+    init_module("knowledge_base/pandas 2023-1-17 1.5.2.csv", "pandas", "1.5.2", date)
+    init_module("knowledge_base/sklearn 2023-1-17 1.2.0.csv", "sklearn", "1.2.0", date)
     result = Function.parse_from_db(cursor, "sklearn", "sklearn.utils.validation.has_fit_parameter")
-    print(result)
+    #print(result)
     return
+
 
 test()
 connection.close()

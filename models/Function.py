@@ -56,28 +56,34 @@ class Function:
         return function
 
     @staticmethod
+    # TODO add check by module
     def parse_from_db(cursor, module_name, title):
         cursor.execute(
-            "SELECT function_id, module_name, function_title, description, link FROM functions WHERE module_name = ? AND function_title =?",
-            (module_name, title))
-        func = cursor.fetchall()
-        func_id = func[0][0]
-        cursor.execute(
-            "SELECT argument_name, argument_type, argument_position, default_value FROM arguments WHERE function_id = ?",
-            (func_id,))
-        args = cursor.fetchall()
-        if len(args) == 0 and len(func) != 0:
-            return Function(func[0][2], func[0][3], func[0][4],  None)
-        elif len(func) != 0:
-            arguments = []
-            for arg in args:
-                if arg[1] != "hyperparameter":
-                    arguments.append(Function.Argument(arg[0], arg[1], arg[2], None))
-                else:
-                    arguments.append(Function.Argument(arg[0], arg[1], arg[2], arg[3]))
-        if len(func) != 0:
-            function = Function(func[0][2], func[0][3], func[0][4], arguments)
-            return function
+            "SELECT module_name FROM modules WHERE module_name = ?", (module_name, )
+        )
+        name = cursor.fetchall()
+        if name:
+            cursor.execute(
+                "SELECT function_id, module_name, function_title, description, link FROM functions WHERE module_name = ? AND function_title =?",
+                (module_name, title))
+            func = cursor.fetchall()
+            func_id = func[0][0]
+            cursor.execute(
+                "SELECT argument_name, argument_type, argument_position, default_value FROM arguments WHERE function_id = ?",
+                (func_id,))
+            args = cursor.fetchall()
+            if len(args) == 0 and len(func) != 0:
+                return Function(func[0][2], func[0][3], func[0][4],  None)
+            elif len(func) != 0:
+                arguments = []
+                for arg in args:
+                    if arg[1] != "hyperparameter":
+                        arguments.append(Function.Argument(arg[0], arg[1], arg[2], None))
+                    else:
+                        arguments.append(Function.Argument(arg[0], arg[1], arg[2], arg[3]))
+            if len(func) != 0:
+                function = Function(func[0][2], func[0][3], func[0][4], arguments)
+                return function
         return -1
 
 
@@ -87,6 +93,6 @@ def test():
          "filepath_or_buffer,compression='infer',storage_options=None"]
     s = "pandas.HDFStore.append,Append to Table in file.,https://pandas.pydata.org/docs/reference/api/pandas.HDFStore.append.html,\"key,value,format=None,axes=None,index=True,append=True,complib=None,complevel=None,columns=None,min_itemsize=None,nan_rep=None,chunksize=None,expectedrows=None,dropna=None,data_columns=None,encoding=None,errors='strict'\""
     function = Function.parse_from_list(f)
-    print(function)
+    #print(function)
 
 test()
