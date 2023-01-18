@@ -9,6 +9,11 @@ class RuleExtractor:
     def extract_rule(self, G1, G2, by_text=True):
         Gdiff, nodes_to_add, nodes_to_update, nodes_to_delete, edges_to_add, edges_to_delete = self.calculate_diff_graph(
             G1, G2)
+
+        # trim not relevant attributes
+        G1 = self.trim_attributes(G1, by_text)
+        G2 = self.trim_attributes(G2, by_text)
+
         # transform NXGraph into an nx DiGraph
         draw_graph(G1)
         draw_graph(G2)
@@ -23,10 +28,16 @@ class RuleExtractor:
         rule = create_rule_from_dict(pattern_nxgraph, transformations)
 
         result = self.get_transformation_result(pattern_nxgraph, rule)
+        print_graph(G1)
+        return pattern_nxgraph, result
 
     def adapt_rule(self, pattern, result, rule_name, rule_description, by_text=True):
         Gdiff, nodes_to_add, nodes_to_update, nodes_to_delete, edges_to_add, edges_to_delete = self.calculate_diff_graph(
             pattern, result)
+
+        # trim not relevant attributes
+        pattern = self.trim_attributes(pattern, by_text)
+        result = self.trim_attributes(result, by_text)
 
         pattern, transformations = self.translate_changes_into_rule(pattern, nodes_to_add, nodes_to_update,
                                                                     nodes_to_delete,
@@ -36,7 +47,39 @@ class RuleExtractor:
         rule = create_rule_from_dict(pattern_nxgraph, transformations)
 
         result = self.get_transformation_result(pattern_nxgraph, rule)
-        return
+        return rule
+
+    def trim_attributes(self, G: NXGraph, by_text):
+        """
+        Trim all attributes except type, text and identifier.
+
+        "call" type nodes keep type and text;
+        "keyword_argument" nodes keep type and identifier;
+        Rest only keep type.
+
+        :param G: NXGraph to trim
+        :param by_text: by type only or by text as well
+        :return: both graphs with trimmed attributes
+        """
+        trimmed_G = NXGraph()
+        for node_id, attrs in G.nodes(data=True):
+            # if node type is in whitelist
+            for elem in attrs["type"] and by_text:
+                # keep type and text
+                if elem == "call":
+                    trimmed_attrs = {"type": attrs["type"], "text": attrs["text"]}
+                    break
+                # keep type and identifier
+                elif elem == "keyword_argument" and by_text:
+                    trimmed_attrs = {"type": attrs["type"], "identifier": attrs["identifier"]}
+                    break
+                # only keep type
+                else:
+                    trimmed_attrs = {"type": attrs["type"]}
+            trimmed_G.add_node(node_id, trimmed_attrs)
+        for s, t in G.edges():
+            trimmed_G.add_edge(s, t)
+        return trimmed_G
 
     # TODO type and text or just type comparison
     def calculate_diff_graph(self, G1: NXGraph, G2: NXGraph):
@@ -64,7 +107,6 @@ class RuleExtractor:
                 nodes_to_update[g2_node]["new"] = g2_attr.copy()
                 g2_attr["origin"] = "updated"
                 # save old attrs
-                # are they always in the same order?
                 for old_attr, new_attr in zip(G1.get_node(g2_node), hash_table_nodes[g2_node]):
                     if G1.get_node(g2_node)[old_attr] != hash_table_nodes[g2_node][new_attr]:
                         old_attr_name = "old_" + old_attr
@@ -101,6 +143,7 @@ class RuleExtractor:
 
         # print_graph(Gdiff)
         return Gdiff, nodes_to_add, nodes_to_update, nodes_to_delete, edges_to_add, edges_to_delete
+
 
     # TODO add case if there is no path between nodes
     def find_subgraph_from_node_list(self, G, nodes_to_add, nodes_to_update, nodes_to_delete, edges_to_add, edges_to_delete):
@@ -275,9 +318,9 @@ class RuleExtractor:
 
 def test():
     G1, G2 = NXGraph(), NXGraph()
-    G1.add_nodes_from([(0, {"type": "function", "text": "A"}),
-                       (1, {"type": "function", "text": "B"}),
-                       (2, {"type": "function", "text": "D"}),
+    G1.add_nodes_from([(0, {"type": "call", "text": "A"}),
+                       (1, {"type": "call", "text": "B"}),
+                       (2, {"type": "keyword_argument", "text": "D", "identifier": "d"}),
                        (3, {"type": "function", "text": "E"}),
                        (4, {"type": "function", "text": "F"}),
                        (6, {"type": "function", "text": "H"}),
@@ -287,10 +330,10 @@ def test():
                        (10, {"type": "function", "text": "L"})])
     G1.add_edges_from([(0, 1), (1, 2), (0, 3), (2, 4), (4, 6), (7, 0), (8, 0), (9, 2), (2, 10)])
 
-    G2.add_nodes_from([(0, {"type": "function", "text": "A"}),
-                       (1, {"type": "function", "text": "C"}),
-                       (2, {"type": "function", "text": "D"}),
-                       (3, {"type": "function", "text": "E"}),
+    G2.add_nodes_from([(0, {"type": "call", "text": "A"}),
+                       (1, {"type": "call", "text": "C"}),
+                       (2, {"type": "call", "text": "D"}),
+                       (3, {"type": "call", "text": "E"}),
                        (4, {"type": "function", "text": "F"}),
                        (5, {"type": "function", "text": "G"}),
                        (7, {"type": "function", "text": "I"}),
