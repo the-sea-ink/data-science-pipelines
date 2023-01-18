@@ -118,9 +118,31 @@ def adjust_assignment(G: NXGraph):
     return
 
 
+def save_identifier_into_keyword_argument(G: NXGraph):
+    """
+    Saves "identifier" text into "keyword_argument" node as "identifier" attribute.
+
+    :param G: an NXGraph object
+    """
+    pattern = NXGraph()
+    pattern.add_node(1, {'type': 'identifier'})
+    pattern.add_node(2, {'type': 'keyword_argument'})
+    pattern.add_edge(1, 2)
+    instances = G.find_matching(pattern)
+    if instances:
+        for instance in instances:
+            attrs = G.get_node_attrs(instance[1])
+            G.add_node_attrs(instance[2], {"identifier": attrs["text"]})
+            print_graph(G)
+
+
+
+    return
+
+
 def save_import_aliases(G: NXGraph):
     """
-    Handlew 'import numpy as np'
+    Handle 'import numpy as np'
 
     :param G: A NXGraph object
     """
@@ -693,6 +715,22 @@ def convert_graph_to_json(G):
     return graph_dict
 
 
+
+def draw_rule():
+    with open("knowledge_base/rule_base.txt") as file:
+        for counter, line in enumerate(file, 1):
+            rule_dict = read_rule_from_line(line)
+            if counter == 14:
+                rule = Rule.from_json(rule_dict)
+                pattern = rule.lhs
+                extractor = RuleExtractor()
+                result = extractor.get_transformation_result(pattern, rule_dict)
+                pattern_fig = draw_graph(pattern, fig_num=2)
+                result_fig = draw_graph(result, fig_num=3)
+                plt.show()
+    return
+
+
 def transform_graph(G):
     start_iner = time.time()
     connection = sqlite3.connect("knowledge_base.db")
@@ -705,6 +743,7 @@ def transform_graph(G):
     functions_dict = save_imported_functions(G)
     imported_modules = save_imported_modules(G)
     remove_import_statements(G)
+    save_identifier_into_keyword_argument(G)
     adjust_assignment(G)
     adjust_call(G)
     adjust_attributes(G)
@@ -752,19 +791,4 @@ def transform_graph(G):
     # print(graph_dict)
     return graph_dict
 
-
-def draw_rule():
-    with open("knowledge_base/rule_base.txt") as file:
-        for counter, line in enumerate(file, 1):
-            rule_dict = read_rule_from_line(line)
-            if counter == 14:
-                rule = Rule.from_json(rule_dict)
-                pattern = rule.lhs
-                extractor = RuleExtractor()
-                result = extractor.get_transformation_result(pattern, rule_dict)
-                pattern_fig = draw_graph(pattern, fig_num=2)
-                result_fig = draw_graph(result, fig_num=3)
-                plt.show()
-    return
-
-draw_rule()
+#draw_rule()
