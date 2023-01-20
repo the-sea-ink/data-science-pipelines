@@ -32,22 +32,19 @@ class GraphExtractor:
         G = transform_graph(nxgraph)
         return G
 
-    # traverses parsed nodes with Breadth-first search algorithm and
-    # returns the resulting networkx graph
+
     def bfs_tree_traverser(self, tree):
         """
-        Traverses a tree-sitter with Breadth-first search algorithm and converts it into an NXGraph
+        Traverses a tree-sitter with Breadth-first search algorithm and
+        converts it into an NXGraph
         :param tree: tree-sitter to be traversed
         :return: NXGraph after traversal of a tree-sitter tree
         """
         root_node = tree.root_node
         G = NXGraph()
-        # node_id = id of current node being traversed
-        # parent_id = id of the parent of the current node
         node_id, parent_id = 0, 0
         # lists to queue the nodes in order and identify already visited nodes
         visited, queue = [], []
-
         visited.append(root_node)
         queue.append(root_node)
 
@@ -57,7 +54,6 @@ class GraphExtractor:
         # loop to visit each node
         while queue:
             node = queue.pop(0)
-
             for child_node in node.children:
                 if child_node not in visited:
                     node_id += 1
@@ -65,17 +61,10 @@ class GraphExtractor:
                     G.add_node(node_id, attrs={"type": child_node.type, "text": child_node.text})
                     # add edge between parent_node and child_node
                     G.add_edge(parent_id, node_id)
-
                     visited.append(child_node)
                     queue.append(child_node)
-
             # set parent_id to the id of the next node in queue
             parent_id = parent_id + 1
-
-        # access children example
-        # id = 2
-        # for child_id in G.successors(id):
-        #    print(child_id, G.get_node(child_id))
 
         return G
 
@@ -123,10 +112,6 @@ def main():
     start = time.time()
     extractor = GraphExtractor()
     extractor.process_code_to_graph(code, language)
-
-    # traverse tree-sitter -> get NXGraph
-    #nxgraph = extractor.bfs_tree_traverser(tree_sitter)
-    #G = transform_graph(nxgraph)
 
 
 if __name__ == "__main__":

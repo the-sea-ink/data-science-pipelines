@@ -181,4 +181,5 @@ def create_rule_from_dict(pattern, rule_dict):
     return rule
 
 
-create_rule(path="knowledge_base/rule_creation.json")
+if __name__ == "__main__":
+    create_rule(path="knowledge_base/rule_creation.json")
