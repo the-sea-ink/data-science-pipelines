@@ -2,9 +2,7 @@ from rule_executioner import transform_graph
 from tree_sitter import Language, Parser
 import test_scripts
 import time
-from pyparsing import unicode
 from regraph import NXGraph
-import networkx as nx
 
 
 class GraphExtractor:
@@ -21,7 +19,7 @@ class GraphExtractor:
             ]
         )
 
-    def process_code_to_graph(self, code, language):
+    def extract_pipeline(self, code, language):
         assert language != '', 'language is not set'
         language = Language('build/my-languages.so', language)
         parser = Parser()
@@ -68,53 +66,13 @@ class GraphExtractor:
 
         return G
 
-    def get_prop_type(value, key=None):
-        """
-        Performs typing and value conversion for the graph_tool PropertyMap class.
-        If a key is provided, it also ensures the key is in a format that can be
-        used with the PropertyMap. Returns a tuple, (type name, value, key)
-        """
-        if isinstance(key, unicode):
-            # Encode the key as ASCII
-            key = key.encode('ascii', errors='replace')
 
-        # Deal with the value
-        if isinstance(value, bool):
-            tname = 'bool'
-
-        elif isinstance(value, int):
-            tname = 'float'
-            value = float(value)
-
-        elif isinstance(value, float):
-            tname = 'float'
-
-        elif isinstance(value, unicode):
-            tname = 'string'
-            value = value.encode('ascii', errors='replace')
-
-        elif isinstance(value, dict):
-            tname = 'object'
-
-        else:
-            tname = 'string'
-            value = str(value)
-
-        return tname, value, key
-
-
-# call this function if you need to add languages to language.so library
-
-
-def main():
+if __name__ == "__main__":
+    start_time = time.time()
     language = 'python'
     code = test_scripts.Python.code_0
     start = time.time()
     extractor = GraphExtractor()
-    extractor.process_code_to_graph(code, language)
-
-
-if __name__ == "__main__":
-    start_time = time.time()
-    main()
+    extractor.extract_pipeline(code, language)
     print("--- %s seconds ---" % (time.time() - start_time))
+

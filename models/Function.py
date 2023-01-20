@@ -1,6 +1,3 @@
-import sqlite3
-
-
 class Function:
     class Argument:
 
@@ -33,7 +30,6 @@ class Function:
         # extract all attributes but arguments
         name, description, link = input_list[0], input_list[1], input_list[2]
         # extract arguments
-        # TODO fix argument separation, around 25 functions arguments are separated wrong
         parsed_args = input_list[3:][0]
 
         if parsed_args == '':
@@ -43,23 +39,22 @@ class Function:
         for arg in parsed_args.split(","):
             if "=" in arg:
                 arg_name, arg_value = arg.split("=")[0], arg.split("=")[1]
-                arguments.append(Function.Argument(arg_name, "hyperparameter", i+1, arg_value))
+                arguments.append(Function.Argument(arg_name, "hyperparameter", i + 1, arg_value))
             elif arg.count("*") == 1:
-                arguments.append(Function.Argument(arg, "args", i+1, None))
+                arguments.append(Function.Argument(arg, "args", i + 1, None))
             elif arg.count("*") == 2:
-                arguments.append(Function.Argument(arg, "kwargs", i+1, None))
+                arguments.append(Function.Argument(arg, "kwargs", i + 1, None))
             else:
-                arguments.append(Function.Argument(arg, "positional_argument", i+1, None))
+                arguments.append(Function.Argument(arg, "positional_argument", i + 1, None))
             i += 1
         # create function
         function = Function(name, description, link, arguments)
         return function
 
     @staticmethod
-    # TODO add check by module
     def parse_from_db(cursor, module_name, title):
         cursor.execute(
-            "SELECT module_name FROM modules WHERE module_name = ?", (module_name, )
+            "SELECT module_name FROM modules WHERE module_name = ?", (module_name,)
         )
         name = cursor.fetchall()
         if name:
@@ -73,7 +68,7 @@ class Function:
                 (func_id,))
             args = cursor.fetchall()
             if len(args) == 0 and len(func) != 0:
-                return Function(func[0][2], func[0][3], func[0][4],  None)
+                return Function(func[0][2], func[0][3], func[0][4], None)
             elif len(func) != 0:
                 arguments = []
                 for arg in args:
@@ -87,12 +82,10 @@ class Function:
         return -1
 
 
-def test():
+if __name__ == "__main__":
     f = ['pandas.read_pickle', 'Load pickled pandas object (or any object) from file.',
          'https://pandas.pydata.org/docs/reference/api/pandas.read_pickle.html',
          "filepath_or_buffer,compression='infer',storage_options=None"]
     s = "pandas.HDFStore.append,Append to Table in file.,https://pandas.pydata.org/docs/reference/api/pandas.HDFStore.append.html,\"key,value,format=None,axes=None,index=True,append=True,complib=None,complevel=None,columns=None,min_itemsize=None,nan_rep=None,chunksize=None,expectedrows=None,dropna=None,data_columns=None,encoding=None,errors='strict'\""
     function = Function.parse_from_list(f)
-    #print(function)
-
-test()
+    print(function)

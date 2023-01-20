@@ -33,7 +33,7 @@ async def upload_data(file: UploadFile = File(...), language: str = Form(...)):
     while content := await file.read(1024):  # async read chunk
         code += content  # async write chunk
 
-    data = extractor.process_code_to_graph(code, language)
+    data = extractor.extract_pipeline(code, language)
     # print(data)
     return {
         "type": "graph",
@@ -48,7 +48,7 @@ async def upload_data(file: UploadFile = File(...), language: str = Form(...)):
 
 @app.post("/update")
 async def update_code(code: str = Form(...), language: str = Form(...)):
-    data = extractor.process_code_to_graph(code, language)
+    data = extractor.extract_pipeline(code, language)
     # print(data)
     return {
         "type": "graph",
