@@ -3,11 +3,14 @@ import sqlite3
 import csv
 from models.Function import Function
 
-connection = sqlite3.connect("knowledge_base.db")
-cursor = connection.cursor()
 
+def init_db(cursor):
+    """
+    Initializes database.
 
-def init_db():
+    Creates empty tables "modules", "function", "arguments".
+    :param cursor: connection cursor
+    """
     cursor.execute("DROP TABLE functions")
     cursor.execute("DROP TABLE arguments")
     cursor.execute("DROP TABLE modules")
@@ -16,10 +19,9 @@ def init_db():
         "CREATE TABLE functions(function_id INTEGER PRIMARY KEY, module_name, function_title type UNIQUE, description, link, FOREIGN KEY(module_name) REFERENCES modules(module_name))")
     cursor.execute(
         "CREATE TABLE arguments(function_id, argument_name, argument_type, argument_position, default_value, FOREIGN KEY(function_id) REFERENCES functions(function_id))")
-    return
 
 
-def init_module(filename, module_name, version, date):
+def init_module(filename, module_name, version, date, cursor):
     with open(filename, newline='') as csvfile:
         csvreader = csv.reader(csvfile)
         header = next(csvreader)
@@ -39,18 +41,14 @@ def init_module(filename, module_name, version, date):
                     cursor.execute("INSERT INTO arguments VALUES(?, ?, ?, ?, ?)",
                                    [added_function_id, arg.name, arg.type, arg.position, arg.default_value])
     connection.commit()
-    return
 
 
-def test():
-    init_db()
+if __name__ == "__main__":
+    connection = sqlite3.connect("knowledge_base.db")
+    cursor = connection.cursor()
+    init_db(cursor)
     date = datetime.date(2023, 1, 17)
-    init_module("knowledge_base/pandas 2023-1-17 1.5.2.csv", "pandas", "1.5.2", date)
-    init_module("knowledge_base/sklearn 2023-1-17 1.2.0.csv", "sklearn", "1.2.0", date)
-    result = Function.parse_from_db(cursor, "sklearn", "sklearn.utils.validation.has_fit_parameter")
-    #print(result)
-    return
+    init_module("knowledge_base/pandas 2023-1-17 1.5.2.csv", "pandas", "1.5.2", date, cursor)
+    init_module("knowledge_base/sklearn 2023-1-17 1.2.0.csv", "sklearn", "1.2.0", date, cursor)
+    connection.close()
 
-
-test()
-connection.close()
