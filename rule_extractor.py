@@ -1,7 +1,8 @@
 import networkx as nx
 from regraph import NXGraph, Rule
 from utils import print_graph, nxraph_to_digraph, draw_diffgraph, draw_graph
-from rule_creator import create_rule_from_dict, create_pattern_from_dict
+from rule_creator import create_rule, create_pattern, RuleEntry
+
 
 
 class RuleExtractor:
@@ -19,13 +20,14 @@ class RuleExtractor:
         draw_graph(G2)
         draw_diffgraph(Gdiff)
 
-        pattern = self.find_subgraph_from_node_list(Gdiff, nodes_to_add, nodes_to_update, nodes_to_delete, edges_to_add, edges_to_delete)
+        pattern = self.find_subgraph_from_node_list(Gdiff, nodes_to_add, nodes_to_update, nodes_to_delete, edges_to_add,
+                                                    edges_to_delete)
         pattern, transformations = self.translate_changes_into_rule(pattern, nodes_to_add, nodes_to_update,
                                                                     nodes_to_delete,
                                                                     edges_to_add,
                                                                     edges_to_delete)
-        pattern_nxgraph = create_pattern_from_dict(pattern)
-        rule = create_rule_from_dict(pattern_nxgraph, transformations)
+        pattern_nxgraph = create_pattern(pattern)
+        rule = create_rule(pattern_nxgraph, transformations)
 
         result = self.get_transformation_result(pattern_nxgraph, rule)
         print_graph(G1)
@@ -43,11 +45,25 @@ class RuleExtractor:
                                                                     nodes_to_delete,
                                                                     edges_to_add,
                                                                     edges_to_delete)
-        pattern_nxgraph = create_pattern_from_dict(pattern)
-        rule = create_rule_from_dict(pattern_nxgraph, transformations)
+        pattern_nxgraph = create_pattern(pattern)
+        rule_dict = create_rule(pattern_nxgraph, transformations)
 
-        result = self.get_transformation_result(pattern_nxgraph, rule)
-        return rule
+        # add db entry attributes
+        rule_dict["name"] = rule_name
+        rule_dict["description"] = rule_description
+        if by_text:
+            rule_dict["type"] = "semantic"
+        else:
+            rule_dict["type"] = "syntactic"
+        rule_dict["by_user"] = True
+
+        result = self.get_transformation_result(pattern_nxgraph, rule_dict)
+
+        # add rule into db
+        rule_entry = RuleEntry()
+        rule_entry.add_rule(rule_dict)
+
+        return rule_dict
 
     def trim_attributes(self, G: NXGraph, by_text):
         """
@@ -144,9 +160,9 @@ class RuleExtractor:
         # print_graph(Gdiff)
         return Gdiff, nodes_to_add, nodes_to_update, nodes_to_delete, edges_to_add, edges_to_delete
 
-
     # TODO add case if there is no path between nodes
-    def find_subgraph_from_node_list(self, G, nodes_to_add, nodes_to_update, nodes_to_delete, edges_to_add, edges_to_delete):
+    def find_subgraph_from_node_list(self, G, nodes_to_add, nodes_to_update, nodes_to_delete, edges_to_add,
+                                     edges_to_delete):
         changed_nodes, new_nodes = [], []
         changed_nodes.extend(list(nodes_to_delete.keys()))
         changed_nodes.extend(list(nodes_to_update.keys()))

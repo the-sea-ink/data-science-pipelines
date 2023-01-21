@@ -1,29 +1,67 @@
 import json
+import sqlite3
 from regraph import NXGraph, Rule
 
 
-def create_rule(rule_dict=None, path=None):
-    # create rule
-    if rule_dict:
-        pattern = create_pattern_from_dict(rule_dict)
-        rule = create_rule_from_dict(pattern, rule_dict)
-    elif path:
-        rule_dict = get_dict_from_json(path)
-        pattern = create_pattern_from_dict(rule_dict)
-        rule = create_rule_from_dict(pattern, rule_dict)
+class RuleEntry:
+    name = ""
+    description = ""
+    type = ""
+    by_user = bool
+    rule_dict = {}
 
-    # check if rule already exists
+    def get_rule_from_db(self):
+        pass
+
+    def add_rule(self, rule_dict):
+        connection = sqlite3.connect("knowledge_base.db")
+        cursor = connection.cursor()
+
+        pattern = create_pattern(rule_dict)
+        rule = create_rule(pattern, rule_dict)
+
+        self.name = rule_dict.pop("name")
+        self.description = rule_dict.pop("description")
+        self.type = rule_dict.pop("type")
+        self.by_user = rule_dict.pop("by_user")
+        self.rule_dict = rule_dict
+
+        cursor.execute(
+                "INSERT INTO rules(rule_name, rule_description, rule, rule_type, added_by_user) VALUES(?, ?, ?, ?, ?)",
+                [self.name, self.description, str(self.rule_dict), self.type, self.by_user])
+
+        rule["name"] = self.name
+        rule["description"] = self.description
+        rule["type"] = self.type
+        rule["by_user"] = self.by_user
+
+        if rule_exists(rule):
+            raise ValueError('This rule already exists!')
+
+        out_file = open("knowledge_base/rule_base.txt", "a")
+        out_file.write(str(rule) + "\n")
+        out_file.close()
+
+        connection.commit()
+
+        print(rule)
+        print("Rule created successfully!")
+        pass
+
+
+def create_rule_from_file(path):
+    # create rule
+    rule_dict = get_dict_from_json(path)
+
+    rule_entry = RuleEntry()
+    rule_entry.add_rule(rule_dict)
+
+
+def rule_exists(rule):
     with open("knowledge_base/rule_base.txt") as file:
         for line in file:
             if str(rule) == line.strip():
-                raise ValueError('This rule already exists!')
-
-    out_file = open("knowledge_base/rule_base.txt", "a")
-    #out_file.write(str(rule) + "\n")
-    out_file.close()
-
-    print(rule)
-    print("Rule created successfully!")
+                return True
 
 
 def get_dict_from_json(path):
@@ -33,7 +71,7 @@ def get_dict_from_json(path):
     return rule_dict
 
 
-def create_pattern_from_dict(rule_dict):
+def create_pattern(rule_dict):
     # create pattern
     pattern = NXGraph()
 
@@ -67,7 +105,7 @@ def create_pattern_from_dict(rule_dict):
     return pattern
 
 
-def create_rule_from_dict(pattern, rule_dict):
+def create_rule(pattern, rule_dict):
     # create rule
     rule = Rule.from_transform(pattern)
     # transformations
@@ -182,4 +220,4 @@ def create_rule_from_dict(pattern, rule_dict):
 
 
 if __name__ == "__main__":
-    create_rule(path="knowledge_base/rule_creation.json")
+    create_rule_from_file("knowledge_base/rule_creation.json")

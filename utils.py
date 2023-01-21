@@ -3,6 +3,8 @@ import networkx as nx
 from networkx.drawing.nx_pydot import graphviz_layout
 import matplotlib.pyplot as plt
 import numpy as np
+import ast
+
 
 def get_root_node_id(G: NXGraph):
     # TODO: rewrite to search for a real root node
@@ -79,6 +81,11 @@ def convert_nxgraph_to_graph(NXGraph):
     nxGraph = nx.Graph(NXGraph._graph)
     return nxGraph
 
+
+def read_rule_from_line(line):
+    string = line.rstrip()
+    rule = ast.literal_eval(string)
+    return rule
 
 def nxraph_to_digraph(nxgraph: NXGraph):
     digraph = nx.DiGraph()
