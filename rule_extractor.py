@@ -4,7 +4,6 @@ from utils import print_graph, nxraph_to_digraph, draw_diffgraph, draw_graph
 from rule_creator import create_rule, create_pattern, RuleEntry
 
 
-
 class RuleExtractor:
 
     def extract_rule(self, G1, G2, by_text=True):
@@ -61,7 +60,7 @@ class RuleExtractor:
 
         # add rule into db
         rule_entry = RuleEntry()
-        rule_entry.add_rule(rule_dict)
+        rule_entry.add_rule_to_db(rule_dict)
 
         return rule_dict
 
@@ -80,9 +79,9 @@ class RuleExtractor:
         trimmed_G = NXGraph()
         for node_id, attrs in G.nodes(data=True):
             # if node type is in whitelist
-            for elem in attrs["type"] and by_text:
+            for elem in attrs["type"]:
                 # keep type and text
-                if elem == "call":
+                if elem == "call" and by_text is True:
                     trimmed_attrs = {"type": attrs["type"], "text": attrs["text"]}
                     break
                 # keep type and identifier
@@ -255,8 +254,6 @@ class RuleExtractor:
         pattern.remove_nodes_from(nodes_to_remove)
         return pattern
 
-    # TODO add differentiation between rules for text or type or both
-    # TODO add rule name
     def translate_changes_into_rule(self, raw_pattern, nodes_to_add: dict, nodes_to_update: dict, nodes_to_delete: dict,
                                     edges_to_add: list,
                                     edges_to_delete: list):
@@ -332,7 +329,7 @@ class RuleExtractor:
         return result
 
 
-def test():
+if __name__ == "__main__":
     G1, G2 = NXGraph(), NXGraph()
     G1.add_nodes_from([(0, {"type": "call", "text": "A"}),
                        (1, {"type": "call", "text": "B"}),
@@ -360,6 +357,3 @@ def test():
 
     rule_extractor = RuleExtractor()
     rule_extractor.extract_rule(G1, G2)
-
-
-test()

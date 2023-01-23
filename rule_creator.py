@@ -10,10 +10,7 @@ class RuleEntry:
     by_user = bool
     rule_dict = {}
 
-    def get_rule_from_db(self):
-        pass
-
-    def add_rule(self, rule_dict):
+    def add_rule_to_db(self, rule_dict):
         connection = sqlite3.connect("knowledge_base.db")
         cursor = connection.cursor()
 
@@ -26,9 +23,13 @@ class RuleEntry:
         self.by_user = rule_dict.pop("by_user")
         self.rule_dict = rule_dict
 
+        # get id
+        cursor.execute("SELECT COUNT(*) FROM rules")
+        rule_id = cursor.fetchall()[0][0] + 1
+
         cursor.execute(
-                "INSERT INTO rules(rule_name, rule_description, rule, rule_type, added_by_user) VALUES(?, ?, ?, ?, ?)",
-                [self.name, self.description, str(self.rule_dict), self.type, self.by_user])
+            "INSERT INTO rules(rule_id, rule_name, rule_description, rule, rule_type, added_by_user) VALUES(?, ?, ?, ?, ?, ?)",
+            [rule_id, self.name, self.description, str(self.rule_dict), self.type, self.by_user])
 
         rule["name"] = self.name
         rule["description"] = self.description
@@ -49,12 +50,18 @@ class RuleEntry:
         pass
 
 
+def get_rules_from_db(cursor):
+    cursor.execute("SELECT rule FROM rules ORDER BY rule_id")
+    rules = cursor.fetchall()
+    return rules
+
+
 def create_rule_from_file(path):
     # create rule
     rule_dict = get_dict_from_json(path)
 
     rule_entry = RuleEntry()
-    rule_entry.add_rule(rule_dict)
+    rule_entry.add_rule_to_db(rule_dict)
 
 
 def rule_exists(rule):

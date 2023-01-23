@@ -1,12 +1,12 @@
 import sqlite3
 from regraph import NXGraph, Rule, FiniteSet, plot_graph
 import json
-import ast
 import time
 import utils
-from utils import draw_graph, print_graph
+from utils import draw_graph, print_graph, read_rule_from_line
 from models.Function import Function
 from rule_extractor import RuleExtractor
+from rule_creator import get_rules_from_db
 import matplotlib.pyplot as plt
 
 
@@ -635,12 +635,6 @@ def add_labels(G: NXGraph):
         G.add_node_attrs(node_id, {"label": node_text})
 
 
-def read_rule_from_line(line):
-    string = line.rstrip()
-    rule = ast.literal_eval(string)
-    return rule
-
-
 def get_ascendant_subgraphs_by_pattern(G: NXGraph, pattern: NXGraph):
     """
     Finds a complete subgraph of ascendants for a given pattern.
@@ -782,14 +776,14 @@ def transform_graph(G: NXGraph):
     start_outer = time.time()
 
     # apply rules from rule base one by one
-    with open("knowledge_base/rule_base.txt") as file:
-        for counter, line in enumerate(file, 1):
-            start_iner = time.time()
-            json_rule = read_rule_from_line(line)
-            # print(f'Applying rule #{counter}')
-            G = apply_rule(G, json_rule)
-            end_iner = time.time()
-            # print(f'line {counter} done in {end_iner - start_iner}')
+    rules = get_rules_from_db(cursor)
+    for counter, rule in enumerate(rules, 1):
+        start_iner = time.time()
+        json_rule = read_rule_from_line(rule[0])
+        # print(f'Applying rule #{counter}')
+        G = apply_rule(G, json_rule)
+        end_iner = time.time()
+        # print(f'line {counter} done in {end_iner - start_iner}')
     end_outer = time.time()
     # print(f'apply rule  done in {end_outer - start_outer}')
     start_iner = time.time()

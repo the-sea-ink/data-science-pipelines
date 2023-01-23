@@ -1,4 +1,8 @@
 {
+  "name": "rule_name",
+  "description": "description",
+  "type": "syntactic",
+  "by_user": false,
   "pattern":{
     "nodes":[
       {
@@ -7,7 +11,7 @@
       },
       {
         "node_id": 2,
-        "type" : "assignment"
+        "type" : "pattern_list"
       },
       {
         "node_id": 3,
@@ -15,7 +19,11 @@
       },
       {
         "node_id": 4,
-        "type" : "subscript"
+        "type" : "expression_list"
+      },
+      {
+        "node_id": 5,
+        "type" : "assignment"
       }
     ],
     "edges":[
@@ -24,25 +32,35 @@
         "child_node_id":2
       },
       {
+        "parent_node_id":2,
+        "child_node_id":5
+      },
+      {
         "parent_node_id":3,
-        "child_node_id":2
+        "child_node_id":5
       },
       {
         "parent_node_id":4,
-        "child_node_id":2
+        "child_node_id":5
       }
     ]
   },
   "transformations":{
+    "add_nodes_with_attributes":[
+        {
+          "node_id": 7,
+          "type" : "yet_another_node"
+        }
+      ],
     "update_node_attributes":[
       {
-        "node_id": 1,
-        "type": "output_variable"
+          "node_id" : 5,
+          "type" : "variable_assignment"
       },
       {
-          "node_id" : 2,
-          "type" : "variable_assignment"
-        }
+          "node_id" : 1,
+          "type" : "output_variable"
+      }
       ],
     "remove_edges": [
           {
@@ -52,9 +70,14 @@
       ],
     "add_edges":[
           {
-              "parent_node_id" : 2,
+              "parent_node_id" : 5,
               "child_node_id" : 1
           }
+      ],
+    "remove_nodes":[
+        {
+          "node_id": 4
+        }
       ]
   }
 }

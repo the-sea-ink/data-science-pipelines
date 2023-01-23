@@ -26,7 +26,7 @@ def init_db(cursor):
         "CREATE TABLE arguments(function_id, argument_name, argument_type, argument_position, default_value, "
         "FOREIGN KEY(function_id) REFERENCES functions(function_id))")
     cursor.execute(
-        "CREATE TABLE rules(rule_name PRIMARY KEY, rule_description, rule, rule_type, added_by_user)")
+        "CREATE TABLE rules(rule_id, rule_name PRIMARY KEY, rule_description, rule, rule_type, added_by_user)")
     connection.commit()
 
 
@@ -53,6 +53,8 @@ def init_module(filename, module_name, version, date, cursor):
 
 
 def init_rules_from_file():
+    cursor.execute("SELECT COUNT(*) FROM rules")
+    added_rule_id = cursor.fetchall()[0][0] + 1
     with open("knowledge_base/rule_base.txt") as file:
         for counter, line in enumerate(file, 1):
             json_rule = read_rule_from_line(line)
@@ -66,8 +68,9 @@ def init_rules_from_file():
                 rule_type = "syntactic"
             added_by_user = False
             cursor.execute(
-                "INSERT INTO rules(rule_name, rule_description, rule, rule_type, added_by_user) VALUES(?, ?, ?, ?, ?)",
-                [rule_name, rule_desc, str(json_rule), rule_type, added_by_user])
+                "INSERT INTO rules(rule_id, rule_name, rule_description, rule, rule_type, added_by_user) VALUES(?, ?, ?, ?, ?, ?)",
+                [added_rule_id, rule_name, rule_desc, str(json_rule), rule_type, added_by_user])
+            added_rule_id = cursor.lastrowid
     connection.commit()
     pass
 
