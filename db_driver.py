@@ -1,6 +1,7 @@
 import datetime
 import sqlite3
 import csv
+import os
 from models.Function import Function
 import utils
 from utils import read_rule_from_line
@@ -79,8 +80,12 @@ if __name__ == "__main__":
     connection = sqlite3.connect("knowledge_base.db")
     cursor = connection.cursor()
     init_db(cursor)
-    date = datetime.date(2023, 1, 17)
-    init_module("knowledge_base/pandas 2023-1-17 1.5.2.csv", "pandas", "1.5.2", date, cursor)
-    init_module("knowledge_base/sklearn 2023-1-17 1.2.0.csv", "sklearn", "1.2.0", date, cursor)
+    files = os.listdir("knowledge_base/modules/")
+    for file in files:
+        module_name, date, version = file.replace(".csv", "").split(" ")
+        date_format = "%Y-%m-%d"
+        date = datetime.datetime.strptime(date, date_format).date()
+        module_path = "knowledge_base/modules/"+file
+        init_module(module_path, module_name, version, date, cursor)
     init_rules_from_file()
     connection.close()
