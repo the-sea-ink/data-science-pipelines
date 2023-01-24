@@ -13,9 +13,9 @@ class GraphExtractor:
             'build/my-languages.so',
             # Include one or more languages
             [
-                'parsers/tree-sitter-python',
-                'parsers/tree-sitter-r',
-                'parsers/tree-sitter-snakemake-pure'
+                'third_party/parsers/tree-sitter-python',
+                'third_party/parsers/tree-sitter-r',
+                'third_party/parsers/tree-sitter-snakemake-pure'
             ]
         )
 
