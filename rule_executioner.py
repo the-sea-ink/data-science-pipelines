@@ -696,7 +696,7 @@ def jsonify_finite_set(param):
     return data
 
 
-def convert_graph_to_json(G):
+def convert_graph_to_json(G: NXGraph):
     graph_dict = {"nodes": [], "edges": []}
     for n, attrs in G.nodes(data=True):
         if str(attrs["type"]) == "{'input'}":
@@ -705,6 +705,56 @@ def convert_graph_to_json(G):
         else:
             metadata = {"id": str(n), "type": "default", "targetPosition": "top", "position": {"x": 0, "y": 0},
                         "data": {}}
+        # node_attrs = {}
+        node_raw_attrs = G.get_node(n)
+        for key in node_raw_attrs:
+            metadata["data"].update({key: jsonify_finite_set(node_raw_attrs[key])})
+
+        # node_attrs.update(G.get_node(n))
+        graph_data = {}
+        graph_dict["nodes"].append(metadata)
+        # graph_dict["nodes"].append(graph_data)
+    i = 1
+    for s, t, attrs in G.edges(data=True):
+        edge_id = "edge-" + str(i)
+        edge_attrs = {"id": edge_id, "source": str(s), "target": str(t), 'type': 'smoothstep'}
+        graph_dict["edges"].append(edge_attrs)
+        i += 1
+    with open('graph.json', 'w') as fp:
+        json.dump(graph_dict, fp, indent=4)
+    # print(graph_dict)
+    return graph_dict
+
+
+def convert_graph_to_json_new_frontend(G: NXGraph):
+    graph_dict = {"nodes": [], "edges": []}
+    conversion_maping = {
+        "call": "operator",
+        "keyword_argument": "hyperparameter",
+        "input_variable": "data",
+        "output_variable": "data",
+        "passable_data": "data",
+        "identifier": "data",
+        "variable_assignment": "assignment",
+        "dictionary": "assignment",
+        "pair": "assignment",
+        "list": "assignment",
+        "tuple": "assignment",
+        "integer": "constant",
+        "float": "constant",
+        "string": "constant",
+        "true": "constant",
+        "false": "constant",
+        "unary_operator": "constant"
+    }
+    for n, attrs in G.nodes(data=True):
+        type = str(attrs["type"]).replace("{'", "").replace("'}", "")
+        if type not in conversion_maping.keys():
+            metadata = {"id": str(n), "type": "default", "targetPosition": "top",
+                        "position": {"x": 0, "y": 0}, "data": {}}
+        else:
+            metadata = {"id": str(n), "type": conversion_maping[type], "targetPosition": "top",
+                        "position": {"x": 0, "y": 0}, "data": {}}
         # node_attrs = {}
         node_raw_attrs = G.get_node(n)
         for key in node_raw_attrs:
