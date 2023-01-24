@@ -1,9 +1,10 @@
 import json
 import sqlite3
 from regraph import NXGraph, Rule
+from utils import read_rule_from_line
 
 
-class RuleEntry:
+class RuleManager:
     name = ""
     description = ""
     type = ""
@@ -49,6 +50,22 @@ class RuleEntry:
         print("Rule created successfully!")
         pass
 
+    def delete_rule_by_name(self, rule_name, cursor, connection):
+        cursor.execute("DELETE FROM rules WHERE rule_name=?", (rule_name,))
+        connection.commit()
+
+    def visualize_rule(self, rule_name, cursor):
+        cursor.execute("SELECT FROM rules WHERE rule_name=?", (rule_name,))
+        rule_string = cursor.fetchall()
+        rule_dict = read_rule_from_line(rule_string)
+        rule = Rule.from_json(rule_dict)
+        pattern = rule.lhs
+        pass
+
+    def add_rule_from_file(self, dict):
+
+        pass
+
 
 def get_rules_from_db(cursor):
     cursor.execute("SELECT rule FROM rules ORDER BY rule_id")
@@ -60,7 +77,7 @@ def create_rule_from_file(path):
     # create rule
     rule_dict = get_dict_from_json(path)
 
-    rule_entry = RuleEntry()
+    rule_entry = RuleManager()
     rule_entry.add_rule_to_db(rule_dict)
 
 
