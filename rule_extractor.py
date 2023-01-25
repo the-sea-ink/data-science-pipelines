@@ -1,7 +1,7 @@
 import networkx as nx
 from regraph import NXGraph, Rule
-from utils import print_graph, nxraph_to_digraph, draw_diffgraph, draw_graph
-from rule_creator import create_rule, create_pattern, RuleEntry
+import utils
+from rule_creator import create_rule, create_pattern, RuleManager
 
 
 class RuleExtractor:
@@ -15,9 +15,9 @@ class RuleExtractor:
         G2 = self.trim_attributes(G2, by_text)
 
         # transform NXGraph into an nx DiGraph
-        draw_graph(G1)
-        draw_graph(G2)
-        draw_diffgraph(Gdiff)
+        utils.draw_graph(G1)
+        utils.draw_graph(G2)
+        utils.draw_diffgraph(Gdiff)
 
         pattern = self.find_subgraph_from_node_list(Gdiff, nodes_to_add, nodes_to_update, nodes_to_delete, edges_to_add,
                                                     edges_to_delete)
@@ -29,7 +29,7 @@ class RuleExtractor:
         rule = create_rule(pattern_nxgraph, transformations)
 
         result = self.get_transformation_result(pattern_nxgraph, rule)
-        print_graph(G1)
+        utils.print_graph(G1)
         return pattern_nxgraph, result
 
     def adapt_rule(self, pattern, result, rule_name, rule_description, by_text=True):
@@ -59,7 +59,7 @@ class RuleExtractor:
         result = self.get_transformation_result(pattern_nxgraph, rule_dict)
 
         # add rule into db
-        rule_entry = RuleEntry()
+        rule_entry = RuleManager()
         rule_entry.add_rule_to_db(rule_dict)
 
         return rule_dict
@@ -192,7 +192,7 @@ class RuleExtractor:
 
         # create all combinations
         if type(G) is NXGraph:
-            G = nxraph_to_digraph(G)
+            G = utils.nxraph_to_digraph(G)
         H = nx.to_undirected(G)
         paths = []
         for i in range(len(changed_nodes) - 1):
@@ -312,8 +312,14 @@ class RuleExtractor:
         print(transformation_dict)
         return pattern_dict, transformation_dict
 
-    # pattern | result
     def get_transformation_result(self, pattern: NXGraph, rule: dict):
+        """
+        Applies rule to a given pattern.
+
+        :param pattern: pattern
+        :param rule: rule to be applied
+        :return: transformation result
+        """
         # print_graph(pattern)
         rule = Rule.from_json(rule)
         result = NXGraph()
@@ -323,9 +329,9 @@ class RuleExtractor:
         for instance in instances:
             result.rewrite(rule, instance)
         print("pattern:")
-        print_graph(pattern)
+        utils.print_graph(pattern)
         print("result:")
-        print_graph(result)
+        utils.print_graph(result)
         return result
 
 
@@ -357,3 +363,6 @@ if __name__ == "__main__":
 
     rule_extractor = RuleExtractor()
     rule_extractor.extract_rule(G1, G2)
+
+    rule_manager = RuleManager()
+    rule_manager.visualize_rule("string_assignment")

@@ -1,7 +1,7 @@
 {
   "name": "rule_name",
   "description": "description",
-  "type": "syntactic",
+  "rule_type": "syntactic",
   "by_user": false,
   "pattern":{
     "nodes":[

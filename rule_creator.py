@@ -1,15 +1,15 @@
 import json
 import sqlite3
 from regraph import NXGraph, Rule
-from utils import read_rule_from_line
+import utils
 
 
 class RuleManager:
     name = ""
     description = ""
-    type = ""
+    rule_type = ""
     by_user = bool
-    rule_dict = {}
+    rule = {}
 
     def add_rule_to_db(self, rule_dict):
         connection = sqlite3.connect("knowledge_base.db")
@@ -20,9 +20,9 @@ class RuleManager:
 
         self.name = rule_dict.pop("name")
         self.description = rule_dict.pop("description")
-        self.type = rule_dict.pop("type")
+        self.rule_type = rule_dict.pop("rule_type")
         self.by_user = rule_dict.pop("by_user")
-        self.rule_dict = rule_dict
+        self.rule = rule
 
         # get id
         cursor.execute("SELECT COUNT(*) FROM rules")
@@ -30,11 +30,11 @@ class RuleManager:
 
         cursor.execute(
             "INSERT INTO rules(rule_id, rule_name, rule_description, rule, rule_type, added_by_user) VALUES(?, ?, ?, ?, ?, ?)",
-            [rule_id, self.name, self.description, str(self.rule_dict), self.type, self.by_user])
+            [rule_id, self.name, self.description, str(self.rule), self.rule_type, self.by_user])
 
         rule["name"] = self.name
         rule["description"] = self.description
-        rule["type"] = self.type
+        rule["rule_type"] = self.rule_type
         rule["by_user"] = self.by_user
 
         if rule_exists(rule):
@@ -48,7 +48,7 @@ class RuleManager:
 
         print(rule)
         print("Rule created successfully!")
-        pass
+        connection.close()
 
     def delete_rule_by_name(self, rule_name, cursor, connection):
         cursor.execute("DELETE FROM rules WHERE rule_name=?", (rule_name,))
@@ -57,7 +57,7 @@ class RuleManager:
     def visualize_rule(self, rule_name, cursor):
         cursor.execute("SELECT FROM rules WHERE rule_name=?", (rule_name,))
         rule_string = cursor.fetchall()
-        rule_dict = read_rule_from_line(rule_string)
+        rule_dict = utils.read_rule_from_line(rule_string)
         rule = Rule.from_json(rule_dict)
         pattern = rule.lhs
         pass

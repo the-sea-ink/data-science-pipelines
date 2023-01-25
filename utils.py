@@ -2,8 +2,10 @@ from regraph.backends.networkx.graphs import NXGraph
 import networkx as nx
 from networkx.drawing.nx_pydot import graphviz_layout
 import matplotlib.pyplot as plt
-import numpy as np
 import ast
+import json
+from rule_extractor import RuleExtractor
+from regraph import NXGraph, Rule, FiniteSet, plot_graph
 
 
 def get_root_node_id(G: NXGraph):
@@ -87,6 +89,28 @@ def read_rule_from_line(line):
     rule = ast.literal_eval(string)
     return rule
 
+
+def get_ascendant_subgraphs_by_pattern(G: NXGraph, pattern: NXGraph):
+    """
+    Finds a complete subgraph of ascendants for a given pattern.
+
+    :param G: an NXGraph object
+    :param pattern: pattern to find ascendants of
+    :return: found subgraphs
+    """
+    anti_root_id = [node for node in pattern.nodes() if len(pattern.descendants(node)) == 0][0]
+    anti_root_attrs = pattern.get_node(anti_root_id)
+    # find all instances of root in graph
+    root_pattern = NXGraph()
+    root_pattern.add_node(anti_root_id, anti_root_attrs)
+    instances = G.find_matching(root_pattern)
+    subgraphs = []
+    if instances:
+        for instance in instances:
+            subgraphs.append(get_ancestors_nodes(G, list(instance.values())[0]))
+    return subgraphs
+
+
 def nxraph_to_digraph(nxgraph: NXGraph):
     digraph = nx.DiGraph()
     for node_id, node_attrs in nxgraph.nodes(data=True):
@@ -100,7 +124,7 @@ def nxraph_to_digraph(nxgraph: NXGraph):
     return digraph
 
 
-def draw_graph(G, attribute="text", id=False, fig_num=1):
+def draw_graph(G, attribute="type", id=False, fig_num=1):
     fig = plt.figure(fig_num)
     if type(G) is NXGraph:
         G = nxraph_to_digraph(G)
@@ -137,6 +161,36 @@ def draw_graph(G, attribute="text", id=False, fig_num=1):
     plt.figure(figsize=(20, 20))
     plt.show()
     return fig
+
+
+def draw_rule():
+    with open("knowledge_base/rule_base.txt") as file:
+        for counter, line in enumerate(file, 1):
+            rule_dict = read_rule_from_line(line)
+            if counter == 14:
+                rule = Rule.from_json(rule_dict)
+                pattern = rule.lhs
+                extractor = RuleExtractor()
+                result = extractor.get_transformation_result(pattern, rule_dict)
+                pattern_fig = draw_graph(pattern, fig_num=2)
+                result_fig = draw_graph(result, fig_num=3)
+                plt.show()
+
+
+def jsonify_finite_set(param):
+    if len(param.to_json()["data"]) > 1:
+        result_list = list()
+        for element in param.to_json()["data"]:
+            if isinstance(element, (bytes, bytearray)):
+                result_list.append(element.decode("utf-8"))
+            else:
+                result_list.append(element)
+        return result_list
+    data = param.to_json()["data"][0]
+    if isinstance(data, (bytes, bytearray)):
+        data = data.decode("utf-8")
+    return data
+
 
 
 def draw_diffgraph(Gdiff, attribute="text"):
@@ -190,4 +244,84 @@ def draw_diffgraph(Gdiff, attribute="text"):
             width=2,
             node_size=2200,
             arrowsize=20)
-    #plt.show()
+    # plt.show()
+
+
+def convert_graph_to_json(G: NXGraph):
+    graph_dict = {"nodes": [], "edges": []}
+    for n, attrs in G.nodes(data=True):
+        if str(attrs["type"]) == "{'input'}":
+            metadata = {"id": str(n), "type": "input", "targetPosition": "top", "position": {"x": 0, "y": 0},
+                        "data": {}}
+        else:
+            metadata = {"id": str(n), "type": "default", "targetPosition": "top", "position": {"x": 0, "y": 0},
+                        "data": {}}
+        # node_attrs = {}
+        node_raw_attrs = G.get_node(n)
+        for key in node_raw_attrs:
+            metadata["data"].update({key: jsonify_finite_set(node_raw_attrs[key])})
+
+        # node_attrs.update(G.get_node(n))
+        graph_data = {}
+        graph_dict["nodes"].append(metadata)
+        # graph_dict["nodes"].append(graph_data)
+    i = 1
+    for s, t, attrs in G.edges(data=True):
+        edge_id = "edge-" + str(i)
+        edge_attrs = {"id": edge_id, "source": str(s), "target": str(t), 'type': 'smoothstep'}
+        graph_dict["edges"].append(edge_attrs)
+        i += 1
+    with open('graph.json', 'w') as fp:
+        json.dump(graph_dict, fp, indent=4)
+    # print(graph_dict)
+    return graph_dict
+
+
+def convert_graph_to_json_new_frontend(G: NXGraph):
+    graph_dict = {"nodes": [], "edges": []}
+    conversion_maping = {
+        "call": "operator",
+        "keyword_argument": "hyperparameter",
+        "input_variable": "data",
+        "output_variable": "data",
+        "passable_data": "data",
+        "identifier": "data",
+        "variable_assignment": "assignment",
+        "dictionary": "assignment",
+        "pair": "assignment",
+        "list": "assignment",
+        "tuple": "assignment",
+        "integer": "constant",
+        "float": "constant",
+        "string": "constant",
+        "true": "constant",
+        "false": "constant",
+        "unary_operator": "constant"
+    }
+    for n, attrs in G.nodes(data=True):
+        type = str(attrs["type"]).replace("{'", "").replace("'}", "")
+        if type not in conversion_maping.keys():
+            metadata = {"id": str(n), "type": "default", "targetPosition": "top",
+                        "position": {"x": 0, "y": 0}, "data": {}}
+        else:
+            metadata = {"id": str(n), "type": conversion_maping[type], "targetPosition": "top",
+                        "position": {"x": 0, "y": 0}, "data": {}}
+        # node_attrs = {}
+        node_raw_attrs = G.get_node(n)
+        for key in node_raw_attrs:
+            metadata["data"].update({key: jsonify_finite_set(node_raw_attrs[key])})
+
+        # node_attrs.update(G.get_node(n))
+        graph_data = {}
+        graph_dict["nodes"].append(metadata)
+        # graph_dict["nodes"].append(graph_data)
+    i = 1
+    for s, t, attrs in G.edges(data=True):
+        edge_id = "edge-" + str(i)
+        edge_attrs = {"id": edge_id, "source": str(s), "target": str(t), 'type': 'smoothstep'}
+        graph_dict["edges"].append(edge_attrs)
+        i += 1
+    with open('graph.json', 'w') as fp:
+        json.dump(graph_dict, fp, indent=4)
+    # print(graph_dict)
+    return graph_dict

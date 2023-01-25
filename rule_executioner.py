@@ -1,13 +1,11 @@
 import sqlite3
 from regraph import NXGraph, Rule, FiniteSet, plot_graph
-import json
 import time
 import utils
-from utils import draw_graph, print_graph, read_rule_from_line
+from utils import draw_graph, print_graph, read_rule_from_line, convert_graph_to_json_new_frontend, \
+    convert_graph_to_json
 from models.Function import Function
-from rule_extractor import RuleExtractor
 from rule_creator import get_rules_from_db
-import matplotlib.pyplot as plt
 
 
 def flip_tree(G: NXGraph):
@@ -60,7 +58,12 @@ def append_identifier_to_call(G: NXGraph):
     return
 
 
-def adjust_attributes(G: NXGraph):
+def replace_call_text_by_attribute_text(G: NXGraph):
+    """
+     Replace "call" text by "attribute" text.
+
+    :param G: an NXGraph object
+    """
     pattern = NXGraph()
     pattern.add_node(1, {'type': 'attribute'})
     pattern.add_node(2, {'type': 'call'})
@@ -78,7 +81,6 @@ def adjust_attributes(G: NXGraph):
             for parent in parents:
                 G.add_edge(parent, child)
         G.remove_node(attr_id)
-    return
 
 
 def adjust_arguments(G: NXGraph):
@@ -102,7 +104,12 @@ def adjust_arguments(G: NXGraph):
     return
 
 
-def adjust_assignment(G: NXGraph):
+def identify_inputs_outputs_in_assignment(G: NXGraph):
+    """
+    Identify inputs and outputs in an assignment in a form a = b.
+
+    :param G:
+    """
     pattern = NXGraph()
     pattern.add_node(1, {'type': 'identifier'})
     pattern.add_node(2, {'type': 'assignment'})
@@ -166,7 +173,7 @@ def save_import_aliases(G: NXGraph):
 
     if utils.pattern_connected(pattern):
         # get subgraphs
-        subgraphs = get_ascendant_subgraphs_by_pattern(G, pattern)
+        subgraphs = utils.get_ascendant_subgraphs_by_pattern(G, pattern)
         for subgraph in subgraphs:
             instances.extend(G.find_matching(pattern, subgraph))
     else:
@@ -205,7 +212,7 @@ def save_imported_functions(G: NXGraph):
 
     if utils.pattern_connected(pattern):
         # get subgraphs
-        subgraphs = get_ascendant_subgraphs_by_pattern(G, pattern)
+        subgraphs = utils.get_ascendant_subgraphs_by_pattern(G, pattern)
         for subgraph in subgraphs:
             instances.extend(G.find_matching(pattern, subgraph))
     else:
@@ -242,7 +249,7 @@ def save_imported_modules(G: NXGraph):
 
     if utils.pattern_connected(pattern):
         # get subgraphs
-        subgraphs = get_ascendant_subgraphs_by_pattern(G, pattern)
+        subgraphs = utils.get_ascendant_subgraphs_by_pattern(G, pattern)
         for subgraph in subgraphs:
             instances.extend(G.find_matching(pattern, subgraph))
     else:
@@ -284,31 +291,6 @@ def remove_import_statements(G: NXGraph):
     return
 
 
-def initial_cleanup(G: NXGraph):
-    """
-    Removes nodes that are not carrying any information and are not required
-    in future transformations.
-
-    :param G: an NXGraph object
-    """
-    redundancy_list = [
-        "comment",
-        ".",
-        ",",
-        ")",
-        "(",
-        "[",
-        "]",
-        ":",
-        ";",
-        "}",
-        "{",
-        "\"",
-        "\'"
-    ]
-    clean_from_list(G, redundancy_list)
-
-
 def clean_from_list(G: NXGraph, redundancy_list: list):
     """
     Remove nodes from a NetworkX graph based on a list of redundancy values
@@ -329,26 +311,11 @@ def post_cleanup(G: NXGraph):
     Remove nodes that no longer carry any information after the transformations
     were done.
 
-    :param G: an NXGraph objec
+    :param G: an NXGraph object
     """
-    redundancy_list = [
-        "expression_statement",
-        "assignment",
-        "pattern_list",
-        "module",
-        "slice",
-        "=",
-        "+",
-        "*",
-        "%",
-        "-",
-        "<",
-        ">",
-        "expression_list"
-    ]
-    clean_from_list(G, redundancy_list)
 
-    # keyword argument children
+    # keyword argument parents
+    # this function is currently not used
     # eventually save them into the node instead
     keyword_parents = [
         "string",
@@ -516,6 +483,11 @@ def establish_dependencies(G: NXGraph):
         G.remove_node(id)
 
 
+def parents_to_children_list(G: NXGraph, p_t_c: list):
+    for attr in p_t_c:
+        connect_parents_children_drop_node(G, attr)
+
+
 def connect_parents_children_drop_node(G: NXGraph, attr: str):
     """
     Find instances of the node we want to remove, connect its parents and children,
@@ -538,7 +510,7 @@ def connect_parents_children_drop_node(G: NXGraph, attr: str):
         G.remove_node(node_id)
 
 
-def add_attributes_from_import_aliases(G: NXGraph, alieses_dict: dict, cursor):
+def add_attributes_from_import_aliases(G: NXGraph, aliases_dict: dict, cursor):
     """
     Looks for instances of nodes with the attribute "identifier" that match a key
     in the aliases_dict. If such nodes are found, the function removes the "identifier"
@@ -555,7 +527,7 @@ def add_attributes_from_import_aliases(G: NXGraph, alieses_dict: dict, cursor):
     :param cursor: A cursor object to access a database, which is used to retrieve a
     knowledge base entry for the functions
     """
-    for key in alieses_dict:
+    for key in aliases_dict:
         pattern = NXGraph()
         pattern.add_node(1, {'identifier': key})
         instances = (G.find_matching(pattern))
@@ -566,13 +538,13 @@ def add_attributes_from_import_aliases(G: NXGraph, alieses_dict: dict, cursor):
                 node_attrs = G.get_node(node_id)
                 G.remove_node_attrs(node_id, {'identifier': key})
                 # add "module" attribute and put full function name there
-                module_name = alieses_dict[key].decode("utf-8")
+                module_name = aliases_dict[key].decode("utf-8")
                 G.add_node_attrs(node_id, {"module": module_name})
                 # add full function call to the node
                 for value in node_attrs["text"]:
                     node_text = value.decode("utf-8")
                     short_name = key.decode("utf-8")
-                    long_name = alieses_dict[key].decode("utf-8")
+                    long_name = aliases_dict[key].decode("utf-8")
                     if short_name in node_text:
                         full_name = long_name + node_text[len(short_name):]
                         G.add_node_attrs(node_id, {"full_function_call": full_name})
@@ -635,27 +607,6 @@ def add_labels(G: NXGraph):
         G.add_node_attrs(node_id, {"label": node_text})
 
 
-def get_ascendant_subgraphs_by_pattern(G: NXGraph, pattern: NXGraph):
-    """
-    Finds a complete subgraph of ascendants for a given pattern.
-
-    :param G: an NXGraph object
-    :param pattern: pattern to find ascendants of
-    :return: found subgraphs
-    """
-    anti_root_id = [node for node in pattern.nodes() if len(pattern.descendants(node)) == 0][0]
-    anti_root_attrs = pattern.get_node(anti_root_id)
-    # find all instances of root in graph
-    root_pattern = NXGraph()
-    root_pattern.add_node(anti_root_id, anti_root_attrs)
-    instances = G.find_matching(root_pattern)
-    subgraphs = []
-    if instances:
-        for instance in instances:
-            subgraphs.append(utils.get_ancestors_nodes(G, list(instance.values())[0]))
-    return subgraphs
-
-
 def apply_rule(G, json_rule):
     """
     Applies given rule on a graph.
@@ -668,7 +619,7 @@ def apply_rule(G, json_rule):
     instances = []
     if utils.pattern_connected(pattern):
         # get subgraphs for faster instance finding
-        subgraphs = get_ascendant_subgraphs_by_pattern(G, pattern)
+        subgraphs = utils.get_ascendant_subgraphs_by_pattern(G, pattern)
         for subgraph in subgraphs:
             instances.extend(G.find_matching(pattern, subgraph))
     else:
@@ -679,115 +630,6 @@ def apply_rule(G, json_rule):
             G.rewrite(rule, instance)
 
     return G
-
-
-def jsonify_finite_set(param):
-    if len(param.to_json()["data"]) > 1:
-        result_list = list()
-        for element in param.to_json()["data"]:
-            if isinstance(element, (bytes, bytearray)):
-                result_list.append(element.decode("utf-8"))
-            else:
-                result_list.append(element)
-        return result_list
-    data = param.to_json()["data"][0]
-    if isinstance(data, (bytes, bytearray)):
-        data = data.decode("utf-8")
-    return data
-
-
-def convert_graph_to_json(G: NXGraph):
-    graph_dict = {"nodes": [], "edges": []}
-    for n, attrs in G.nodes(data=True):
-        if str(attrs["type"]) == "{'input'}":
-            metadata = {"id": str(n), "type": "input", "targetPosition": "top", "position": {"x": 0, "y": 0},
-                        "data": {}}
-        else:
-            metadata = {"id": str(n), "type": "default", "targetPosition": "top", "position": {"x": 0, "y": 0},
-                        "data": {}}
-        # node_attrs = {}
-        node_raw_attrs = G.get_node(n)
-        for key in node_raw_attrs:
-            metadata["data"].update({key: jsonify_finite_set(node_raw_attrs[key])})
-
-        # node_attrs.update(G.get_node(n))
-        graph_data = {}
-        graph_dict["nodes"].append(metadata)
-        # graph_dict["nodes"].append(graph_data)
-    i = 1
-    for s, t, attrs in G.edges(data=True):
-        edge_id = "edge-" + str(i)
-        edge_attrs = {"id": edge_id, "source": str(s), "target": str(t), 'type': 'smoothstep'}
-        graph_dict["edges"].append(edge_attrs)
-        i += 1
-    with open('graph.json', 'w') as fp:
-        json.dump(graph_dict, fp, indent=4)
-    # print(graph_dict)
-    return graph_dict
-
-
-def convert_graph_to_json_new_frontend(G: NXGraph):
-    graph_dict = {"nodes": [], "edges": []}
-    conversion_maping = {
-        "call": "operator",
-        "keyword_argument": "hyperparameter",
-        "input_variable": "data",
-        "output_variable": "data",
-        "passable_data": "data",
-        "identifier": "data",
-        "variable_assignment": "assignment",
-        "dictionary": "assignment",
-        "pair": "assignment",
-        "list": "assignment",
-        "tuple": "assignment",
-        "integer": "constant",
-        "float": "constant",
-        "string": "constant",
-        "true": "constant",
-        "false": "constant",
-        "unary_operator": "constant"
-    }
-    for n, attrs in G.nodes(data=True):
-        type = str(attrs["type"]).replace("{'", "").replace("'}", "")
-        if type not in conversion_maping.keys():
-            metadata = {"id": str(n), "type": "default", "targetPosition": "top",
-                        "position": {"x": 0, "y": 0}, "data": {}}
-        else:
-            metadata = {"id": str(n), "type": conversion_maping[type], "targetPosition": "top",
-                        "position": {"x": 0, "y": 0}, "data": {}}
-        # node_attrs = {}
-        node_raw_attrs = G.get_node(n)
-        for key in node_raw_attrs:
-            metadata["data"].update({key: jsonify_finite_set(node_raw_attrs[key])})
-
-        # node_attrs.update(G.get_node(n))
-        graph_data = {}
-        graph_dict["nodes"].append(metadata)
-        # graph_dict["nodes"].append(graph_data)
-    i = 1
-    for s, t, attrs in G.edges(data=True):
-        edge_id = "edge-" + str(i)
-        edge_attrs = {"id": edge_id, "source": str(s), "target": str(t), 'type': 'smoothstep'}
-        graph_dict["edges"].append(edge_attrs)
-        i += 1
-    with open('graph.json', 'w') as fp:
-        json.dump(graph_dict, fp, indent=4)
-    # print(graph_dict)
-    return graph_dict
-
-
-def draw_rule():
-    with open("knowledge_base/rule_base.txt") as file:
-        for counter, line in enumerate(file, 1):
-            rule_dict = read_rule_from_line(line)
-            if counter == 14:
-                rule = Rule.from_json(rule_dict)
-                pattern = rule.lhs
-                extractor = RuleExtractor()
-                result = extractor.get_transformation_result(pattern, rule_dict)
-                pattern_fig = draw_graph(pattern, fig_num=2)
-                result_fig = draw_graph(result, fig_num=3)
-                plt.show()
 
 
 def transform_graph(G: NXGraph):
@@ -806,7 +648,6 @@ def transform_graph(G: NXGraph):
 
     # initial graph transformation
     flip_tree(G)
-    initial_cleanup(G)
 
     # transform and save import statements, remove them from tree
     aliases_dict = save_import_aliases(G)
@@ -816,9 +657,9 @@ def transform_graph(G: NXGraph):
 
     # pre rule base transformations that cannot be fit into the rule definition
     save_identifier_into_keyword_argument(G)
-    adjust_assignment(G)
+    identify_inputs_outputs_in_assignment(G)
     append_identifier_to_call(G)
-    adjust_attributes(G)
+    replace_call_text_by_attribute_text(G)
     adjust_arguments(G)
 
     end_iner = time.time()
@@ -830,7 +671,7 @@ def transform_graph(G: NXGraph):
     for counter, rule in enumerate(rules, 1):
         start_iner = time.time()
         json_rule = read_rule_from_line(rule[0])
-        # print(f'Applying rule #{counter}')
+        print(f'Applying rule #{counter}')
         G = apply_rule(G, json_rule)
         end_iner = time.time()
         # print(f'line {counter} done in {end_iner - start_iner}')
@@ -839,11 +680,7 @@ def transform_graph(G: NXGraph):
     start_iner = time.time()
 
     # apply transformations that are required after application from rules from rule base
-    connect_parents_children_drop_node(G, "subscript")
-    connect_parents_children_drop_node(G, "slice")
-    connect_parents_children_drop_node(G, "binary_operator")
-    connect_parents_children_drop_node(G, "expression_list")
-    post_cleanup(G)
+    parents_to_children_list(G, ["subscript", "slice", "binary_operator", "expression_list"])
 
     # find and connect related nodes
     establish_dependencies(G)
@@ -858,4 +695,5 @@ def transform_graph(G: NXGraph):
     print(f'post transformations done in {end_iner - start_iner}')
     print_graph(G)
     graph_dict = convert_graph_to_json(G)
+    connection.close()
     return graph_dict
