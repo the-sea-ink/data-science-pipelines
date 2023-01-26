@@ -1,7 +1,7 @@
 import networkx as nx
 from regraph import NXGraph, Rule
 import utils
-from rule_creator import create_rule, create_pattern, RuleManager
+from rule_manager import create_rule, create_pattern, RuleManager
 
 
 class RuleExtractor:

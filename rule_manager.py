@@ -5,50 +5,6 @@ import utils
 
 
 class RuleManager:
-    name = ""
-    description = ""
-    rule_type = ""
-    by_user = bool
-    rule = {}
-
-    def add_rule_to_db(self, rule_dict):
-        connection = sqlite3.connect("knowledge_base.db")
-        cursor = connection.cursor()
-
-        pattern = create_pattern(rule_dict)
-        rule = create_rule(pattern, rule_dict)
-
-        self.name = rule_dict.pop("name")
-        self.description = rule_dict.pop("description")
-        self.rule_type = rule_dict.pop("rule_type")
-        self.by_user = rule_dict.pop("by_user")
-        self.rule = rule
-
-        # get id
-        cursor.execute("SELECT COUNT(*) FROM rules")
-        rule_id = cursor.fetchall()[0][0] + 1
-
-        cursor.execute(
-            "INSERT INTO rules(rule_id, rule_name, rule_description, rule, rule_type, added_by_user) VALUES(?, ?, ?, ?, ?, ?)",
-            [rule_id, self.name, self.description, str(self.rule), self.rule_type, self.by_user])
-
-        rule["name"] = self.name
-        rule["description"] = self.description
-        rule["rule_type"] = self.rule_type
-        rule["by_user"] = self.by_user
-
-        if rule_exists(rule):
-            raise ValueError('This rule already exists!')
-
-        out_file = open("knowledge_base/rule_base.txt", "a")
-        out_file.write(str(rule) + "\n")
-        out_file.close()
-
-        connection.commit()
-
-        print(rule)
-        print("Rule created successfully!")
-        connection.close()
 
     def delete_rule_by_name(self, rule_name, cursor, connection):
         cursor.execute("DELETE FROM rules WHERE rule_name=?", (rule_name,))
@@ -60,11 +16,56 @@ class RuleManager:
         rule_dict = utils.read_rule_from_line(rule_string)
         rule = Rule.from_json(rule_dict)
         pattern = rule.lhs
+        result = rule.rhs
+        pattern_json = utils.convert_graph_to_json(pattern)
+        result_json = utils.convert_graph_to_json(result)
+        return pattern_json, result_json
+
+    def list_all_rules(self, cursor):
+        cursor.execute("SELECT rule_name FROM rules ORDER BY rule_id")
+        rule_list = cursor.fetchall()
+        return rule_list
+
+    def add_rule_from_user_file(rule, connection, cursor):
+        rule_dict = {}
+        add_rule_to_db(rule_dict, connection, cursor)
         pass
 
-    def add_rule_from_file(self, dict):
 
-        pass
+def add_rule_to_db(rule_dict, connection, cursor):
+    pattern = create_pattern(rule_dict)
+    rule = create_rule(pattern, rule_dict)
+
+    name = rule_dict.pop("name")
+    description = rule_dict.pop("description")
+    rule_type = rule_dict.pop("rule_type")
+    by_user = rule_dict.pop("by_user")
+    rule = rule
+
+    # get id
+    cursor.execute("SELECT COUNT(*) FROM rules")
+    rule_id = cursor.fetchall()[0][0] + 1
+
+    cursor.execute(
+        "INSERT INTO rules(rule_id, rule_name, rule_description, rule, rule_type, added_by_user) VALUES(?, ?, ?, ?, ?, ?)",
+        [rule_id, name, description, str(rule), rule_type, by_user])
+
+    rule["name"] = name
+    rule["description"] = description
+    rule["rule_type"] = rule_type
+    rule["by_user"] = by_user
+
+    if rule_exists(rule):
+        raise ValueError('This rule already exists!')
+
+    out_file = open("knowledge_base/rule_base.txt", "a")
+    out_file.write(str(rule) + "\n")
+    out_file.close()
+
+    connection.commit()
+
+    print(rule)
+    print("Rule created successfully!")
 
 
 def get_rules_from_db(cursor):
@@ -73,12 +74,9 @@ def get_rules_from_db(cursor):
     return rules
 
 
-def create_rule_from_file(path):
-    # create rule
+def create_rule_from_file(path, connection, cursor):
     rule_dict = get_dict_from_json(path)
-
-    rule_entry = RuleManager()
-    rule_entry.add_rule_to_db(rule_dict)
+    add_rule_to_db(rule_dict, connection, cursor)
 
 
 def rule_exists(rule):
@@ -244,4 +242,7 @@ def create_rule(pattern, rule_dict):
 
 
 if __name__ == "__main__":
-    create_rule_from_file("knowledge_base/rule_creation.json")
+    connection = sqlite3.connect("knowledge_base.db")
+    cursor = connection.cursor()
+    create_rule_from_file("knowledge_base/rule_creation.json", connection, cursor)
+    connection.close()

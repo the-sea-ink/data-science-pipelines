@@ -5,7 +5,7 @@ import utils
 from utils import draw_graph, print_graph, read_rule_from_line, convert_graph_to_json_new_frontend, \
     convert_graph_to_json
 from models.Function import Function
-from rule_creator import get_rules_from_db
+from rule_manager import get_rules_from_db
 
 
 def flip_tree(G: NXGraph):
@@ -315,7 +315,7 @@ def post_cleanup(G: NXGraph):
     """
 
     # keyword argument parents
-    # this function is currently not used
+    # this functionality is currently not used
     # eventually save them into the node instead
     keyword_parents = [
         "string",
