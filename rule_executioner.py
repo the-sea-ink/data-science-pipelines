@@ -150,8 +150,6 @@ def save_identifier_into_keyword_argument(G: NXGraph):
         for instance in instances:
             attrs = G.get_node_attrs(instance[1])
             G.add_node_attrs(instance[2], {"identifier": attrs["text"]})
-            print_graph(G)
-
     return
 
 
@@ -616,7 +614,32 @@ def apply_rule(G, json_rule):
     """
     rule = Rule.from_json(json_rule)
     pattern = rule.lhs
+
+    # check for wild card in pattern nodes
+    wild_card_nodes = []
+    for node in json_rule["lhs"]["nodes"]:
+        for attr_type in node["attrs"]:
+            for data in node["attrs"][attr_type]["data"]:
+                if "%variable_name" == data[0:14]:
+                    var_type_num = data.split("%variable_name")[1]
+                    wild_card_nodes.append(
+                        {"node_id": node["id"],
+                         "attr_name": attr_type,
+                         "variable_name": data,
+                         "variable_type": var_type_num
+                         })
+
+    if len(wild_card_nodes) != 0:
+        print(wild_card_nodes)
+        for node in wild_card_nodes:
+            attrs = pattern.get_node_attrs(node["node_id"])
+            attrs.pop(node["attr_name"])
+            pattern.update_node_attrs(node["node_id"], attrs)
+            #print(pattern.get_node_attrs(node["node_id"]))
+        #utils.print_graph(pattern)
+
     instances = []
+
     if utils.pattern_connected(pattern):
         # get subgraphs for faster instance finding
         subgraphs = utils.get_ascendant_subgraphs_by_pattern(G, pattern)
@@ -624,6 +647,16 @@ def apply_rule(G, json_rule):
             instances.extend(G.find_matching(pattern, subgraph))
     else:
         instances = G.find_matching(pattern)
+    print(instances)
+
+    # case 1: looking for multiple nodes with same unknown attr values
+    if len(wild_card_nodes) != 0:
+        unique_val_types = list(map(lambda elem: elem["variable_type"], wild_card_nodes))
+        unique_val_counts = set(map(lambda elem: (elem, unique_val_types.count(elem)), unique_val_types))
+        print(unique_val_counts)
+
+    # case 2: looking for node with unknown attr value to do some
+    # transformations on said node attr values
 
     if instances:
         for instance in instances:
@@ -648,6 +681,7 @@ def transform_graph(G: NXGraph):
 
     # initial graph transformation
     flip_tree(G)
+    utils.print_graph(G)
 
     # transform and save import statements, remove them from tree
     aliases_dict = save_import_aliases(G)
@@ -671,7 +705,7 @@ def transform_graph(G: NXGraph):
     for counter, rule in enumerate(rules, 1):
         start_iner = time.time()
         json_rule = read_rule_from_line(rule[0])
-        print(f'Applying rule #{counter}')
+        #print(f'Applying rule #{counter}')
         G = apply_rule(G, json_rule)
         end_iner = time.time()
         # print(f'line {counter} done in {end_iner - start_iner}')
