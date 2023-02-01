@@ -2,7 +2,7 @@ import sqlite3
 from regraph import NXGraph, Rule, FiniteSet, plot_graph
 import time
 import utils
-from utils import draw_graph, print_graph, read_rule_from_line, convert_graph_to_json_new_frontend, \
+from utils import draw_graph, print_graph, read_rule_from_string, convert_graph_to_json_new_frontend, \
     convert_graph_to_json
 from models.Function import Function
 from rule_manager import get_rules_from_db
@@ -605,13 +605,44 @@ def add_labels(G: NXGraph):
         G.add_node_attrs(node_id, {"label": node_text})
 
 
-def apply_rule(G, json_rule):
+def narrow_down_instances(G: NXGraph, instances: list, wild_card_nodes: list, unique_val_counts):
+    narrowed_instances = []
+    attr_mapping = []
+    unique_val_dict = dict(unique_val_counts)
+    sorted_unique_values = {k: v for k, v in sorted(unique_val_dict.items(), key=lambda item: item[1])}
+    for instance in instances:
+        attr_names_counts = {}
+        for key in instance:
+            node_attrs = G.get_node_attrs(instance[key])
+            known_attr = node_attrs[wild_card_nodes[0]["attr_name"]]
+            for elem in known_attr:
+                known_attr_value = elem
+            if known_attr_value in attr_names_counts.keys():
+                incr = attr_names_counts[known_attr_value] + 1
+                attr_names_counts[known_attr_value] = incr
+            else:
+                attr_names_counts[known_attr_value] = 1
+        sorted_known_values = {k: v for k, v in sorted(attr_names_counts.items(), key=lambda item: item[1])}
+        if len(sorted_unique_values) == len(sorted_known_values):
+            for wild_card_key, known_value_key in zip(sorted_unique_values, sorted_known_values):
+                if sorted_unique_values[wild_card_key] != sorted_known_values[known_value_key]:
+                    break
+                else:
+                    narrowed_instances.append(instance)
+                    attr_mapping.append({wild_card_key: known_value_key})
+    return narrowed_instances, attr_mapping
+
+
+def apply_rule(G, rule_string: str):
     """
     Applies given rule on a graph.
 
+    :param pat_rule:
     :param G: an NXGraph object
     :param json_rule: rule instance
     """
+    json_rule = read_rule_from_string(rule_string)
+
     rule = Rule.from_json(json_rule)
     pattern = rule.lhs
 
@@ -630,13 +661,10 @@ def apply_rule(G, json_rule):
                          })
 
     if len(wild_card_nodes) != 0:
-        print(wild_card_nodes)
         for node in wild_card_nodes:
             attrs = pattern.get_node_attrs(node["node_id"])
             attrs.pop(node["attr_name"])
             pattern.update_node_attrs(node["node_id"], attrs)
-            #print(pattern.get_node_attrs(node["node_id"]))
-        #utils.print_graph(pattern)
 
     instances = []
 
@@ -647,16 +675,26 @@ def apply_rule(G, json_rule):
             instances.extend(G.find_matching(pattern, subgraph))
     else:
         instances = G.find_matching(pattern)
-    print(instances)
 
-    # case 1: looking for multiple nodes with same unknown attr values
     if len(wild_card_nodes) != 0:
         unique_val_types = list(map(lambda elem: elem["variable_type"], wild_card_nodes))
         unique_val_counts = set(map(lambda elem: (elem, unique_val_types.count(elem)), unique_val_types))
-        print(unique_val_counts)
+        instances, mapping = narrow_down_instances(G, instances, wild_card_nodes, unique_val_counts)
 
-    # case 2: looking for node with unknown attr value to do some
-    # transformations on said node attr values
+        # replace all "%variable_name" occurrences in the rule with the actually attr value
+        new_rule_string = rule_string.replace("%variable_name1", "some_text")
+        new_json_rule = read_rule_from_string(new_rule_string)
+        new_rule = Rule.from_json(new_json_rule)
+
+        if instances:
+            for instance, map_value in zip(instances, mapping):
+                var_id = list(map_value.keys())[0]
+                to_replace = "%variable_name"+list(map_value.keys())[0]
+                new_rule_string = rule_string.replace(to_replace, map_value[var_id].decode("utf-8") )
+                new_json_rule = read_rule_from_string(new_rule_string)
+                new_rule = Rule.from_json(new_json_rule)
+                G.rewrite(new_rule, instance)
+        return G
 
     if instances:
         for instance in instances:
@@ -704,9 +742,9 @@ def transform_graph(G: NXGraph):
     rules = get_rules_from_db(cursor)
     for counter, rule in enumerate(rules, 1):
         start_iner = time.time()
-        json_rule = read_rule_from_line(rule[0])
-        #print(f'Applying rule #{counter}')
-        G = apply_rule(G, json_rule)
+        json_rule = read_rule_from_string(rule[0])
+        print(f'Applying rule #{counter}')
+        G = apply_rule(G, rule[0])
         end_iner = time.time()
         # print(f'line {counter} done in {end_iner - start_iner}')
     end_outer = time.time()
