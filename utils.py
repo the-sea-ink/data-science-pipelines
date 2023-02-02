@@ -84,7 +84,7 @@ def convert_nxgraph_to_graph(NXGraph):
     return nxGraph
 
 
-def read_rule_from_line(line):
+def read_rule_from_string(line):
     string = line.rstrip()
     rule = ast.literal_eval(string)
     return rule
@@ -107,7 +107,21 @@ def get_ascendant_subgraphs_by_pattern(G: NXGraph, pattern: NXGraph):
     subgraphs = []
     if instances:
         for instance in instances:
-            subgraphs.append(get_ancestors_nodes(G, list(instance.values())[0]))
+            found_subgraph = get_ancestors_nodes(G, list(instance.values())[0])
+            if len(found_subgraph) < len(pattern.nodes()):
+                continue
+            duplicate = False
+            subgraphs_to_delete = list()
+            for subgraph in subgraphs:
+                if set(found_subgraph).issubset(set(subgraph)):
+                    duplicate = True
+                    continue
+                if set(subgraph).issubset(set(found_subgraph)):
+                    subgraphs_to_delete.append(subgraph)
+            for subgraph_to_delete in subgraphs_to_delete:
+                subgraphs.remove(subgraph_to_delete)
+            if not duplicate:
+                subgraphs.append(found_subgraph)
     return subgraphs
 
 
@@ -166,8 +180,8 @@ def draw_graph(G, attribute="type", id=False, fig_num=1):
 def draw_rule():
     with open("knowledge_base/rule_base.txt") as file:
         for counter, line in enumerate(file, 1):
-            rule_dict = read_rule_from_line(line)
-            if counter == 14:
+            rule_dict = read_rule_from_string(line)
+            if counter == 38:
                 rule = Rule.from_json(rule_dict)
                 pattern = rule.lhs
                 extractor = RuleExtractor()

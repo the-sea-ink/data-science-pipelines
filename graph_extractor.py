@@ -47,7 +47,7 @@ class GraphExtractor:
         queue.append(root_node)
 
         # add root_node to the graph
-        G.add_node(0, attrs={"type": root_node.type, "text": root_node.text})
+        G.add_node(0, attrs={"type": root_node.type, "text": root_node.text.decode('utf-8')})
 
         # loop to visit each node
         while queue:
@@ -56,7 +56,7 @@ class GraphExtractor:
                 if child_node not in visited:
                     node_id += 1
                     # add child node to graph
-                    G.add_node(node_id, attrs={"type": child_node.type, "text": child_node.text})
+                    G.add_node(node_id, attrs={"type": child_node.type, "text": child_node.text.decode('utf-8')})
                     # add edge between parent_node and child_node
                     G.add_edge(parent_id, node_id)
                     visited.append(child_node)

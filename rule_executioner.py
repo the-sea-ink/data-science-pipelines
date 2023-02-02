@@ -7,6 +7,10 @@ from utils import draw_graph, print_graph, read_rule_from_string, convert_graph_
 from models.Function import Function
 from rule_manager import get_rules_from_db
 
+STR_NODE_ID = "node_id"
+STR_ATTR_NAME = "attr_name"
+STR_ATTR_VALUE = "attr_value"
+
 
 def flip_tree(G: NXGraph):
     """
@@ -32,76 +36,6 @@ def flip_node(G: NXGraph, node_to_flip, id_to_ignore=-1):
         G.add_edge(child, node_to_flip)
         G.remove_edge(node_to_flip, child)
         flip_node(G, child, node_to_flip)
-
-
-def append_identifier_to_call(G: NXGraph):
-    """
-    Adds identifier attribute to call node, remove identifier node.
-
-    :param G: an NXGraph object
-    """
-    pattern = NXGraph()
-    pattern.add_node(1, {'type': 'identifier'})
-    pattern.add_node(2, {'type': 'call'})
-    pattern.add_edge(1, 2)
-
-    instances = []
-    instances.extend(G.find_matching(pattern))
-
-    for instance in instances:
-        identifier_id = instance[1]
-        call_id = instance[2]
-        identifier_attrs = G.get_node(identifier_id)
-        identifier_text = identifier_attrs["text"]
-        G.update_node_attrs(call_id, {"type": "call", "text": identifier_text})
-        G.remove_node(identifier_id)
-    return
-
-
-def replace_call_text_by_attribute_text(G: NXGraph):
-    """
-     Replace "call" text by "attribute" text.
-
-    :param G: an NXGraph object
-    """
-    pattern = NXGraph()
-    pattern.add_node(1, {'type': 'attribute'})
-    pattern.add_node(2, {'type': 'call'})
-    pattern.add_edge(1, 2)
-    instances = G.find_matching(pattern)
-    for instance in instances:
-        attr_id = instance[1]
-        call_id = instance[2]
-        attr_attrs = G.get_node(attr_id)
-        attr_text = attr_attrs["text"]
-        G.update_node_attrs(call_id, {"type": "call", "text": attr_text})
-        parents = G.predecessors(attr_id)
-        children = G.successors(attr_id)
-        for child in children:
-            for parent in parents:
-                G.add_edge(parent, child)
-        G.remove_node(attr_id)
-
-
-def adjust_arguments(G: NXGraph):
-    # connect parents and children of argument list, remove argument list node
-    pattern = NXGraph()
-    pattern.add_node(1, {'type': 'argument_list'})
-    instances = G.find_matching(pattern)
-    for instance in instances:
-        argument_id = instance[1]
-        parents = G.predecessors(argument_id)
-        children = G.successors(argument_id)
-        for child in children:
-            for parent in parents:
-                G.add_edge(parent, child)
-                parent_node = G.get_node(parent)
-                # if it is an identifier, rename to input variable
-                for elem in parent_node["type"]:
-                    if elem == "identifier":
-                        G.update_node_attrs(parent, {"text": parent_node["text"], "type": "input_variable"})
-        G.remove_node(argument_id)
-    return
 
 
 def identify_inputs_outputs_in_assignment(G: NXGraph):
@@ -223,7 +157,7 @@ def save_imported_functions(G: NXGraph):
                 module_name = G.get_node(instance[1])["text"]
                 function_name = G.get_node(instance[3])["text"]
                 for mod_name, func_name in zip(module_name, function_name):
-                    functions_dict[func_name] = mod_name.decode("utf-8") + "." + func_name.decode("utf-8")
+                    functions_dict[func_name] = mod_name + "." + func_name
                     # print(functions_dict)
     return functions_dict
 
@@ -287,204 +221,6 @@ def remove_import_statements(G: NXGraph):
             for node in nodes:
                 G.remove_node(node)
     return
-
-
-def clean_from_list(G: NXGraph, redundancy_list: list):
-    """
-    Remove nodes from a NetworkX graph based on a list of redundancy values
-
-    :param G: A NetworkX graph object
-    :param redundancy_list: A list of values to be used as criteria for removing nodes.
-    :return:
-    """
-    for redundancy in redundancy_list:
-        redundancy_pattern = utils.create_pattern("node_id", "type", redundancy)
-        instances = G.find_matching(redundancy_pattern)
-        for instance in instances:
-            utils.remove_nodes(G, [instance["node_id"]])
-
-
-def post_cleanup(G: NXGraph):
-    """
-    Remove nodes that no longer carry any information after the transformations
-    were done.
-
-    :param G: an NXGraph object
-    """
-
-    # keyword argument parents
-    # this functionality is currently not used
-    # eventually save them into the node instead
-    keyword_parents = [
-        "string",
-        "integer",
-        "float",
-        "true",
-        "false"
-    ]
-    for parent in keyword_parents:
-        keyword_pattern = NXGraph()
-        keyword_pattern.add_node(1, {'type': parent})
-        keyword_pattern.add_node(2, {'type': 'keyword_argument'})
-        keyword_pattern.add_edge(1, 2)
-        keyword_instances = G.find_matching(keyword_pattern)
-        for keyword_instance in keyword_instances:
-            G.remove_node(keyword_instance[1])
-
-
-def compare_outputs_inputs(G: NXGraph, output_instances, input_instances, nodes_to_remove):
-    """
-    Compares the output instances and the input instances, and if they have the same
-    name, it adds the input node to the nodes_to_remove list, updates the attribute
-    of the output node, setting its "type" to "passable_data" and its
-    "text" to the text of the input node and then adds an
-    edge between the output node and the input node's caller function
-
-    :param G: a NXGraph object
-    :param output_instances: a list of output instances
-    :param input_instances: a list of input instances
-    :param nodes_to_remove: a list of nodes to be removed from the graph
-    :return: an updated NXGraph object, the output instances, the input instances and the nodes_to_remove list
-    """
-    # check if same names, remove input node, update output attriute
-    for output_instance in output_instances:
-        output_identifier = output_instance[2]
-        output_caller_function = output_instance[1]
-        output_node = G.get_node(output_identifier)
-        for input_instance in input_instances:
-            input_identifier = input_instance[1]
-            input_caller_function = input_instance[2]
-            input_node = G.get_node(input_identifier)
-            # if same, remove nodes and add edge
-            if output_node['text'] == input_node['text']:
-                # if output_identifier not in nodes_to_remove:
-                # nodes_to_remove.append(output_identifier)
-                if input_identifier not in nodes_to_remove:
-                    nodes_to_remove.append(input_identifier)
-                G.update_node_attrs(output_identifier, {"type": "passable_data", "text": output_node['text']})
-                # add edge between caller functions
-                # if exists, add further attribute
-                G.add_edge(output_identifier, input_caller_function)
-
-                continue
-
-    return G, output_instances, input_instances, nodes_to_remove
-
-
-def establish_dependencies(G: NXGraph):
-    """
-    1. Find output and input instances in the graph
-    2. Compare the output instances and input instances with compare_outputs_inputs()
-    and if they have the same name, it updates the attribute of the output node,
-    adding an edge between the output node and the input node's caller function.
-    3. Go leftover input instances and save them into their belonging functions as
-    an attribute.
-    4. Checks for potential inputs by searching for identifier nodes that are children
-    to other nodes and calls the compare_outputs_inputs() function again.
-    5. Go through the leftover output instances and saves them into their belonging
-    functions as an attribute.
-    6. Remove identified nodes that are no longer needed in the graph.
-
-    :param G: a NXGraph object
-    """
-    # TODO eventually optimization needed, since node 1 has no attrs
-    # if an identifier node is a child of a call, it is an
-    # output value of a function
-    output_pattern = NXGraph()
-    output_pattern.add_node(1)
-    output_pattern.add_node(2, {'type': 'output_variable'})
-    output_pattern.add_edge(1, 2)
-    output_instances = G.find_matching(output_pattern)
-
-    # if an identifier node is a parent to any node, it is an input value
-    # into that function
-    input_pattern = NXGraph()
-    input_pattern.add_node(1, {'type': 'input_variable'})
-    input_pattern.add_node(2)
-    input_pattern.add_edge(1, 2)
-    input_instances = G.find_matching(input_pattern)
-
-    nodes_to_remove = []
-
-    G, output_instances, input_instances, nodes_to_remove = compare_outputs_inputs(G, output_instances,
-                                                                                   input_instances, nodes_to_remove)
-    # go though leftover inputs, save them into their
-    # belonging functions as attribute
-    for input_instance in input_instances:
-
-        input_id = input_instance[1]
-        children = G.successors(input_id)
-        input_node = G.successors(input_id)
-        # save attr in child
-        input_node = G.get_node(input_id)
-        child_id = list(children)[0]
-        child_node = G.get_node(child_id)
-        if "input_variable" in child_node:
-            for elem in input_node["text"]:
-                child_node["input_variable"].add(elem)
-        else:
-            child_node["input_variable"] = input_node["text"]
-        G.update_node_attrs(child_id, child_node)
-        # uncomment this to make input variables that werent defined anywhere before invisible
-        # if input_id not in nodes_to_remove:
-        # nodes_to_remove.append(input_id)
-
-    # check identifiers for potential inputs
-    input_pattern = NXGraph()
-    input_pattern.add_node(1, {'type': 'identifier'})
-    input_pattern.add_node(2)
-    input_pattern.add_edge(1, 2)
-
-    input_instances = G.find_matching(input_pattern)
-    G, output_instances, input_instances, nodes_to_remove = compare_outputs_inputs(G, output_instances,
-                                                                                   input_instances, nodes_to_remove)
-    for input_instance in input_instances:
-        input_id = input_instance[1]
-        children = G.successors(input_id)
-        # save attr in child
-        input_node = G.get_node(input_id)
-        child_id = list(children)[0]
-        child_node = G.get_node(child_id)
-        # if we met this node before, it is an object or a variable
-        if input_id in nodes_to_remove:
-            child_node["variable"] = input_node["text"]
-        else:
-            if "identifier" in child_node:
-                for elem in input_node["text"]:
-                    child_node["identifier"].add(elem)
-            else:
-                child_node["identifier"] = input_node["text"]
-        G.update_node_attrs(child_id, child_node)
-        if input_id not in nodes_to_remove:
-            nodes_to_remove.append(input_id)
-
-    # go through leftover outputs, save them into their
-    # belonging functions as attribute
-    for output_instance in output_instances:
-        output_id = output_instance[2]
-        # if output_id in nodes_to_remove:
-        # continue
-        parents = G.predecessors(output_id)
-        # save attribute in parent
-        output_node = G.get_node(output_id)
-        parent_id = list(parents)[0]
-        parent_node = G.get_node(parent_id)
-        if "output_variable" in parent_node:
-            for elem in output_node["text"]:
-                parent_node["output_variable"].add(elem)
-        else:
-            parent_node["output_variable"] = output_node["text"]
-        G.update_node_attrs(parent_id, parent_node)
-        # if output_id not in nodes_to_remove:
-        # nodes_to_remove.append(output_id)
-    for id in nodes_to_remove:
-        G.remove_node(id)
-
-
-def parents_to_children_list(G: NXGraph, p_t_c: list):
-    for attr in p_t_c:
-        connect_parents_children_drop_node(G, attr)
-
 
 def connect_parents_children_drop_node(G: NXGraph, attr: str):
     """
@@ -605,69 +341,77 @@ def add_labels(G: NXGraph):
         G.add_node_attrs(node_id, {"label": node_text})
 
 
-def narrow_down_instances(G: NXGraph, instances: list, wild_card_nodes: list, unique_val_counts):
-    narrowed_instances = []
-    attr_mapping = []
-    unique_val_dict = dict(unique_val_counts)
-    sorted_unique_values = {k: v for k, v in sorted(unique_val_dict.items(), key=lambda item: item[1])}
-    for instance in instances:
-        attr_names_counts = {}
-        for key in instance:
-            node_attrs = G.get_node_attrs(instance[key])
-            known_attr = node_attrs[wild_card_nodes[0]["attr_name"]]
-            for elem in known_attr:
-                known_attr_value = elem
-            if known_attr_value in attr_names_counts.keys():
-                incr = attr_names_counts[known_attr_value] + 1
-                attr_names_counts[known_attr_value] = incr
-            else:
-                attr_names_counts[known_attr_value] = 1
-        sorted_known_values = {k: v for k, v in sorted(attr_names_counts.items(), key=lambda item: item[1])}
-        if len(sorted_unique_values) == len(sorted_known_values):
-            for wild_card_key, known_value_key in zip(sorted_unique_values, sorted_known_values):
-                if sorted_unique_values[wild_card_key] != sorted_known_values[known_value_key]:
-                    break
-                else:
-                    narrowed_instances.append(instance)
-                    attr_mapping.append({wild_card_key: known_value_key})
-    return narrowed_instances, attr_mapping
-
-
-def apply_rule(G, rule_string: str):
-    """
-    Applies given rule on a graph.
-
-    :param pat_rule:
-    :param G: an NXGraph object
-    :param json_rule: rule instance
-    """
-    json_rule = read_rule_from_string(rule_string)
-
-    rule = Rule.from_json(json_rule)
+def process_wildcard_attributes(rule:NXGraph, G:NXGraph, rule_string):
     pattern = rule.lhs
+    wildcards = {}
 
-    # check for wild card in pattern nodes
-    wild_card_nodes = []
-    for node in json_rule["lhs"]["nodes"]:
-        for attr_type in node["attrs"]:
-            for data in node["attrs"][attr_type]["data"]:
-                if "%variable_name" == data[0:14]:
-                    var_type_num = data.split("%variable_name")[1]
-                    wild_card_nodes.append(
-                        {"node_id": node["id"],
-                         "attr_name": attr_type,
-                         "variable_name": data,
-                         "variable_type": var_type_num
-                         })
+    for node, attrs in pattern.nodes(True):
+        for attribute in attrs:
+            for elem in attrs[attribute]:
+                if "%unknown_value" in elem:
+                    #create a list of wildcard node occurrences
+                    if elem not in wildcards.keys():
+                        wildcards[elem] = []
+                    wildcards[elem].append((node, attribute))
 
-    if len(wild_card_nodes) != 0:
-        for node in wild_card_nodes:
-            attrs = pattern.get_node_attrs(node["node_id"])
-            attrs.pop(node["attr_name"])
-            pattern.update_node_attrs(node["node_id"], attrs)
+    generalized_pattern = pattern.copy(pattern)
+    if len(wildcards) == 0:
+        return [rule]
+    for wildcard, wildcard_occurrances in wildcards.items():
+        for occurance in wildcard_occurrances:
+            generalized_pattern.remove_node_attrs(occurance[0],
+                                                {occurance[1]:wildcard})
+    instances = find_matching_optimised(G, generalized_pattern)
 
+    wildcard_answers = []
+
+    for generalized_instance in instances:
+        wildcard_matches = {}
+        for wildcard, wildcard_occurrances in wildcards.items():
+            node_id_with_wildcard = wildcard_occurrances[0][0]
+            attribute_name_with_wildcard = wildcard_occurrances[0][1]
+            mached_node_id = generalized_instance[node_id_with_wildcard]
+            wildcard_value = G.get_node_attrs(mached_node_id)[attribute_name_with_wildcard]
+            wildcard_value = next(iter(wildcard_value))
+            wildcard_matches[wildcard] = wildcard_value
+        correct = True
+        for wildcard, wildcard_occurrances in wildcards.items():
+            if not correct:
+                break
+            for occurance in wildcard_occurrances:
+                node_id_with_wildcard = occurance[0]
+                attribute_name_with_wildcard = occurance[1]
+                mached_node_id = generalized_instance[node_id_with_wildcard]
+                node_attrs = G.get_node_attrs(mached_node_id)
+                expected_value = node_attrs[attribute_name_with_wildcard]
+                if next(iter(expected_value)) != wildcard_matches[wildcard]:
+                    correct = False
+                    break
+        if not correct:
+            continue
+
+        duplicate = False
+        for rule_answer in wildcard_answers:
+            shared_wildcard_values = {k: rule_answer[k] for k in rule_answer if k in wildcard_matches and rule_answer[k] == wildcard_matches[k]}
+            if len(shared_wildcard_values) == len(rule_answer):
+                duplicate = True
+                break
+        if not duplicate:
+            wildcard_answers.append(wildcard_matches)
+    rules = []
+    for answer in wildcard_answers:
+        new_rule_string = str(rule_string)
+        for wildcard, wildcard_value in answer.items():
+            if type(wildcard_value) is str:
+                wildcard_value = wildcard_value.replace("'", "\\\'")
+            new_rule_string = new_rule_string.replace(wildcard, wildcard_value)
+        json_rule = read_rule_from_string(new_rule_string)
+        rules.append(Rule.from_json(json_rule))
+    return rules
+
+
+def find_matching_optimised(G, pattern):
     instances = []
-
     if utils.pattern_connected(pattern):
         # get subgraphs for faster instance finding
         subgraphs = utils.get_ascendant_subgraphs_by_pattern(G, pattern)
@@ -675,30 +419,31 @@ def apply_rule(G, rule_string: str):
             instances.extend(G.find_matching(pattern, subgraph))
     else:
         instances = G.find_matching(pattern)
+    return instances
 
-    if len(wild_card_nodes) != 0:
-        unique_val_types = list(map(lambda elem: elem["variable_type"], wild_card_nodes))
-        unique_val_counts = set(map(lambda elem: (elem, unique_val_types.count(elem)), unique_val_types))
-        instances, mapping = narrow_down_instances(G, instances, wild_card_nodes, unique_val_counts)
 
-        # replace all "%variable_name" occurrences in the rule with the actually attr value
-        new_rule_string = rule_string.replace("%variable_name1", "some_text")
-        new_json_rule = read_rule_from_string(new_rule_string)
-        new_rule = Rule.from_json(new_json_rule)
+def apply_rule(G, rule_string: str):
+    """
+    Applies given rule on a graph.
+
+    :param G: an NXGraph object
+    :param rule_string: rule instance
+    """
+
+    json_rule = read_rule_from_string(rule_string)
+
+    rule = Rule.from_json(json_rule)
+
+    rules = process_wildcard_attributes(rule, G, rule_string)
+    # check for wild card in pattern nodes
+
+    for rule in rules:
+        pattern = rule.lhs
+        instances = find_matching_optimised(G, pattern)
 
         if instances:
-            for instance, map_value in zip(instances, mapping):
-                var_id = list(map_value.keys())[0]
-                to_replace = "%variable_name"+list(map_value.keys())[0]
-                new_rule_string = rule_string.replace(to_replace, map_value[var_id].decode("utf-8") )
-                new_json_rule = read_rule_from_string(new_rule_string)
-                new_rule = Rule.from_json(new_json_rule)
-                G.rewrite(new_rule, instance)
-        return G
-
-    if instances:
-        for instance in instances:
-            G.rewrite(rule, instance)
+            for instance in instances:
+                G.rewrite(rule, instance)
 
     return G
 
@@ -727,12 +472,6 @@ def transform_graph(G: NXGraph):
     imported_modules = save_imported_modules(G)
     remove_import_statements(G)
 
-    # pre rule base transformations that cannot be fit into the rule definition
-    save_identifier_into_keyword_argument(G)
-    identify_inputs_outputs_in_assignment(G)
-    append_identifier_to_call(G)
-    replace_call_text_by_attribute_text(G)
-    adjust_arguments(G)
 
     end_iner = time.time()
     print(f'pre transformations done in {end_iner - start_iner}')
@@ -744,18 +483,17 @@ def transform_graph(G: NXGraph):
         start_iner = time.time()
         json_rule = read_rule_from_string(rule[0])
         print(f'Applying rule #{counter}')
+        if counter == 5:
+            print("yo")
+            #utils.draw_rule()
         G = apply_rule(G, rule[0])
+        print_graph(G)
         end_iner = time.time()
         # print(f'line {counter} done in {end_iner - start_iner}')
     end_outer = time.time()
     # print(f'apply rule  done in {end_outer - start_outer}')
     start_iner = time.time()
 
-    # apply transformations that are required after application from rules from rule base
-    parents_to_children_list(G, ["subscript", "slice", "binary_operator", "expression_list"])
-
-    # find and connect related nodes
-    establish_dependencies(G)
 
     # add knowledge base enrichment to functions that are present there
     add_attributes_from_import_aliases(G, aliases_dict, cursor)
