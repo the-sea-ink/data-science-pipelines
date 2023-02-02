@@ -4,7 +4,11 @@ import csv
 import os
 from models.Function import Function
 import utils
-from utils import read_rule_from_line
+import json
+import yaml
+import io
+from utils import read_rule_from_string
+import pprint
 
 
 def init_db(cursor):
@@ -53,12 +57,47 @@ def init_module(filename, module_name, version, date, cursor):
     connection.commit()
 
 
+def init_ds_tasks():
+    """
+    Parses data science ontology library into a dictionary and
+    dumps it into a json file.
+    """
+    ds_tasks = {}
+
+    # find all yaml files
+    yaml_files = []
+
+    for path, subdirs, files in os.walk("knowledge_base/annotation"):
+        for name in files:
+            file_path = os.path.join(path, name)
+            yaml_files.append(file_path)
+
+    for file in yaml_files:
+        with open(file) as stream:
+            data_loaded = yaml.safe_load(stream)
+            if type(data_loaded["definition"]) is list:
+                continue
+            if "class" in data_loaded.keys():
+                if type(data_loaded["class"]) is list:
+                    for class_name in data_loaded["class"]:
+                        ds_tasks[class_name] = data_loaded["definition"]
+                else:
+                    ds_tasks[data_loaded["class"]] = data_loaded["definition"]
+            elif "function" in data_loaded.keys():
+                ds_tasks[data_loaded["function"]] = data_loaded["definition"]
+
+    # save result into json
+    json_object = json.dumps(ds_tasks, indent=2)
+    with open("knowledge_base/ds_tasks.json", "w") as outfile:
+        outfile.write(json_object)
+
+
 def init_rules_from_file():
     cursor.execute("SELECT COUNT(*) FROM rules")
     added_rule_id = cursor.fetchall()[0][0] + 1
     with open("knowledge_base/rule_base.txt") as file:
         for counter, line in enumerate(file, 1):
-            json_rule = read_rule_from_line(line)
+            json_rule = read_rule_from_string(line)
             if "name" in json_rule:
                 rule_name = json_rule.pop("name")
             if "description" in json_rule:
@@ -80,12 +119,13 @@ if __name__ == "__main__":
     connection = sqlite3.connect("knowledge_base.db")
     cursor = connection.cursor()
     init_db(cursor)
+    init_ds_tasks()
     files = os.listdir("knowledge_base/modules/")
     for file in files:
         module_name, date, version = file.replace(".csv", "").split(" ")
         date_format = "%Y-%m-%d"
         date = datetime.datetime.strptime(date, date_format).date()
-        module_path = "knowledge_base/modules/"+file
+        module_path = "knowledge_base/modules/" + file
         init_module(module_path, module_name, version, date, cursor)
     init_rules_from_file()
     connection.close()
