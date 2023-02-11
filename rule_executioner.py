@@ -1,4 +1,6 @@
 import sqlite3
+
+from networkx.algorithms.isomorphism import GraphMatcher
 from regraph import NXGraph, Rule, FiniteSet, plot_graph
 import time
 import utils
@@ -38,55 +40,6 @@ def flip_node(G: NXGraph, node_to_flip, id_to_ignore=-1):
         flip_node(G, child, node_to_flip)
 
 
-def identify_inputs_outputs_in_assignment(G: NXGraph):
-    """
-    Identify inputs and outputs in an assignment in a form a = b.
-
-    :param G:
-    """
-    pattern = NXGraph()
-    pattern.add_node(1, {'type': 'identifier'})
-    pattern.add_node(2, {'type': 'assignment'})
-    pattern.add_node(3, {'type': 'identifier'})
-    pattern.add_edge(1, 2)
-    pattern.add_edge(3, 2)
-    instances = G.find_matching(pattern)
-    if instances:
-        for instance in instances:
-            if instance[1] < instance[3]:
-                G.remove_edge(instance[1], instance[2])
-                G.add_edge(instance[2], instance[1])
-                attrs_output_variable = G.get_node(instance[1])
-                attrs_output_variable["type"] = "output_variable"
-                attrs_assignment = G.get_node(instance[2])
-                attrs_assignment["type"] = "variable_assignment"
-                attrs_input_variable = G.get_node(instance[3])
-                attrs_input_variable["type"] = "input_variable"
-                G.update_node_attrs(instance[1], attrs_output_variable)
-                G.update_node_attrs(instance[2], attrs_assignment)
-                G.update_node_attrs(instance[3], attrs_input_variable)
-    return
-
-
-def save_identifier_into_keyword_argument(G: NXGraph):
-    """
-    Saves "identifier" text into "keyword_argument" node as "identifier"
-    attribute.
-
-    :param G: an NXGraph object
-    """
-    pattern = NXGraph()
-    pattern.add_node(1, {'type': 'identifier'})
-    pattern.add_node(2, {'type': 'keyword_argument'})
-    pattern.add_edge(1, 2)
-    instances = G.find_matching(pattern)
-    if instances:
-        for instance in instances:
-            attrs = G.get_node_attrs(instance[1])
-            G.add_node_attrs(instance[2], {"identifier": attrs["text"]})
-    return
-
-
 def save_import_aliases(G: NXGraph):
     """
     Handles 'import numpy as np'.
@@ -101,15 +54,7 @@ def save_import_aliases(G: NXGraph):
     pattern.add_edge(2, 1)
     pattern.add_edge(3, 1)
 
-    instances = []
-
-    if utils.pattern_connected(pattern):
-        # get subgraphs
-        subgraphs = utils.get_ascendant_subgraphs_by_pattern(G, pattern)
-        for subgraph in subgraphs:
-            instances.extend(G.find_matching(pattern, subgraph))
-    else:
-        instances = G.find_matching(pattern)
+    instances = find_matching_optimised(G, pattern)
 
     aliases_dict = {}
 
@@ -140,15 +85,7 @@ def save_imported_functions(G: NXGraph):
     pattern.add_edge(1, 2)
     pattern.add_edge(3, 2)
 
-    instances = []
-
-    if utils.pattern_connected(pattern):
-        # get subgraphs
-        subgraphs = utils.get_ascendant_subgraphs_by_pattern(G, pattern)
-        for subgraph in subgraphs:
-            instances.extend(G.find_matching(pattern, subgraph))
-    else:
-        instances = G.find_matching(pattern)
+    instances = find_matching_optimised(G, pattern)
 
     functions_dict = {}
     if instances:
@@ -179,13 +116,7 @@ def save_imported_modules(G: NXGraph):
     pattern.add_edge(1, 2)
     instances = []
 
-    if utils.pattern_connected(pattern):
-        # get subgraphs
-        subgraphs = utils.get_ascendant_subgraphs_by_pattern(G, pattern)
-        for subgraph in subgraphs:
-            instances.extend(G.find_matching(pattern, subgraph))
-    else:
-        instances = G.find_matching(pattern)
+    instances = find_matching_optimised(G, pattern)
 
     imported_modules = []
     if instances:
@@ -210,38 +141,17 @@ def remove_import_statements(G: NXGraph):
     instances = []
     pattern = NXGraph()
     pattern.add_node(1, {'type': 'import_statement'})
-    instances.extend(G.find_matching(pattern))
+    instances.extend(find_matching_optimised(G, pattern))
 
     pattern = NXGraph()
     pattern.add_node(1, {'type': 'import_from_statement'})
-    instances.extend(G.find_matching(pattern))
+    instances.extend(find_matching_optimised(G, pattern))
     if instances:
         for instance in instances:
             nodes = utils.get_ancestors_nodes(G, instance[1])
             for node in nodes:
                 G.remove_node(node)
     return
-
-def connect_parents_children_drop_node(G: NXGraph, attr: str):
-    """
-    Find instances of the node we want to remove, connect its parents and children,
-    remove node.
-
-    :param G: a NXGraph object
-    :param attr: attribute of the node that we want to remove
-    """
-    # connect parents and children of slice, remove node by type
-    pattern = NXGraph()
-    pattern.add_node(1, {'type': attr})
-    instances = G.find_matching(pattern)
-    for instance in instances:
-        node_id = instance[1]
-        parents = G.predecessors(node_id)
-        children = G.successors(node_id)
-        for child in children:
-            for parent in parents:
-                G.add_edge(parent, child)
-        G.remove_node(node_id)
 
 
 def add_attributes_from_import_aliases(G: NXGraph, aliases_dict: dict, cursor):
@@ -264,7 +174,7 @@ def add_attributes_from_import_aliases(G: NXGraph, aliases_dict: dict, cursor):
     for key in aliases_dict:
         pattern = NXGraph()
         pattern.add_node(1, {'identifier': key})
-        instances = (G.find_matching(pattern))
+        instances = find_matching_optimised(G, pattern)
         if instances:
             for instance in instances:
                 # remove short identifier from identifiers list
@@ -272,13 +182,13 @@ def add_attributes_from_import_aliases(G: NXGraph, aliases_dict: dict, cursor):
                 node_attrs = G.get_node(node_id)
                 G.remove_node_attrs(node_id, {'identifier': key})
                 # add "module" attribute and put full function name there
-                module_name = aliases_dict[key].decode("utf-8")
+                module_name = aliases_dict[key]
                 G.add_node_attrs(node_id, {"module": module_name})
                 # add full function call to the node
                 for value in node_attrs["text"]:
-                    node_text = value.decode("utf-8")
-                    short_name = key.decode("utf-8")
-                    long_name = aliases_dict[key].decode("utf-8")
+                    node_text = value
+                    short_name = key
+                    long_name = aliases_dict[key]
                     if short_name in node_text:
                         full_name = long_name + node_text[len(short_name):]
                         G.add_node_attrs(node_id, {"full_function_call": full_name})
@@ -292,7 +202,7 @@ def add_attributes_from_functions_dict(G: NXGraph, functions_dict: dict, cursor)
     for key in functions_dict:
         pattern = NXGraph()
         pattern.add_node(1, {'text': key})
-        instances = (G.find_matching(pattern))
+        instances = find_matching_optimised(G, pattern)
         for instance in instances:
             # add "module" attribute and put full function name there
             node_id = instance[1]
@@ -313,7 +223,7 @@ def add_attributes_from_module_list(G: NXGraph, imported_modules: list, cursor):
         for module_name in module:
             pattern = NXGraph()
             pattern.add_node(1, {'identifier': module_name})
-            instances = (G.find_matching(pattern))
+            instances = find_matching_optimised(G, pattern)
             for instance in instances:
                 # add "module" attribute and put full function name there
                 node_id = instance[1]
@@ -341,7 +251,7 @@ def add_labels(G: NXGraph):
         G.add_node_attrs(node_id, {"label": node_text})
 
 
-def process_wildcard_attributes(rule:NXGraph, G:NXGraph, rule_string):
+def process_wildcard_attributes(rule: NXGraph, G: NXGraph, rule_string):
     pattern = rule.lhs
     wildcards = {}
 
@@ -349,7 +259,7 @@ def process_wildcard_attributes(rule:NXGraph, G:NXGraph, rule_string):
         for attribute in attrs:
             for elem in attrs[attribute]:
                 if "%unknown_value" in elem:
-                    #create a list of wildcard node occurrences
+                    # create a list of wildcard node occurrences
                     if elem not in wildcards.keys():
                         wildcards[elem] = []
                     wildcards[elem].append((node, attribute))
@@ -360,7 +270,7 @@ def process_wildcard_attributes(rule:NXGraph, G:NXGraph, rule_string):
     for wildcard, wildcard_occurrances in wildcards.items():
         for occurance in wildcard_occurrances:
             generalized_pattern.remove_node_attrs(occurance[0],
-                                                {occurance[1]:wildcard})
+                                                  {occurance[1]: wildcard})
     instances = find_matching_optimised(G, generalized_pattern)
 
     wildcard_answers = []
@@ -392,7 +302,8 @@ def process_wildcard_attributes(rule:NXGraph, G:NXGraph, rule_string):
 
         duplicate = False
         for rule_answer in wildcard_answers:
-            shared_wildcard_values = {k: rule_answer[k] for k in rule_answer if k in wildcard_matches and rule_answer[k] == wildcard_matches[k]}
+            shared_wildcard_values = {k: rule_answer[k] for k in rule_answer if
+                                      k in wildcard_matches and rule_answer[k] == wildcard_matches[k]}
             if len(shared_wildcard_values) == len(rule_answer):
                 duplicate = True
                 break
@@ -410,15 +321,50 @@ def process_wildcard_attributes(rule:NXGraph, G:NXGraph, rule_string):
     return rules
 
 
+def node_comparator(graph_node_attrs, pattern_node_attrs):
+    if len(pattern_node_attrs) == 0:
+        return True
+    for (key, value) in pattern_node_attrs.items():
+        try:
+            if graph_node_attrs[key] != value:
+                return False
+        except:
+            return False
+    return True
+
+
 def find_matching_optimised(G, pattern):
+    utils.print_graph(G)
     instances = []
+    gm = GraphMatcher(utils.nxraph_to_digraph(G), utils.nxraph_to_digraph(pattern),
+                      node_comparator)
+    s = list(gm.subgraph_isomorphisms_iter())
+    optimited_instances = list()
+    for elem in s:
+        optimited_instances.append({v: k for k, v in elem.items()})
+    return optimited_instances
     if utils.pattern_connected(pattern):
-        # get subgraphs for faster instance finding
-        subgraphs = utils.get_ascendant_subgraphs_by_pattern(G, pattern)
-        for subgraph in subgraphs:
-            instances.extend(G.find_matching(pattern, subgraph))
+        instances = find_connected_graph(G, pattern)
+
     else:
         instances = G.find_matching(pattern)
+    equal = True
+    for opt in optimited_instances:
+        if opt not in instances:
+            equal = False
+            break
+    if not equal:
+        raise Exception("RESULTS ARE NOT EQUAL")
+
+    return instances
+
+
+def find_connected_graph(G, pattern):
+    instances = []
+    # get subgraphs for faster instance finding
+    subgraphs = utils.get_ascendant_subgraphs_by_pattern(G, pattern)
+    for subgraph in subgraphs:
+        instances.extend(G.find_matching(pattern, subgraph))
     return instances
 
 
@@ -442,6 +388,8 @@ def apply_rule(G, rule_string: str):
         instances = find_matching_optimised(G, pattern)
 
         if instances:
+            # print(instances)
+
             for instance in instances:
                 G.rewrite(rule, instance)
 
@@ -472,7 +420,6 @@ def transform_graph(G: NXGraph):
     imported_modules = save_imported_modules(G)
     remove_import_statements(G)
 
-
     end_iner = time.time()
     print(f'pre transformations done in {end_iner - start_iner}')
     start_outer = time.time()
@@ -483,17 +430,20 @@ def transform_graph(G: NXGraph):
         start_iner = time.time()
         json_rule = read_rule_from_string(rule[0])
         print(f'Applying rule #{counter}')
-        if counter == 5:
-            print("yo")
-            #utils.draw_rule()
+        # if counter == 15:
+        # print("yo")
+        # utils.draw_rule()
+        # print(rule)
+        # utils.draw_rule(counter)
         G = apply_rule(G, rule[0])
-        print_graph(G)
+        # print_graph(G)
         end_iner = time.time()
+        if end_iner - start_iner > 3:
+            utils.draw_rule(counter)
         # print(f'line {counter} done in {end_iner - start_iner}')
     end_outer = time.time()
     # print(f'apply rule  done in {end_outer - start_outer}')
     start_iner = time.time()
-
 
     # add knowledge base enrichment to functions that are present there
     add_attributes_from_import_aliases(G, aliases_dict, cursor)
@@ -507,3 +457,11 @@ def transform_graph(G: NXGraph):
     graph_dict = convert_graph_to_json(G)
     connection.close()
     return graph_dict
+
+
+if __name__ == "__main__":
+    utils.draw_rule(15)
+    utils.draw_rule(16)
+    utils.draw_rule(48)
+    utils.draw_rule(50)
+    pass
