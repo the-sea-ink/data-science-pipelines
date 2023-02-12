@@ -16,14 +16,15 @@ class Function:
         def __repr__(self):
             return self.__str__()
 
-    def __init__(self, name, description, link, args):
+    def __init__(self, name, description, link, language, args):
         self.name = name
         self.description = description
         self.link = link
+        self.language = language
         self.args = args
 
     def __str__(self):
-        return f'{self.name}, {self.description}, {self.link}\n args: {self.args}'
+        return f'{self.name}, {self.description}, {self.link}, {self.language}\n args: {self.args}'
 
     @staticmethod
     def parse_from_list(input_list: list):
@@ -33,7 +34,7 @@ class Function:
         parsed_args = input_list[3:][0]
 
         if parsed_args == '':
-            return Function(name, description, link, None)
+            return Function(name, description, link, "", None)
         arguments = list()
         i = 0
         for arg in parsed_args.split(","):
@@ -48,18 +49,18 @@ class Function:
                 arguments.append(Function.Argument(arg, "positional_argument", i + 1, None))
             i += 1
         # create function
-        function = Function(name, description, link, arguments)
+        function = Function(name, description, link, "", arguments)
         return function
 
     @staticmethod
-    def parse_from_db(cursor, module_name, title):
+    def parse_from_db_by_name_and_module(cursor, module_name, title):
         cursor.execute(
-            "SELECT module_name FROM modules WHERE module_name = ?", (module_name,)
+            "SELECT module_name FROM scraped_modules WHERE module_name = ?", (module_name,)
         )
         name = cursor.fetchall()
         if name:
             cursor.execute(
-                "SELECT function_id, module_name, function_title, description, link FROM functions WHERE module_name = ? AND function_title =?",
+                "SELECT function_id, module_name, function_title, description, link, language FROM functions WHERE module_name = ? AND function_title =?",
                 (module_name, title))
             func = cursor.fetchall()
             func_id = func[0][0]
@@ -68,7 +69,7 @@ class Function:
                 (func_id,))
             args = cursor.fetchall()
             if len(args) == 0 and len(func) != 0:
-                return Function(func[0][2], func[0][3], func[0][4], None)
+                return Function(func[0][2], func[0][3], func[0][4], func[0][5], None)
             elif len(func) != 0:
                 arguments = []
                 for arg in args:
@@ -80,6 +81,17 @@ class Function:
                 function = Function(func[0][2], func[0][3], func[0][4], arguments)
                 return function
         return -1
+
+    @staticmethod
+    def parse_from_db_by_name_and_language(cursor, title, language):
+        cursor.execute(
+            "SELECT function_id FROM functions WHERE function_title =? AND language =?",
+            (title, language))
+        func = cursor.fetchall()
+        return func
+
+    def insert_function(self):
+        pass
 
 
 if __name__ == "__main__":
