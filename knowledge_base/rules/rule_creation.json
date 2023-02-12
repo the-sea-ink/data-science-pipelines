@@ -1,0 +1,31 @@
+{
+  "name": "rm_keyword_ident",
+  "description": "",
+  "rule_type": "syntactic",
+  "by_user": false,
+  "pattern":{
+    "nodes":[
+      {
+        "node_id": 1,
+        "type": "identifier"
+      },
+      {
+        "node_id": 2,
+        "type": "keyword_argument"
+      }
+    ],
+    "edges":[
+      {
+        "parent_node_id":1,
+        "child_node_id":2
+      }
+    ]
+  },
+  "transformations":{
+    "remove_nodes":[
+        {
+          "node_id": 1
+        }
+      ]
+  }
+}
