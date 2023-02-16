@@ -6,14 +6,17 @@ import utils
 
 class RuleManager:
 
+    @staticmethod
     def delete_rule_by_name(self, rule_name, cursor, connection):
         cursor.execute("DELETE FROM rules WHERE rule_name=?", (rule_name,))
         connection.commit()
 
+    @staticmethod
     def visualize_rule(self, rule_name, cursor):
+        # needs testing and prettier visualisation
         cursor.execute("SELECT FROM rules WHERE rule_name=?", (rule_name,))
         rule_string = cursor.fetchall()
-        rule_dict = utils.read_rule_from_line(rule_string)
+        rule_dict = utils.read_rule_from_string(rule_string)
         rule = Rule.from_json(rule_dict)
         pattern = rule.lhs
         result = rule.rhs
@@ -21,15 +24,22 @@ class RuleManager:
         result_json = utils.convert_graph_to_json(result)
         return pattern_json, result_json
 
+    @staticmethod
     def list_all_rules(self, cursor):
         cursor.execute("SELECT rule_name FROM rules ORDER BY rule_id")
         rule_list = cursor.fetchall()
         return rule_list
 
+    @staticmethod
     def add_rule_from_user_file(rule, connection, cursor):
         rule_dict = {}
         add_rule_to_db(rule_dict, connection, cursor)
         pass
+
+    @staticmethod
+    def create_rule_from_file(path, connection, cursor):
+        rule_dict = get_dict_from_json("knowledge_base/rules/rule_creation.json")
+        add_rule_to_db(rule_dict, connection, cursor)
 
 
 def add_rule_to_db(rule_dict, connection, cursor):
@@ -41,6 +51,7 @@ def add_rule_to_db(rule_dict, connection, cursor):
     rule_type = rule_dict.pop("rule_type")
     by_user = rule_dict.pop("by_user")
     rule = rule
+    pat_representation = str(rule_dict)
 
     # get id
     cursor.execute("SELECT COUNT(*) FROM rules")
@@ -58,7 +69,7 @@ def add_rule_to_db(rule_dict, connection, cursor):
     if rule_exists(rule):
         raise ValueError('This rule already exists!')
 
-    out_file = open("knowledge_base/rule_base.txt", "a")
+    out_file = open("knowledge_base/rules/rule_base.txt", "a")
     out_file.write(str(rule) + "\n")
     out_file.close()
 
@@ -74,13 +85,8 @@ def get_rules_from_db(cursor):
     return rules
 
 
-def create_rule_from_file(path, connection, cursor):
-    rule_dict = get_dict_from_json(path)
-    add_rule_to_db(rule_dict, connection, cursor)
-
-
 def rule_exists(rule):
-    with open("knowledge_base/rule_base.txt") as file:
+    with open("knowledge_base/rules/rule_base.txt") as file:
         for line in file:
             if str(rule) == line.strip():
                 return True
@@ -244,5 +250,6 @@ def create_rule(pattern, rule_dict):
 if __name__ == "__main__":
     connection = sqlite3.connect("knowledge_base.db")
     cursor = connection.cursor()
-    create_rule_from_file("knowledge_base/rule_creation.json", connection, cursor)
+    manager = RuleManager()
+    manager.create_rule_from_file("knowledge_base/rules/rule_creation.json", connection, cursor)
     connection.close()
