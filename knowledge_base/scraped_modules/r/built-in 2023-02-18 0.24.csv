@@ -1,0 +1,2 @@
+title,description,link,parameters
+read_csv,Read a csv file,https://www.rdocumentation.org/packages/qtl2/versions/0.24/topics/read_csv,"filename,sep,na.strings,comment.char,transpose,rownames_included"

@@ -16,12 +16,15 @@ class Function:
         def __repr__(self):
             return self.__str__()
 
-    def __init__(self, name, description, link, language, args):
+    def __init__(self, name, description, link, args, module_name="", language="", ds_task=""):
+        self.module_name = module_name
         self.name = name
         self.description = description
         self.link = link
         self.language = language
-        self.args = args
+        self.ds_task = ds_task
+        arguments = Function.parse_args_from_string(args)
+        self.args = arguments
 
     def __str__(self):
         return f'{self.name}, {self.description}, {self.link}, {self.language}\n args: {self.args}'
@@ -34,10 +37,14 @@ class Function:
         parsed_args = input_list[3:][0]
 
         if parsed_args == '':
-            return Function(name, description, link, "", None)
+            return Function(name, description, link, "")
+        return Function(name, description, link, parsed_args)
+
+    @staticmethod
+    def parse_args_from_string(args_string: str):
         arguments = list()
         i = 0
-        for arg in parsed_args.split(","):
+        for arg in args_string.split(","):
             if "=" in arg:
                 arg_name, arg_value = arg.split("=")[0], arg.split("=")[1]
                 arguments.append(Function.Argument(arg_name, "hyperparameter", i + 1, arg_value))
@@ -48,9 +55,7 @@ class Function:
             else:
                 arguments.append(Function.Argument(arg, "positional_argument", i + 1, None))
             i += 1
-        # create function
-        function = Function(name, description, link, "", arguments)
-        return function
+        return arguments
 
     @staticmethod
     def parse_from_db_by_name_and_module(cursor, module_name, title):

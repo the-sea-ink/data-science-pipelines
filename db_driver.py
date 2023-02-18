@@ -23,25 +23,50 @@ def init_db(cursor):
     cursor.execute("DROP TABLE IF EXISTS modules")
     cursor.execute("DROP TABLE IF EXISTS rules")
     cursor.execute(
-        "CREATE TABLE modules(module_id INTEGER NOT NULL, module_name PRIMARY KEY, version, date, language)")
+        "CREATE TABLE modules("
+            "module_id INTEGER NOT NULL, "
+            "module_name, "
+            "version, "
+            "date, "
+            "language,"
+            "PRIMARY KEY (module_name, language))")
     cursor.execute(
-        "CREATE TABLE functions(function_id INTEGER PRIMARY KEY, module_name, function_title type UNIQUE, "
-        "description, link, language, data_science_task, FOREIGN KEY(module_name) REFERENCES scraped_modules(module_name))")
+        "CREATE TABLE functions("
+            "function_id INTEGER PRIMARY KEY, "
+            "module_name, "
+            "function_title type UNIQUE, "
+            "description, "
+            "link, "
+            "language, "
+            "data_science_task, "
+            "FOREIGN KEY(module_name) REFERENCES scraped_modules(module_name))")
     cursor.execute(
-        "CREATE TABLE arguments(function_id, argument_name, argument_type, argument_position, default_value, "
-        "FOREIGN KEY(function_id) REFERENCES functions(function_id))")
+        "CREATE TABLE arguments("
+            "function_id, "
+            "argument_name, "
+            "argument_type, "
+            "argument_position, "
+            "default_value, "
+            "FOREIGN KEY(function_id) REFERENCES functions(function_id))")
     cursor.execute(
-        "CREATE TABLE rules(rule_id, rule_name PRIMARY KEY, rule_description, rule, rule_type, added_by_user)")
+        "CREATE TABLE rules("
+            "rule_id, "
+            "rule_name PRIMARY KEY, "
+            "rule_description, "
+            "rule, rule_type, "
+            "added_by_user, "
+            "language, "
+            "dependency)")
     connection.commit()
 
 
-def init_module(filename, module_name, version, date, language, cursor):
+def init_module_from_file(filename, module_name, version, date, language, cursor):
     with open(filename, newline='') as csvfile:
         csvreader = csv.reader(csvfile)
         header = next(csvreader)
         cursor.execute(
             "SELECT COUNT(*) "
-            "FROM scraped_modules")
+            "FROM modules")
         module_id = cursor.fetchall()[0][0] + 1
         # add module info
         cursor.execute(
@@ -75,7 +100,7 @@ def init_ds_tasks(language, cursor):
     # find all yaml files
     yaml_files = []
 
-    for path, subdirs, files in os.walk("knowledge_base/ds_annotation/"+language):
+    for path, subdirs, files in os.walk("knowledge_base/ds_annotation/" + language):
         for name in files:
             file_path = os.path.join(path, name)
             yaml_files.append(file_path)
@@ -96,8 +121,8 @@ def init_ds_tasks(language, cursor):
 
     # save result into json
     json_object = json.dumps(ds_tasks, indent=2)
-    #with open("knowledge_base/ds_tasks/" + language +"/ds_tasks.json", "w") as outfile:
-        #outfile.write(json_object)
+    # with open("knowledge_base/ds_tasks/" + language +"/ds_tasks.json", "w") as outfile:
+    # outfile.write(json_object)
 
 
 def assign_ds_tasks(cursor):
@@ -131,11 +156,16 @@ def init_rules_from_file():
                 rule_type = json_rule.pop("rule_type")
             else:
                 rule_type = "syntactic"
+            if "language" in json_rule:
+                rule_language = json_rule.pop("language")
+            if "dependency" in json_rule:
+                rule_dependency = json_rule.pop("dependency")
             added_by_user = False
             cursor.execute(
-                "INSERT INTO rules(rule_id, rule_name, rule_description, rule, rule_type, added_by_user) "
-                "VALUES(?, ?, ?, ?, ?, ?)",
-                [added_rule_id, rule_name, rule_desc, str(json_rule), rule_type, added_by_user])
+                "INSERT INTO rules(rule_id, rule_name, rule_description, rule, rule_type, added_by_user, language, dependency) "
+                "VALUES(?, ?, ?, ?, ?, ?, ?, ?)",
+                [added_rule_id, rule_name, rule_desc, str(json_rule), rule_type, added_by_user, rule_language,
+                 rule_dependency])
             added_rule_id = cursor.lastrowid + 1
     connection.commit()
     pass
@@ -152,13 +182,13 @@ if __name__ == "__main__":
     # init modules and functions
     folders = os.listdir("knowledge_base/scraped_modules/")
     for language in folders:
-        files = os.listdir("knowledge_base/scraped_modules/"+language)
+        files = os.listdir("knowledge_base/scraped_modules/" + language)
         for file in files:
             module_name, date, version = file.replace(".csv", "").split(" ")
             date_format = "%Y-%m-%d"
             date = datetime.datetime.strptime(date, date_format).date()
             module_path = "knowledge_base/scraped_modules/" + language + "/" + file
-            init_module(module_path, module_name, version, date, language, cursor)
+            init_module_from_file(module_path, module_name, version, date, language, cursor)
 
     # init data science tasks
     ds_folders = [f.name for f in os.scandir("knowledge_base/ds_annotation/") if f.is_dir()]
@@ -166,8 +196,7 @@ if __name__ == "__main__":
         init_ds_tasks(language, cursor)
     assign_ds_tasks(cursor)
 
-
     # init rules
-    #init_rules_from_file()
+    init_rules_from_file()
 
     connection.close()
