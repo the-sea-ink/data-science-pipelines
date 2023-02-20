@@ -14,6 +14,29 @@ STR_ATTR_NAME = "attr_name"
 STR_ATTR_VALUE = "attr_value"
 
 
+class TransformationPipeline():
+
+    def __init__(self, language):
+        self.connection = sqlite3.connect("knowledge_base.db")
+        self.cursor = self.connection.cursor()
+        self.language = language
+
+    def pre_hooks(self, G: NXGraph):
+        if self.language == "python":
+            self.aliases_dict = save_import_aliases(G)
+            self.functions_dict = save_imported_functions(G)
+            self.imported_modules = save_imported_modules(G)
+        return G
+
+    def post_hooks(self, G: NXGraph):
+        # add knowledge base enrichment to functions that are present there
+        if self.language == "python":
+            add_attributes_from_import_aliases(G, self.aliases_dict)
+            add_attributes_from_functions_dict(G, self.functions_dict, self.cursor)
+            add_attributes_from_module_list(G, self.imported_modules, self.cursor)
+        return G
+
+
 def flip_tree(G: NXGraph):
     """
     Turns the initial tree upside down, allows for better rules definition
@@ -68,6 +91,11 @@ def save_import_aliases(G: NXGraph):
         identifier = G.get_node(identifier_id)
         for key, value in zip(identifier["text"], dotted_name["text"]):
             aliases_dict[key] = value
+
+    for alias, module in aliases_dict.items():
+        nodes_to_remove = [x for x in G.nodes(True) if next(iter(x[1]['text'])) == alias]
+        for node in nodes_to_remove:
+            G.remove_node(node[0])
     return aliases_dict
 
 
@@ -103,11 +131,11 @@ def save_imported_modules(G: NXGraph):
     """
     Handles "import module".
 
-    Finds instances of imported modules "dotted_name" -> "import_statement"
+    Finds instances of imported scraped_modules "dotted_name" -> "import_statement"
     and returns them as a list of strings.
 
     :param G: A NXGraph object
-    :return: A list of strings representing the imported modules
+    :return: A list of strings representing the imported scraped_modules
     """
 
     pattern = NXGraph()
@@ -154,48 +182,25 @@ def remove_import_statements(G: NXGraph):
     return
 
 
-def add_attributes_from_import_aliases(G: NXGraph, aliases_dict: dict, cursor):
+def add_attributes_from_import_aliases(G: NXGraph, aliases_dict: dict):
     """
-    Looks for instances of nodes with the attribute "identifier" that match a key
-    in the aliases_dict. If such nodes are found, the function removes the "identifier"
-    attribute and adds the "module" attribute with the value of the corresponding value
-    in the aliases_dict. The function also adds the "full_function_call" attribute
-    by concatenating the value of the aliases_dict with the text attribute of the node,
-    if the key appears in the text attribute. The function also attempts to retrieve a
-    knowledge base entry for the function and adds the description of that entry as an
-    attribute to the node, if it is found.
-
     :param G: a NXGraph object
     :param alieses_dict: A dictionary of import aliases, where keys are the short identifiers
      and values are the full function names.
     :param cursor: A cursor object to access a database, which is used to retrieve a
     knowledge base entry for the functions
     """
-    for key in aliases_dict:
-        pattern = NXGraph()
-        pattern.add_node(1, {'identifier': key})
-        instances = find_matching_optimised(G, pattern)
-        if instances:
-            for instance in instances:
-                # remove short identifier from identifiers list
-                node_id = instance[1]
-                node_attrs = G.get_node(node_id)
-                G.remove_node_attrs(node_id, {'identifier': key})
-                # add "module" attribute and put full function name there
-                module_name = aliases_dict[key]
-                G.add_node_attrs(node_id, {"module": module_name})
-                # add full function call to the node
-                for value in node_attrs["text"]:
-                    node_text = value
-                    short_name = key
-                    long_name = aliases_dict[key]
-                    if short_name in node_text:
-                        full_name = long_name + node_text[len(short_name):]
-                        G.add_node_attrs(node_id, {"full_function_call": full_name})
+    for alias, module in aliases_dict.items():
+        nodes_to_change = [x for x in G.nodes(True) if next(iter(x[1]['text'])).startswith(alias+'.')]
+        for node in nodes_to_change:
+            G.add_node_attrs(node[0], {"full_function_call": next(iter(node[1]['text'])).replace(alias, module, 1)})
+            G.add_node_attrs(node[0], {"module": module})
+            G.add_node_attrs(node[0], {"alias": alias})
+
                 # get knowledge base entry
-                kb_function = Function.parse_from_db(cursor, module_name, full_name)
-                if kb_function != -1:
-                    G.add_node_attrs(node_id, {"description": kb_function.description})
+                #kb_function = Function.get_function_by_name_module_language(cursor, module_name, full_name)
+                #if kb_function != -1:
+                #    G.add_node_attrs(node_id, {"description": kb_function.description})
 
 
 def add_attributes_from_functions_dict(G: NXGraph, functions_dict: dict, cursor):
@@ -213,9 +218,9 @@ def add_attributes_from_functions_dict(G: NXGraph, functions_dict: dict, cursor)
             full_name = functions_dict[key]
             G.add_node_attrs(node_id, {"full_function_call": full_name})
             # get knowledge base entry
-            kb_function = Function.parse_from_db(cursor, module_name, full_name)
-            if kb_function != -1:
-                G.add_node_attrs(node_id, {"description": kb_function.description})
+            #kb_function = Function.parse_from_db_by_name_and_module(cursor, module_name, full_name)
+            #if kb_function != -1:
+            #    G.add_node_attrs(node_id, {"description": kb_function.description})
 
 
 def add_attributes_from_module_list(G: NXGraph, imported_modules: list, cursor):
@@ -229,13 +234,12 @@ def add_attributes_from_module_list(G: NXGraph, imported_modules: list, cursor):
                 node_id = instance[1]
                 function_call = G.get_node(node_id)["text"]
                 for function_name in function_call:
-                    G.add_node_attrs(node_id, {"module": module_name.decode("utf-8")})
+                    G.add_node_attrs(node_id, {"module": module_name})
                     # add full function call
-                    G.add_node_attrs(node_id, {"full_function_call": function_name.decode("utf-8")})
-                    kb_function = Function.parse_from_db(cursor, module_name.decode("utf-8"),
-                                                         function_name.decode("utf-8"))
-                    if kb_function != -1:
-                        G.add_node_attrs(node_id, {"description": kb_function.description})
+                    G.add_node_attrs(node_id, {"full_function_call": function_name})
+                    #kb_function = Function.parse_from_db_by_name_and_module(cursor, module_name.decode("utf-8"), function_name.decode("utf-8"))
+                    #if kb_function != -1:
+                    #    G.add_node_attrs(node_id, {"description": kb_function.description})
 
 
 def add_labels(G: NXGraph):
@@ -325,16 +329,13 @@ def node_comparator(graph_node_attrs, pattern_node_attrs):
     if len(pattern_node_attrs) == 0:
         return True
     for (key, value) in pattern_node_attrs.items():
-        try:
-            if graph_node_attrs[key] != value:
-                return False
-        except:
+        if (key, value) not in graph_node_attrs.items():
             return False
     return True
 
 
 def find_matching_optimised(G, pattern):
-    utils.print_graph(G)
+    # utils.print_graph(G)
     instances = []
     gm = GraphMatcher(utils.nxraph_to_digraph(G), utils.nxraph_to_digraph(pattern),
                       node_comparator)
@@ -392,18 +393,27 @@ def apply_rule(G, rule_string: str):
 
             for instance in instances:
                 G.rewrite(rule, instance)
-
     return G
 
 
-def transform_graph(G: NXGraph):
+def knowledge_base_lookup(G: NXGraph):
+    instances = []
+    pattern = NXGraph()
+    pattern.add_node(1, {'type': 'call'})
+    instances.extend(find_matching_optimised(G, pattern))
+    print("yo")
+    #function = Function.get_function_by_name_module_language("", "", "", "")
+    pass
+
+
+def transform_graph(G: NXGraph, language):
     """
     Applies rules from the rule base and further transformations to the given graph.
 
     :param G: an NXGraph object
     :return: graph in a json format
     """
-
+    pipeline = TransformationPipeline(language)
     start_iner = time.time()
 
     # connect to db
@@ -414,10 +424,7 @@ def transform_graph(G: NXGraph):
     flip_tree(G)
     utils.print_graph(G)
 
-    # transform and save import statements, remove them from tree
-    aliases_dict = save_import_aliases(G)
-    functions_dict = save_imported_functions(G)
-    imported_modules = save_imported_modules(G)
+    pipeline.pre_hooks(G)
     remove_import_statements(G)
 
     end_iner = time.time()
@@ -430,12 +437,11 @@ def transform_graph(G: NXGraph):
         start_iner = time.time()
         json_rule = read_rule_from_string(rule[0])
         print(f'Applying rule #{counter}')
-        # if counter == 15:
-        # print("yo")
         # utils.draw_rule()
         # print(rule)
         # utils.draw_rule(counter)
         G = apply_rule(G, rule[0])
+        print_graph(G)
         # print_graph(G)
         end_iner = time.time()
         if end_iner - start_iner > 3:
@@ -445,15 +451,13 @@ def transform_graph(G: NXGraph):
     # print(f'apply rule  done in {end_outer - start_outer}')
     start_iner = time.time()
 
-    # add knowledge base enrichment to functions that are present there
-    add_attributes_from_import_aliases(G, aliases_dict, cursor)
-    add_attributes_from_functions_dict(G, functions_dict, cursor)
-    add_attributes_from_module_list(G, imported_modules, cursor)
-    add_labels(G)
+    pipeline.post_hooks(G)
+    knowledge_base_lookup(G)
 
     end_iner = time.time()
     print(f'post transformations done in {end_iner - start_iner}')
     print_graph(G)
+    draw_graph(G)
     graph_dict = convert_graph_to_json(G)
     connection.close()
     return graph_dict
@@ -461,7 +465,4 @@ def transform_graph(G: NXGraph):
 
 if __name__ == "__main__":
     utils.draw_rule(15)
-    utils.draw_rule(16)
-    utils.draw_rule(48)
-    utils.draw_rule(50)
     pass

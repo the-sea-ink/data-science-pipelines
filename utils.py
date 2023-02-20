@@ -1,3 +1,4 @@
+from networkx.algorithms.isomorphism.isomorphvf2 import GraphMatcher
 from regraph.backends.networkx.graphs import NXGraph
 import networkx as nx
 from networkx.drawing.nx_pydot import graphviz_layout
@@ -98,7 +99,10 @@ def get_ascendant_subgraphs_by_pattern(G: NXGraph, pattern: NXGraph):
     :param pattern: pattern to find ascendants of
     :return: found subgraphs
     """
-    anti_root_id = [node for node in pattern.nodes() if len(pattern.descendants(node)) == 0][0]
+    anti_roots = [node for node in pattern.nodes() if len(pattern.descendants(node)) == 0]
+    if len(anti_roots) != 1:
+        raise Exception("Pattern has more than one root")
+    anti_root_id = anti_roots[0]
     anti_root_attrs = pattern.get_node(anti_root_id)
     # find all instances of root in graph
     root_pattern = NXGraph()
@@ -177,11 +181,11 @@ def draw_graph(G, attribute="type", id=False, fig_num=1):
     return fig
 
 
-def draw_rule():
-    with open("knowledge_base/rule_base.txt") as file:
+def draw_rule(num):
+    with open("knowledge_base/rules/rule_base.txt") as file:
         for counter, line in enumerate(file, 1):
             rule_dict = read_rule_from_string(line)
-            if counter == 38:
+            if counter == num:
                 rule = Rule.from_json(rule_dict)
                 pattern = rule.lhs
                 extractor = RuleExtractor()
@@ -299,23 +303,12 @@ def convert_graph_to_json_new_frontend(G: NXGraph):
         "input_variable": "data",
         "output_variable": "data",
         "passable_data": "data",
-        "identifier": "data",
-        "variable_assignment": "assignment",
-        "dictionary": "assignment",
-        "pair": "assignment",
-        "list": "assignment",
-        "tuple": "assignment",
-        "integer": "constant",
-        "float": "constant",
-        "string": "constant",
-        "true": "constant",
-        "false": "constant",
-        "unary_operator": "constant"
+        "identifier": "data"
     }
     for n, attrs in G.nodes(data=True):
         type = str(attrs["type"]).replace("{'", "").replace("'}", "")
         if type not in conversion_maping.keys():
-            metadata = {"id": str(n), "type": "default", "targetPosition": "top",
+            metadata = {"id": str(n), "type": "util", "targetPosition": "top",
                         "position": {"x": 0, "y": 0}, "data": {}}
         else:
             metadata = {"id": str(n), "type": conversion_maping[type], "targetPosition": "top",

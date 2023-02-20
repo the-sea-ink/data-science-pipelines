@@ -20,16 +20,22 @@ class GraphExtractor:
         )
 
     def extract_pipeline(self, code, language):
+        code_language = language
+
+        # set language for the parser
         assert language != '', 'language is not set'
         language = Language('build/my-languages.so', language)
         parser = Parser()
         parser.set_language(language)
         b = bytes(code, "utf8")
+
+        # let tree-sitter parse code into a tree
         tree = parser.parse(b)
         nxgraph = self.bfs_tree_traverser(tree)
-        G = transform_graph(nxgraph)
-        return G
 
+        # transform tree into a data science pipeline
+        G = transform_graph(nxgraph, code_language)
+        return G
 
     def bfs_tree_traverser(self, tree):
         """
@@ -63,7 +69,6 @@ class GraphExtractor:
                     queue.append(child_node)
             # set parent_id to the id of the next node in queue
             parent_id = parent_id + 1
-
         return G
 
 
@@ -75,4 +80,3 @@ if __name__ == "__main__":
     extractor = GraphExtractor()
     extractor.extract_pipeline(code, language)
     print("--- %s seconds ---" % (time.time() - start_time))
-

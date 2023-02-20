@@ -56,7 +56,7 @@ def init_db(cursor):
             "rule, rule_type, "
             "added_by_user, "
             "language, "
-            "dependency)")
+            "priority)")
     connection.commit()
 
 
@@ -158,14 +158,13 @@ def init_rules_from_file():
                 rule_type = "syntactic"
             if "language" in json_rule:
                 rule_language = json_rule.pop("language")
-            if "dependency" in json_rule:
-                rule_dependency = json_rule.pop("dependency")
+            if "priority" in json_rule:
+                rule_priority = json_rule.pop("priority")
             added_by_user = False
             cursor.execute(
-                "INSERT INTO rules(rule_id, rule_name, rule_description, rule, rule_type, added_by_user, language, dependency) "
+                "INSERT INTO rules(rule_id, rule_name, rule_description, rule, rule_type, added_by_user, language, priority) "
                 "VALUES(?, ?, ?, ?, ?, ?, ?, ?)",
-                [added_rule_id, rule_name, rule_desc, str(json_rule), rule_type, added_by_user, rule_language,
-                 rule_dependency])
+                [added_rule_id, rule_name, rule_desc, str(json_rule), rule_type, added_by_user, rule_language, rule_priority])
             added_rule_id = cursor.lastrowid + 1
     connection.commit()
     pass

@@ -23,8 +23,9 @@ class Function:
         self.link = link
         self.language = language
         self.ds_task = ds_task
-        arguments = Function.parse_args_from_string(args)
-        self.args = arguments
+        if type(args) == str:
+            args = Function.parse_args_from_string(args)
+        self.args = args
 
     def __str__(self):
         return f'{self.name}, {self.description}, {self.link}, {self.language}\n args: {self.args}'
@@ -58,23 +59,26 @@ class Function:
         return arguments
 
     @staticmethod
-    def parse_from_db_by_name_and_module(cursor, module_name, title):
+    def get_function_by_name_module_language(cursor, module_name, title, language):
+        # check if this module exists
         cursor.execute(
             "SELECT module_name FROM scraped_modules WHERE module_name = ?", (module_name,)
         )
         name = cursor.fetchall()
         if name:
+            # get function id to get its arguments
             cursor.execute(
-                "SELECT function_id, module_name, function_title, description, link, language FROM functions WHERE module_name = ? AND function_title =?",
-                (module_name, title))
+                "SELECT function_id, module_name, function_title, description, link, language FROM functions WHERE module_name = ? AND function_title =? AND language =?",
+                (module_name, title, language))
             func = cursor.fetchall()
             func_id = func[0][0]
+            # get arguments
             cursor.execute(
                 "SELECT argument_name, argument_type, argument_position, default_value FROM arguments WHERE function_id = ?",
                 (func_id,))
             args = cursor.fetchall()
             if len(args) == 0 and len(func) != 0:
-                return Function(func[0][2], func[0][3], func[0][4], func[0][5], None)
+                return Function(func[0][2], func[0][3], func[0][4], func[0][5])
             elif len(func) != 0:
                 arguments = []
                 for arg in args:
