@@ -62,7 +62,7 @@ class Function:
     def get_function_by_name_module_language(cursor, module_name, title, language):
         # check if this module exists
         cursor.execute(
-            "SELECT module_name FROM scraped_modules WHERE module_name = ?", (module_name,)
+            "SELECT module_name FROM modules WHERE module_name = ? and language = ?", (module_name, language)
         )
         name = cursor.fetchall()
         if name:
@@ -71,25 +71,26 @@ class Function:
                 "SELECT function_id, module_name, function_title, description, link, language FROM functions WHERE module_name = ? AND function_title =? AND language =?",
                 (module_name, title, language))
             func = cursor.fetchall()
-            func_id = func[0][0]
-            # get arguments
-            cursor.execute(
-                "SELECT argument_name, argument_type, argument_position, default_value FROM arguments WHERE function_id = ?",
-                (func_id,))
-            args = cursor.fetchall()
-            if len(args) == 0 and len(func) != 0:
-                return Function(func[0][2], func[0][3], func[0][4], func[0][5])
-            elif len(func) != 0:
-                arguments = []
-                for arg in args:
-                    if arg[1] != "hyperparameter":
-                        arguments.append(Function.Argument(arg[0], arg[1], arg[2], None))
-                    else:
-                        arguments.append(Function.Argument(arg[0], arg[1], arg[2], arg[3]))
-            if len(func) != 0:
-                function = Function(func[0][2], func[0][3], func[0][4], arguments)
-                return function
-        return -1
+            if func:
+                func_id = func[0][0]
+                # get arguments
+                cursor.execute(
+                    "SELECT argument_name, argument_type, argument_position, default_value FROM arguments WHERE function_id = ?",
+                    (func_id,))
+                args = cursor.fetchall()
+                if len(args) == 0 and len(func) != 0:
+                    return Function(func[0][2], func[0][3], func[0][4], func[0][5])
+                elif len(func) != 0:
+                    arguments = []
+                    for arg in args:
+                        if arg[1] != "hyperparameter":
+                            arguments.append(str({"argument_name": arg[0], "argument_type": arg[1], "default_value": arg[3]}))
+                        else:
+                            arguments.append(str({"argument_name": arg[0], "argument_type": arg[1], "argument_position": arg[2]}))
+                if len(func) != 0:
+                    function = Function(func[0][2], func[0][3], func[0][4], arguments)
+                    return function
+        return None
 
     @staticmethod
     def parse_from_db_by_name_and_language(cursor, title, language):

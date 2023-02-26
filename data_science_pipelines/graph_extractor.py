@@ -10,7 +10,7 @@ class GraphExtractor:
     def __init__(self):
         Language.build_library(
             # Store the library in the `build` directory
-            'build/my-languages.so',
+            '../build/my-languages.so',
             # Include one or more languages
             [
                 'third_party/parsers/tree-sitter-python',
@@ -19,12 +19,12 @@ class GraphExtractor:
             ]
         )
 
-    def extract_pipeline(self, code, language):
+    def extract_pipeline(self, code, language, hook):
         code_language = language
 
         # set language for the parser
         assert language != '', 'language is not set'
-        language = Language('build/my-languages.so', language)
+        language = Language('../build/my-languages.so', language)
         parser = Parser()
         parser.set_language(language)
         b = bytes(code, "utf8")
@@ -34,7 +34,7 @@ class GraphExtractor:
         nxgraph = self.bfs_tree_traverser(tree)
 
         # transform tree into a data science pipeline
-        G = transform_graph(nxgraph, code_language)
+        G = transform_graph(nxgraph, code_language, hook)
         return G
 
     def bfs_tree_traverser(self, tree):
@@ -78,5 +78,5 @@ if __name__ == "__main__":
     code = test_scripts.Python.code_0
     start = time.time()
     extractor = GraphExtractor()
-    extractor.extract_pipeline(code, language)
+    extractor.extract_pipeline(code, language, LanguageHook)
     print("--- %s seconds ---" % (time.time() - start_time))

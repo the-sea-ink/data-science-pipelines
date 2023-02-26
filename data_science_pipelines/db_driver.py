@@ -3,12 +3,9 @@ import sqlite3
 import csv
 import os
 from models.Function import Function
-import utils
 import json
 import yaml
-import io
 from utils import read_rule_from_string
-import pprint
 
 
 def init_db(cursor):
@@ -172,7 +169,7 @@ def init_rules_from_file():
 
 if __name__ == "__main__":
     # establish connection
-    connection = sqlite3.connect("knowledge_base.db")
+    connection = sqlite3.connect("../knowledge_base.db")
     cursor = connection.cursor()
 
     # init database

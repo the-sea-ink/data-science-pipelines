@@ -260,4 +260,6 @@ dist
 
 .idea/
 graph.json
-test_scripts.py
+graph.json
+data_science_pipelines/test_scripts.py
+*.db

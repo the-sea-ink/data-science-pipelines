@@ -5,9 +5,11 @@ import utils
 
 
 class RuleManager:
+    RULE_TYPE_SYNTACT = 'syntactic'
+    RULE_TYPE_SEMANT = 'semantic'
 
     def __init__(self):
-        self.connection = sqlite3.connect("knowledge_base.db")
+        self.connection = sqlite3.connect("../knowledge_base.db")
         self.cursor = self.connection.cursor()
 
     def delete_rule_by_name(self, rule_name):
@@ -241,7 +243,7 @@ def create_rule(pattern, rule_dict):
     return rule
 
 
-if __name__ == "__main__":
-    manager = RuleManager()
-    manager.create_rule_from_file("knowledge_base/rules/rule_creation.json")
+#if __name__ == "__main__":
+#    manager = RuleManager()
+#    manager.create_rule_from_file("knowledge_base/rules/rule_creation.json")
 

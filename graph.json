@@ -1,6 +1,32 @@
 {
     "nodes": [
         {
+            "id": "1",
+            "type": "default",
+            "targetPosition": "top",
+            "position": {
+                "x": 0,
+                "y": 0
+            },
+            "data": {
+                "type": "import_statement",
+                "text": "import numpy as np"
+            }
+        },
+        {
+            "id": "4",
+            "type": "default",
+            "targetPosition": "top",
+            "position": {
+                "x": 0,
+                "y": 0
+            },
+            "data": {
+                "type": "import",
+                "text": "import"
+            }
+        },
+        {
             "id": "5",
             "type": "default",
             "targetPosition": "top",
@@ -9,11 +35,22 @@
                 "y": 0
             },
             "data": {
+                "type": "aliased_import",
+                "text": "numpy as np",
+                "identifier": "np"
+            }
+        },
+        {
+            "id": "7",
+            "type": "default",
+            "targetPosition": "top",
+            "position": {
+                "x": 0,
+                "y": 0
+            },
+            "data": {
                 "type": "call",
-                "text": "np.random.RandomState",
-                "identifier": "RandomState",
-                "output_variable": "rng",
-                "label": "np.random.RandomState"
+                "text": "print"
             }
         },
         {
@@ -25,17 +62,107 @@
                 "y": 0
             },
             "data": {
-                "type": "attribute",
-                "text": "np.random",
-                "identifier": [
-                    "np",
-                    "random"
-                ],
-                "label": "np.random"
+                "type": "dotted_name",
+                "text": "numpy",
+                "identifier": "numpy"
             }
         },
         {
-            "id": "12",
+            "id": "9",
+            "type": "default",
+            "targetPosition": "top",
+            "position": {
+                "x": 0,
+                "y": 0
+            },
+            "data": {
+                "type": "as",
+                "text": "as"
+            }
+        },
+        {
+            "id": "11",
+            "type": "default",
+            "targetPosition": "top",
+            "position": {
+                "x": 0,
+                "y": 0
+            },
+            "data": {
+                "text": "y",
+                "type": "output_variable"
+            }
+        },
+        {
+            "id": "13",
+            "type": "default",
+            "targetPosition": "top",
+            "position": {
+                "x": 0,
+                "y": 0
+            },
+            "data": {
+                "type": "call",
+                "text": "np.array.hello.qdfg.dafs",
+                "identifier": "dafs"
+            }
+        },
+        {
+            "id": "20",
+            "type": "default",
+            "targetPosition": "top",
+            "position": {
+                "x": 0,
+                "y": 0
+            },
+            "data": {
+                "type": "string",
+                "text": "\"yes\""
+            }
+        },
+        {
+            "id": "22",
+            "type": "default",
+            "targetPosition": "top",
+            "position": {
+                "x": 0,
+                "y": 0
+            },
+            "data": {
+                "type": "attribute",
+                "text": "np.array.hello.qdfg",
+                "identifier": "qdfg"
+            }
+        },
+        {
+            "id": "26",
+            "type": "default",
+            "targetPosition": "top",
+            "position": {
+                "x": 0,
+                "y": 0
+            },
+            "data": {
+                "type": "list",
+                "text": "[1, 1, 2, 2]"
+            }
+        },
+        {
+            "id": "30",
+            "type": "default",
+            "targetPosition": "top",
+            "position": {
+                "x": 0,
+                "y": 0
+            },
+            "data": {
+                "type": "attribute",
+                "text": "np.array.hello",
+                "identifier": "hello"
+            }
+        },
+        {
+            "id": "34",
             "type": "default",
             "targetPosition": "top",
             "position": {
@@ -44,22 +171,149 @@
             },
             "data": {
                 "type": "integer",
-                "text": "1",
-                "label": "1"
+                "text": "1"
+            }
+        },
+        {
+            "id": "36",
+            "type": "default",
+            "targetPosition": "top",
+            "position": {
+                "x": 0,
+                "y": 0
+            },
+            "data": {
+                "type": "integer",
+                "text": "1"
+            }
+        },
+        {
+            "id": "38",
+            "type": "default",
+            "targetPosition": "top",
+            "position": {
+                "x": 0,
+                "y": 0
+            },
+            "data": {
+                "type": "integer",
+                "text": "2"
+            }
+        },
+        {
+            "id": "40",
+            "type": "default",
+            "targetPosition": "top",
+            "position": {
+                "x": 0,
+                "y": 0
+            },
+            "data": {
+                "type": "integer",
+                "text": "2"
+            }
+        },
+        {
+            "id": "42",
+            "type": "default",
+            "targetPosition": "top",
+            "position": {
+                "x": 0,
+                "y": 0
+            },
+            "data": {
+                "type": "attribute",
+                "text": "np.array",
+                "identifier": [
+                    "np",
+                    "array"
+                ]
             }
         }
     ],
     "edges": [
         {
             "id": "edge-1",
+            "source": "4",
+            "target": "1",
+            "type": "smoothstep"
+        },
+        {
+            "id": "edge-2",
+            "source": "5",
+            "target": "1",
+            "type": "smoothstep"
+        },
+        {
+            "id": "edge-3",
             "source": "8",
             "target": "5",
             "type": "smoothstep"
         },
         {
-            "id": "edge-2",
-            "source": "12",
+            "id": "edge-4",
+            "source": "9",
             "target": "5",
+            "type": "smoothstep"
+        },
+        {
+            "id": "edge-5",
+            "source": "13",
+            "target": "11",
+            "type": "smoothstep"
+        },
+        {
+            "id": "edge-6",
+            "source": "20",
+            "target": "7",
+            "type": "smoothstep"
+        },
+        {
+            "id": "edge-7",
+            "source": "22",
+            "target": "13",
+            "type": "smoothstep"
+        },
+        {
+            "id": "edge-8",
+            "source": "26",
+            "target": "13",
+            "type": "smoothstep"
+        },
+        {
+            "id": "edge-9",
+            "source": "30",
+            "target": "22",
+            "type": "smoothstep"
+        },
+        {
+            "id": "edge-10",
+            "source": "34",
+            "target": "26",
+            "type": "smoothstep"
+        },
+        {
+            "id": "edge-11",
+            "source": "36",
+            "target": "26",
+            "type": "smoothstep"
+        },
+        {
+            "id": "edge-12",
+            "source": "38",
+            "target": "26",
+            "type": "smoothstep"
+        },
+        {
+            "id": "edge-13",
+            "source": "40",
+            "target": "26",
+            "type": "smoothstep"
+        },
+        {
+            "id": "edge-14",
+            "source": "42",
+            "target": "30",
             "type": "smoothstep"
         }
     ]

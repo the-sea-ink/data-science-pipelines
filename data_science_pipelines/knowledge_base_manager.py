@@ -5,7 +5,7 @@ from models.Function import Function
 class KnowledgeBaseManager:
 
     def __init__(self):
-        self.connection = sqlite3.connect("knowledge_base.db")
+        self.connection = sqlite3.connect("../knowledge_base.db")
         self.cursor = self.connection.cursor()
 
     def add_module_to_kb(self, name, version, date, language):
@@ -27,7 +27,7 @@ class KnowledgeBaseManager:
         self.connection.commit()
         pass
 
-    def add_function_to_kb(self, module_name, function_title, description, link, args="", language="", data_science_task=""):
+    def add_function_to_kb(self, module_name, function_title, description="", link="", language="", data_science_task="", args=""):
         function = Function(function_title, description, link, args, module_name=module_name, language=language, ds_task=data_science_task)
         self.cursor.execute("SELECT * FROM modules WHERE module_name=? and language = ?", (module_name, language))
         module_present = self.cursor.fetchall()

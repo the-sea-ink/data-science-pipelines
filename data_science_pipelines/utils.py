@@ -1,12 +1,9 @@
-from networkx.algorithms.isomorphism.isomorphvf2 import GraphMatcher
-from regraph.backends.networkx.graphs import NXGraph
 import networkx as nx
 from networkx.drawing.nx_pydot import graphviz_layout
 import matplotlib.pyplot as plt
 import ast
 import json
-from rule_extractor import RuleExtractor
-from regraph import NXGraph, Rule, FiniteSet, plot_graph
+from regraph import NXGraph, Rule
 
 
 def get_root_node_id(G: NXGraph):
@@ -181,14 +178,13 @@ def draw_graph(G, attribute="type", id=False, fig_num=1):
     return fig
 
 
-def draw_rule(num):
+def draw_rule(num, extractor):
     with open("knowledge_base/rules/rule_base.txt") as file:
         for counter, line in enumerate(file, 1):
             rule_dict = read_rule_from_string(line)
             if counter == num:
                 rule = Rule.from_json(rule_dict)
                 pattern = rule.lhs
-                extractor = RuleExtractor()
                 result = extractor.get_transformation_result(pattern, rule_dict)
                 pattern_fig = draw_graph(pattern, fig_num=2)
                 result_fig = draw_graph(result, fig_num=3)
@@ -289,7 +285,7 @@ def convert_graph_to_json(G: NXGraph):
         edge_attrs = {"id": edge_id, "source": str(s), "target": str(t), 'type': 'smoothstep'}
         graph_dict["edges"].append(edge_attrs)
         i += 1
-    with open('graph.json', 'w') as fp:
+    with open('../graph.json', 'w') as fp:
         json.dump(graph_dict, fp, indent=4)
     # print(graph_dict)
     return graph_dict
@@ -328,7 +324,7 @@ def convert_graph_to_json_new_frontend(G: NXGraph):
         edge_attrs = {"id": edge_id, "source": str(s), "target": str(t), 'type': 'smoothstep'}
         graph_dict["edges"].append(edge_attrs)
         i += 1
-    with open('graph.json', 'w') as fp:
+    with open('../graph.json', 'w') as fp:
         json.dump(graph_dict, fp, indent=4)
     # print(graph_dict)
     return graph_dict
