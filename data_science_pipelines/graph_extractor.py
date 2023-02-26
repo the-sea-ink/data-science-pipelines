@@ -1,3 +1,4 @@
+from hooks.PythonHook import LanguageHook
 from rule_executioner import transform_graph
 from tree_sitter import Language, Parser
 import test_scripts
@@ -13,9 +14,9 @@ class GraphExtractor:
             '../build/my-languages.so',
             # Include one or more languages
             [
-                'third_party/parsers/tree-sitter-python',
-                'third_party/parsers/tree-sitter-r',
-                'third_party/parsers/tree-sitter-snakemake-pure'
+                '../third_party/parsers/tree-sitter-python',
+                '../third_party/parsers/tree-sitter-r',
+                '../third_party/parsers/tree-sitter-snakemake-pure'
             ]
         )
 

@@ -1,7 +1,7 @@
 import argparse
 import os
 import sys
-
+import datetime
 import test_scripts
 from rule_manager import RuleManager
 from graph_extractor import GraphExtractor
@@ -36,6 +36,18 @@ def is_valid_rule_type(parser, arg):
         return arg
 
 
+def is_date_valid(parser, arg):
+    try:
+        datetime.date.fromisoformat(arg)
+    except ValueError:
+        parser.error(f'{arg} is not a valid data format! Date should be in a format YYYY-MM-DD')
+    return arg
+
+
+def is_valid_date_type(parser, arg):
+    pass
+
+
 def process_init_db(args):
     pass
 
@@ -51,6 +63,7 @@ def process_extract_rule(args):
 
 
 def process_confirm_rule(args):
+
     pass
 
 
@@ -99,7 +112,23 @@ def process_cli(argv):
     cmd_add_function = cmd_parser.add_parser("add_function")
     cmd_add_ds_task = cmd_parser.add_parser("add_ds_task")
 
-    # configuring command parsers
+    # configuring create pipeline
+    cmd_create_pipeline.add_argument("script_path",
+                                  help="path to a script to be transformed into a pipeline", metavar="path to script file",
+                                  type=lambda x: is_valid_file(parser, x))
+    cmd_create_pipeline.add_argument("script_language",
+                                     help="script language", metavar="script language",
+                                     type=str)
+    cmd_create_pipeline.add_argument("hook", dest="hook_path", required=False,
+                                    help="path to an external hook for pre and post transformations of the pipeline", metavar="hook",
+                                    type=lambda x: is_valid_file(parser, x))
+
+    cmd_create_pipeline.add_argument("-o", dest="output_path", required=False,
+                                     help="path to the file with the output graph",
+                                     metavar="out_path",
+                                     type=lambda x: is_valid_file(parser, x))
+
+    # configuring extract rule
     cmd_extract_rule.add_argument("g1",
                                   help="path to first graph", metavar="graph_1",
                                   type=lambda x: is_valid_file(parser, x))
@@ -109,6 +138,90 @@ def process_cli(argv):
     cmd_extract_rule.add_argument("type",
                                   help="rule type to be created", metavar="rule type",
                                   type=lambda x: is_valid_rule_type(parser, x))
+
+    # configuring confirm rule
+    cmd_confirm_rule.add_argument("PaT",
+                                  help="path to PaT rule", metavar="PaT",
+                                  type=lambda x: is_valid_file(parser, x))
+
+    cmd_confirm_rule.add_argument("rule_name",
+                                  help="rule name", metavar="rule_name",
+                                  type=str)
+
+    cmd_confirm_rule.add_argument("rule_description",
+                                  help="rule description", metavar="rule_description",
+                                  type=str)
+
+    cmd_confirm_rule.add_argument("rule_language",
+                                  help="rule language", metavar="rule_language",
+                                  type=str)
+
+    # configuring list rules
+    cmd_list_rules.add_argument("language",
+                                  help="list rules by language", metavar="language",
+                                  type=str)
+
+    # configuring visualize rule
+    cmd_visualize_rule.add_argument("rule_name",
+                                  help="creates a visualisation of a rule by rule name", metavar="rule_name",
+                                  type=str)
+
+    # configuring delete rule
+    cmd_delete_rule.add_argument("rule_name",
+                                  help="removes a rule by rule name", metavar="rule_name",
+                                  type=str)
+
+    # configuring add rule
+    cmd_add_rule.add_argument("path to PaT rule",
+                                  help="path to PaT rule", metavar="PaT",
+                                  type=lambda x: is_valid_file(parser, x))
+
+    # configuring add module
+    cmd_add_module.add_argument("module_name",
+                                  help="module name", metavar="module_name",
+                                  type=str)
+
+    cmd_add_module.add_argument("module_version",
+                                help="module version", metavar="module_version",
+                                type=str)
+
+    cmd_add_module.add_argument("module_date",
+                                help="date when module was scraped in a format yyyy-mm-dd", metavar="date",
+                                type=str)
+
+    cmd_add_module.add_argument("module_language",
+                                help="module language", metavar="module_language",
+                                type=str)
+
+    # configuring add function
+    cmd_add_function.add_argument("module_name", type=str)
+    cmd_add_function.add_argument("function_title", type=str)
+    cmd_add_function.add_argument("function_description", type=str)
+    cmd_add_function.add_argument("function_language", type=str)
+    cmd_add_function.add_argument("ds_task", type=str)
+    cmd_add_function.add_argument("link", dest="doc_link", required=False,
+                                    help="link to documentation", metavar="link",
+                                    type=str)
+    cmd_add_function.add_argument("args", dest="func_args", required=False,
+                                  help="function arguments in a string format, comma separated", metavar="args",
+                                  type=str)
+
+    # configuring add ds task
+    cmd_add_ds_task.add_argument("module_name", type=str)
+    cmd_add_ds_task.add_argument("function_title", type=str)
+    cmd_add_ds_task.add_argument("language", type=str)
+    cmd_add_ds_task.add_argument("ds_task", type=str)
+
+
+
+
+
+
+
+
+
+
+
     args = parser.parse_args()
     if args.command == 'init_db':
         process_init_db(args)
