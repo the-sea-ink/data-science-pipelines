@@ -8,11 +8,13 @@ from rule_manager import create_rule, create_pattern, RuleManager
 
 class RuleExtractor:
 
-    def extract_rule(self, G1, G2, rule_type="syntactic"):
+    def extract_rule(self, G1, G2, rule_type="semantic"):
         if rule_type == "semantic":
             by_text = True
         else:
             by_text = False
+
+
 
         Gdiff, nodes_to_add, nodes_to_update, nodes_to_delete, edges_to_add, edges_to_delete = self.calculate_diff_graph(
             G1, G2)
@@ -43,7 +45,7 @@ class RuleExtractor:
         dict_result = utils.nxgraph_to_json(result)
         return dict_pattern, dict_result
 
-    def adapt_rule(self, pattern, result, rule_name, rule_description, language, rule_type="syntactic", priority=50):
+    def adapt_rule(self, pattern, result, rule_name, rule_description, language, rule_type="semantic", priority=50):
         if rule_type == "semantic":
             by_text = True
         else:
@@ -59,25 +61,30 @@ class RuleExtractor:
                                                                     nodes_to_delete,
                                                                     edges_to_add,
                                                                     edges_to_delete)
-        pattern_nxgraph = create_pattern(pattern)
-        rule_dict = create_rule(pattern_nxgraph, transformations)
-
-        # add db entry attributes
+        #pattern_nxgraph = create_pattern(pattern)
+        rule_dict = {}
         rule_dict["name"] = rule_name
         rule_dict["description"] = rule_description
         if by_text:
-            rule_dict["type"] = "semantic"
+            rule_dict["rule_type"] = "semantic"
         else:
-            rule_dict["type"] = "syntactic"
+            rule_dict["rule_type"] = "syntactic"
         rule_dict["by_user"] = True
         rule_dict["language"] = language
         rule_dict["priority"] = priority
-
-        result = self.get_transformation_result(pattern_nxgraph, rule_dict)
-
+        rule_dict.update(pattern)
+        rule_dict.update(transformations)
         # add rule into db
         rule_entry = RuleManager()
         rule_entry.add_rule_to_db(rule_dict)
+        """
+        rule_dict = create_rule(pattern_nxgraph, transformations)
+
+        # add db entry attributes
+        
+
+        result = self.get_transformation_result(pattern_nxgraph, rule_dict)
+        """
 
         return rule_dict
 
@@ -98,16 +105,19 @@ class RuleExtractor:
             # if node type is in whitelist
             for elem in attrs["type"]:
                 # keep type and text
-                if elem == "call" and by_text is True:
-                    trimmed_attrs = {"type": attrs["type"], "text": attrs["text"]}
-                    break
-                # keep type and identifier
-                elif elem == "keyword_argument" and by_text:
-                    trimmed_attrs = {"type": attrs["type"], "identifier": attrs["identifier"]}
-                    break
-                # only keep type
+                if type(elem) == str:
+                    if elem == "call" and by_text is True:
+                        trimmed_attrs = {"type": attrs["type"], "text": attrs["text"]}
+                        break
+                    else:
+                        trimmed_attrs = {"type": attrs["type"]}
                 else:
-                    trimmed_attrs = {"type": attrs["type"]}
+                    if next(iter(elem)) == "call" and by_text is True:
+                        trimmed_attrs = {"type": attrs["type"], "text": attrs["text"]}
+                        break
+                    # only keep type
+                    else:
+                        trimmed_attrs = {"type": attrs["type"]}
             trimmed_G.add_node(node_id, trimmed_attrs)
         for s, t in G.edges():
             trimmed_G.add_edge(s, t)
@@ -277,8 +287,12 @@ class RuleExtractor:
         pattern, transformations = {}, {}
         pattern["nodes"] = []
         for id, attrs in raw_pattern.nodes(data=True):
-            for type, text in zip(attrs["type"], attrs["text"]):
-                pattern["nodes"].append({"node_id": id, "type": type, "text": text})
+            if "text" in attrs.keys():
+                for type, text in zip(attrs["type"], attrs["text"]):
+                    pattern["nodes"].append({"node_id": id, "type": type, "text": text})
+            else:
+                for type in attrs["type"]:
+                    pattern["nodes"].append({"node_id": id, "type": type})
         pattern["edges"] = []
         for s, t in raw_pattern.edges():
             pattern["edges"].append({"parent_node_id": s, "child_node_id": t})
@@ -288,8 +302,8 @@ class RuleExtractor:
             transformations["add_nodes_with_attributes"] = []
             for key in nodes_to_add:
                 for type, text in zip(nodes_to_add[key]["type"], nodes_to_add[key]["text"]):
-                    transformations["add_nodes_with_attributes"].append(
-                        {"node_id": key, "type": type, "text": text})
+                        transformations["add_nodes_with_attributes"].append(
+                            {"node_id": key, "type": type, "text": text})
 
         # add edges
         if edges_to_add:

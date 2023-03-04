@@ -239,8 +239,9 @@ def transform_graph(G: NXGraph, language, language_specific_hook:LanguageHook):
     flip_tree(G)
     utils.print_graph(G)
 
-    hook = language_specific_hook
-    #hook.pre_hooks(G)
+    language_specific_hook
+    if language_specific_hook:
+        language_specific_hook.pre_hooks(G)
 
 
     end_iner = time.time()
@@ -269,7 +270,8 @@ def transform_graph(G: NXGraph, language, language_specific_hook:LanguageHook):
 
     #test_func(G)
 
-    #hook.post_hooks(G)
+    if language_specific_hook:
+        language_specific_hook.post_hooks(G)
     pipeline.knowledge_base_lookup(G)
 
     end_iner = time.time()

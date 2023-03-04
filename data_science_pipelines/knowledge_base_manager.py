@@ -10,7 +10,7 @@ class KnowledgeBaseManager:
 
     def add_module_to_kb(self, name, version, date, language):
         # check if module in db
-        self.cursor.execute("SELECT * FROM modules WHERE module = ? AND language = ?", (name, language))
+        self.cursor.execute("SELECT * FROM modules WHERE module_name = ? AND language = ?", (name, language))
         module_list = self.cursor.fetchall()
         if len(module_list) != 0:
             return "This module + language combination already exists!"
@@ -25,15 +25,15 @@ class KnowledgeBaseManager:
             "VALUES(?, ?, ?, ?, ?)",
             [module_id, name, version, language, date])
         self.connection.commit()
-        pass
+        return f"Module {name} has been created."
 
     def add_function_to_kb(self, module_name, function_title, description="", link="", language="", data_science_task="", args=""):
-        function = Function(function_title, description, link, args, module_name=module_name, language=language, ds_task=data_science_task)
         self.cursor.execute("SELECT * FROM modules WHERE module_name=? and language = ?", (module_name, language))
         module_present = self.cursor.fetchall()
         if len(module_present) == 0:
-            print("this module doesn't exist yet!")
-            return
+            return "This module doesn't exist yet!"
+        function = Function(function_title, description, link, args, module_name=module_name, language=language, ds_task=data_science_task)
+
         self.cursor.execute(
             "INSERT INTO functions(module_name, function_title, description, link, language, data_science_task) "
             "VALUES(?, ?, ?, ?, ?, ?)",
@@ -46,18 +46,17 @@ class KnowledgeBaseManager:
                     "VALUES(?, ?, ?, ?, ?)",
                     [added_function_id, arg.name, arg.type, arg.position, arg.default_value])
         self.connection.commit()
-        pass
+        return function
 
     def add_ds_task_to_kb(self, module_name, function_name, language, ds_task):
         self.cursor.execute("SELECT * FROM functions WHERE function_title=? and module_name = ? and language=?", (function_name, module_name, language))
         function_exists = self.cursor.fetchall()
         if len(function_exists) == 0:
-            print("this function doesn't exist!")
-            return
+            return "This function doesn't exist!"
         self.cursor.execute(
             "UPDATE functions SET data_science_task = ? WHERE function_title=? and module_name = ? and language=?", (ds_task, function_name, module_name, language))
         self.connection.commit()
-        pass
+        return f"Data science task {ds_task} was added to function {function_name}."
 
 
 if __name__ == "__main__":

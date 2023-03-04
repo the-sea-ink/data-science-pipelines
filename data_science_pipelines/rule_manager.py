@@ -2,6 +2,7 @@ import json
 import sqlite3
 from regraph import NXGraph, Rule
 import utils
+import copy
 
 
 class RuleManager:
@@ -13,8 +14,11 @@ class RuleManager:
         self.cursor = self.connection.cursor()
 
     def delete_rule_by_name(self, rule_name):
+        self.cursor.execute("SELECT rule FROM rules WHERE rule_name=?", (rule_name,))
+        rule = self.cursor.fetchall()
         self.cursor.execute("DELETE FROM rules WHERE rule_name=?", (rule_name,))
         self.connection.commit()
+        return rule
 
     def visualize_rule(self, rule_name):
         # needs testing and prettier visualisation
@@ -31,21 +35,27 @@ class RuleManager:
     def list_all_rules(self, language):
         self.cursor.execute("SELECT rule_name FROM rules WHERE language = ? ORDER BY rule_id", (language,))
         rule_list = self.cursor.fetchall()
-        return rule_list
+        cleared_rule_list = []
+        for rule in rule_list:
+            cleared_rule_list.append(rule[0])
+        return cleared_rule_list
 
     def create_rule_from_file(self, path):
         rule_dict = get_dict_from_json(path)
         self.add_rule_to_db(rule_dict)
 
     def add_rule_to_db(self, rule_dict):
-        pattern = create_pattern(rule_dict)
-        rule = create_rule(pattern, rule_dict)
+        rule_dict_copy = copy.deepcopy(rule_dict)
+        pattern = create_pattern(rule_dict_copy)
+        rule = create_rule(pattern, rule_dict_copy)
 
-        name = rule_dict.pop("name")
-        description = rule_dict.pop("description")
-        rule_type = rule_dict.pop("rule_type")
-        by_user = rule_dict.pop("by_user")
-        rule = rule
+        name = rule_dict["name"]
+        description = rule_dict["description"]
+        rule_type = rule_dict["rule_type"]
+        by_user = rule_dict["by_user"]
+        language = rule_dict["language"]
+        priority = rule_dict["priority"]
+
         pat_representation = str(rule_dict)
 
         # get id
@@ -53,13 +63,15 @@ class RuleManager:
         rule_id = self.cursor.fetchall()[0][0] + 1
 
         self.cursor.execute(
-            "INSERT INTO rules(rule_id, rule_name, rule_description, rule, rule_type, added_by_user) VALUES(?, ?, ?, ?, ?, ?)",
-            [rule_id, name, description, str(rule), rule_type, by_user])
+            "INSERT INTO rules(rule_id, rule_name, rule_description, rule, rule_type, added_by_user, language, priority) VALUES(?, ?, ?, ?, ?, ?,?,?)",
+            [rule_id, name, description, str(rule), rule_type, by_user, language, priority])
 
         rule["name"] = name
         rule["description"] = description
         rule["rule_type"] = rule_type
         rule["by_user"] = by_user
+        rule["language"] = language
+        rule["priority"] = priority
 
         if rule_exists(rule):
             raise ValueError('This rule already exists!')
@@ -72,6 +84,7 @@ class RuleManager:
 
         print(rule)
         print("Rule created successfully!")
+        return rule
 
 
 def get_rules_from_db(cursor):
@@ -242,7 +255,7 @@ def create_rule(pattern, rule_dict):
     return rule
 
 
-#if __name__ == "__main__":
-#    manager = RuleManager()
-#    manager.create_rule_from_file("knowledge_base/rules/rule_creation.json")
+if __name__ == "__main__":
+    manager = RuleManager()
+    manager.create_rule_from_file("knowledge_base/rules/rule_creation.json")
 
