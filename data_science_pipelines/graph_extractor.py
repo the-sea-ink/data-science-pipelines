@@ -1,3 +1,5 @@
+import os
+
 from hooks.PythonHook import LanguageHook
 from rule_executioner import transform_graph
 from tree_sitter import Language, Parser
@@ -11,12 +13,13 @@ class GraphExtractor:
     def __init__(self):
         Language.build_library(
             # Store the library in the `build` directory
-            '../build/my-languages.so',
+            'build/my-languages.so',
             # Include one or more languages
             [
-                '../third_party/parsers/tree-sitter-python',
-                '../third_party/parsers/tree-sitter-r',
-                '../third_party/parsers/tree-sitter-snakemake-pure'
+                os.path.join(os.path.dirname(__file__), '../third_party/parsers/tree-sitter-python'),
+                os.path.join(os.path.dirname(__file__), '../third_party/parsers/tree-sitter-r'),
+                os.path.join(os.path.dirname(__file__), '../third_party/parsers/tree-sitter-snakemake-pure')
+
             ]
         )
 
@@ -25,7 +28,7 @@ class GraphExtractor:
 
         # set language for the parser
         assert language != '', 'language is not set'
-        language = Language('../build/my-languages.so', language)
+        language = Language('build/my-languages.so', language)
         parser = Parser()
         parser.set_language(language)
         b = bytes(code, "utf8")

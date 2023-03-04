@@ -28,51 +28,50 @@ class RuleManager:
         result_json = utils.convert_graph_to_json(result)
         return pattern_json, result_json
 
-    def list_all_rules(self):
-        self.cursor.execute("SELECT rule_name FROM rules ORDER BY rule_id")
+    def list_all_rules(self, language):
+        self.cursor.execute("SELECT rule_name FROM rules WHERE language = ? ORDER BY rule_id", (language,))
         rule_list = self.cursor.fetchall()
         return rule_list
 
     def create_rule_from_file(self, path):
         rule_dict = get_dict_from_json(path)
-        add_rule_to_db(rule_dict, self.connection, self.cursor)
+        self.add_rule_to_db(rule_dict)
 
+    def add_rule_to_db(self, rule_dict):
+        pattern = create_pattern(rule_dict)
+        rule = create_rule(pattern, rule_dict)
 
-def add_rule_to_db(rule_dict, connection, cursor):
-    pattern = create_pattern(rule_dict)
-    rule = create_rule(pattern, rule_dict)
+        name = rule_dict.pop("name")
+        description = rule_dict.pop("description")
+        rule_type = rule_dict.pop("rule_type")
+        by_user = rule_dict.pop("by_user")
+        rule = rule
+        pat_representation = str(rule_dict)
 
-    name = rule_dict.pop("name")
-    description = rule_dict.pop("description")
-    rule_type = rule_dict.pop("rule_type")
-    by_user = rule_dict.pop("by_user")
-    rule = rule
-    pat_representation = str(rule_dict)
+        # get id
+        self.cursor.execute("SELECT COUNT(*) FROM rules")
+        rule_id = self.cursor.fetchall()[0][0] + 1
 
-    # get id
-    cursor.execute("SELECT COUNT(*) FROM rules")
-    rule_id = cursor.fetchall()[0][0] + 1
+        self.cursor.execute(
+            "INSERT INTO rules(rule_id, rule_name, rule_description, rule, rule_type, added_by_user) VALUES(?, ?, ?, ?, ?, ?)",
+            [rule_id, name, description, str(rule), rule_type, by_user])
 
-    cursor.execute(
-        "INSERT INTO rules(rule_id, rule_name, rule_description, rule, rule_type, added_by_user) VALUES(?, ?, ?, ?, ?, ?)",
-        [rule_id, name, description, str(rule), rule_type, by_user])
+        rule["name"] = name
+        rule["description"] = description
+        rule["rule_type"] = rule_type
+        rule["by_user"] = by_user
 
-    rule["name"] = name
-    rule["description"] = description
-    rule["rule_type"] = rule_type
-    rule["by_user"] = by_user
+        if rule_exists(rule):
+            raise ValueError('This rule already exists!')
 
-    if rule_exists(rule):
-        raise ValueError('This rule already exists!')
+        out_file = open("knowledge_base/rules/rule_base.txt", "a")
+        out_file.write(str(rule) + "\n")
+        out_file.close()
 
-    out_file = open("knowledge_base/rules/rule_base.txt", "a")
-    out_file.write(str(rule) + "\n")
-    out_file.close()
+        self.connection.commit()
 
-    connection.commit()
-
-    print(rule)
-    print("Rule created successfully!")
+        print(rule)
+        print("Rule created successfully!")
 
 
 def get_rules_from_db(cursor):

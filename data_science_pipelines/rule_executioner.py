@@ -1,11 +1,13 @@
+import os
 import sqlite3
 
 from networkx.algorithms.isomorphism import GraphMatcher
 from regraph import NXGraph, Rule
 import time
 import utils
+from hooks.LanguageHook import LanguageHook
 from rule_extractor import RuleExtractor
-from utils import print_graph, read_rule_from_string, convert_graph_to_json
+from utils import print_graph, read_rule_from_string, convert_graph_to_json_new_frontend, nxgraph_to_json
 from models.Function import Function
 from rule_manager import get_rules_from_db
 
@@ -217,9 +219,7 @@ def test_func(G):
                 G.update_node_attrs(node, new_node_attrs)
         return G
 
-
-
-def transform_graph(G: NXGraph, language, language_specific_hook=None):
+def transform_graph(G: NXGraph, language, language_specific_hook:LanguageHook):
     """
     Applies rules from the rule base and further transformations to the given graph.
 
@@ -231,7 +231,8 @@ def transform_graph(G: NXGraph, language, language_specific_hook=None):
     start_iner = time.time()
 
     # connect to db
-    connection = sqlite3.connect("../knowledge_base.db")
+    db_path = os.path.join(os.path.dirname(__file__), "../knowledge_base.db")
+    connection = sqlite3.connect(db_path)
     cursor = connection.cursor()
 
     # initial graph transformation
@@ -239,6 +240,8 @@ def transform_graph(G: NXGraph, language, language_specific_hook=None):
     utils.print_graph(G)
 
     hook = language_specific_hook
+    #hook.pre_hooks(G)
+
 
     end_iner = time.time()
     print(f'pre transformations done in {end_iner - start_iner}')
@@ -265,13 +268,20 @@ def transform_graph(G: NXGraph, language, language_specific_hook=None):
     start_iner = time.time()
 
     #test_func(G)
+
+    #hook.post_hooks(G)
     pipeline.knowledge_base_lookup(G)
 
     end_iner = time.time()
     print(f'post transformations done in {end_iner - start_iner}')
     print_graph(G)
     #draw_graph(G)
-    graph_dict = convert_graph_to_json(G)
+    graph_dict = nxgraph_to_json(G)
+    print(graph_dict)
+
+    pseudo_graph = utils.json_to_nxgraph(graph_dict)
+    print_graph(pseudo_graph)
+
     connection.close()
     return graph_dict
 

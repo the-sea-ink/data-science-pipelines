@@ -1,3 +1,5 @@
+import json
+
 import networkx as nx
 from regraph import NXGraph, Rule
 import utils
@@ -6,7 +8,12 @@ from rule_manager import create_rule, create_pattern, RuleManager
 
 class RuleExtractor:
 
-    def extract_rule(self, G1, G2, by_text=True):
+    def extract_rule(self, G1, G2, rule_type="syntactic"):
+        if rule_type == "semantic":
+            by_text = True
+        else:
+            by_text = False
+
         Gdiff, nodes_to_add, nodes_to_update, nodes_to_delete, edges_to_add, edges_to_delete = self.calculate_diff_graph(
             G1, G2)
 
@@ -15,9 +22,9 @@ class RuleExtractor:
         G2 = self.trim_attributes(G2, by_text)
 
         # transform NXGraph into an nx DiGraph
-        utils.draw_graph(G1)
-        utils.draw_graph(G2)
-        utils.draw_diffgraph(Gdiff)
+        #utils.draw_graph(G1)
+        #utils.draw_graph(G2)
+        #utils.draw_diffgraph(Gdiff)
 
         pattern = self.find_subgraph_from_node_list(Gdiff, nodes_to_add, nodes_to_update, nodes_to_delete, edges_to_add,
                                                     edges_to_delete)
@@ -29,10 +36,18 @@ class RuleExtractor:
         rule = create_rule(pattern_nxgraph, transformations)
 
         result = self.get_transformation_result(pattern_nxgraph, rule)
-        utils.print_graph(G1)
-        return pattern_nxgraph, result
+        #utils.print_graph(G1)
+        #utils.print_graph(pattern_nxgraph)
+        #utils.print_graph(result)
+        dict_pattern = utils.nxgraph_to_json(pattern_nxgraph)
+        dict_result = utils.nxgraph_to_json(result)
+        return dict_pattern, dict_result
 
-    def adapt_rule(self, pattern, result, rule_name, rule_description, by_text=True):
+    def adapt_rule(self, pattern, result, rule_name, rule_description, language, rule_type="syntactic", priority=50):
+        if rule_type == "semantic":
+            by_text = True
+        else:
+            by_text = False
         Gdiff, nodes_to_add, nodes_to_update, nodes_to_delete, edges_to_add, edges_to_delete = self.calculate_diff_graph(
             pattern, result)
 
@@ -55,6 +70,8 @@ class RuleExtractor:
         else:
             rule_dict["type"] = "syntactic"
         rule_dict["by_user"] = True
+        rule_dict["language"] = language
+        rule_dict["priority"] = priority
 
         result = self.get_transformation_result(pattern_nxgraph, rule_dict)
 
@@ -159,7 +176,6 @@ class RuleExtractor:
         # print_graph(Gdiff)
         return Gdiff, nodes_to_add, nodes_to_update, nodes_to_delete, edges_to_add, edges_to_delete
 
-    # TODO add case if there is no path between nodes
     def find_subgraph_from_node_list(self, G, nodes_to_add, nodes_to_update, nodes_to_delete, edges_to_add,
                                      edges_to_delete):
         changed_nodes, new_nodes = [], []
@@ -310,6 +326,7 @@ class RuleExtractor:
         pattern_dict = {"pattern": pattern}
         transformation_dict = {"transformations": transformations}
         print(transformation_dict)
+
         return pattern_dict, transformation_dict
 
     def get_transformation_result(self, pattern: NXGraph, rule: dict):
@@ -361,8 +378,20 @@ if __name__ == "__main__":
                        (10, {"type": "function", "text": "L"})])
     G2.add_edges_from([(0, 1), (1, 2), (0, 3), (3, 4), (4, 5), (7, 0), (8, 0), (9, 2), (2, 10)])
 
-    rule_extractor = RuleExtractor()
-    rule_extractor.extract_rule(G1, G2)
+    g1_json = utils.nxgraph_to_json(G1)
+    g2_json = utils.nxgraph_to_json(G2)
 
-    rule_manager = RuleManager()
-    rule_manager.visualize_rule("string_assignment")
+    out_file1 = open('tests/g1.json', "w")
+    json.dump(g1_json, out_file1, indent=2)
+    out_file2 = open('tests/g2.json', "w")
+    json.dump(g2_json, out_file2, indent=2)
+
+    rule_extractor = RuleExtractor()
+    rule_extractor.extract_rule(G1, G2, "semantic")
+
+
+
+
+
+    #rule_manager = RuleManager()
+    #rule_manager.visualize_rule("string_assignment")

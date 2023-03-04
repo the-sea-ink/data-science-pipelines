@@ -8,7 +8,7 @@ import yaml
 from utils import read_rule_from_string
 
 
-def init_db(cursor):
+def init_tables(cursor, connection):
     """
     Initializes database.
 
@@ -21,43 +21,43 @@ def init_db(cursor):
     cursor.execute("DROP TABLE IF EXISTS rules")
     cursor.execute(
         "CREATE TABLE modules("
-            "module_id INTEGER NOT NULL, "
-            "module_name, "
-            "version, "
-            "date, "
-            "language,"
-            "PRIMARY KEY (module_name, language))")
+        "module_id INTEGER NOT NULL, "
+        "module_name, "
+        "version, "
+        "date, "
+        "language,"
+        "PRIMARY KEY (module_name, language))")
     cursor.execute(
         "CREATE TABLE functions("
-            "function_id INTEGER PRIMARY KEY, "
-            "module_name, "
-            "function_title type UNIQUE, "
-            "description, "
-            "link, "
-            "language, "
-            "data_science_task, "
-            "FOREIGN KEY(module_name) REFERENCES scraped_modules(module_name))")
+        "function_id INTEGER PRIMARY KEY, "
+        "module_name, "
+        "function_title type UNIQUE, "
+        "description, "
+        "link, "
+        "language, "
+        "data_science_task, "
+        "FOREIGN KEY(module_name) REFERENCES scraped_modules(module_name))")
     cursor.execute(
         "CREATE TABLE arguments("
-            "function_id, "
-            "argument_name, "
-            "argument_type, "
-            "argument_position, "
-            "default_value, "
-            "FOREIGN KEY(function_id) REFERENCES functions(function_id))")
+        "function_id, "
+        "argument_name, "
+        "argument_type, "
+        "argument_position, "
+        "default_value, "
+        "FOREIGN KEY(function_id) REFERENCES functions(function_id))")
     cursor.execute(
         "CREATE TABLE rules("
-            "rule_id, "
-            "rule_name PRIMARY KEY, "
-            "rule_description, "
-            "rule, rule_type, "
-            "added_by_user, "
-            "language, "
-            "priority)")
+        "rule_id, "
+        "rule_name PRIMARY KEY, "
+        "rule_description, "
+        "rule, rule_type, "
+        "added_by_user, "
+        "language, "
+        "priority)")
     connection.commit()
 
 
-def init_module_from_file(filename, module_name, version, date, language, cursor):
+def init_module_from_file(filename, module_name, version, date, language, cursor, connection):
     with open(filename, newline='') as csvfile:
         csvreader = csv.reader(csvfile)
         header = next(csvreader)
@@ -122,7 +122,7 @@ def init_ds_tasks(language, cursor):
     # outfile.write(json_object)
 
 
-def assign_ds_tasks(cursor):
+def assign_ds_tasks(cursor, connection):
     # assign data science task to a respective function from knowledge base
     task_dirs = [f.name for f in os.scandir("knowledge_base/ds_tasks/") if f.is_dir()]
     for language in task_dirs:
@@ -137,7 +137,7 @@ def assign_ds_tasks(cursor):
         connection.commit()
 
 
-def init_rules_from_file():
+def init_rules_from_file(cursor, connection):
     cursor.execute(
         "SELECT COUNT(*) "
         "FROM rules")
@@ -161,19 +161,20 @@ def init_rules_from_file():
             cursor.execute(
                 "INSERT INTO rules(rule_id, rule_name, rule_description, rule, rule_type, added_by_user, language, priority) "
                 "VALUES(?, ?, ?, ?, ?, ?, ?, ?)",
-                [added_rule_id, rule_name, rule_desc, str(json_rule), rule_type, added_by_user, rule_language, rule_priority])
+                [added_rule_id, rule_name, rule_desc, str(json_rule), rule_type, added_by_user, rule_language,
+                 rule_priority])
             added_rule_id = cursor.lastrowid + 1
     connection.commit()
     pass
 
 
-if __name__ == "__main__":
+def reset_db():
     # establish connection
     connection = sqlite3.connect("../knowledge_base.db")
     cursor = connection.cursor()
 
     # init database
-    init_db(cursor)
+    init_tables(cursor, connection)
 
     # init modules and functions
     folders = os.listdir("knowledge_base/scraped_modules/")
@@ -184,15 +185,19 @@ if __name__ == "__main__":
             date_format = "%Y-%m-%d"
             date = datetime.datetime.strptime(date, date_format).date()
             module_path = "knowledge_base/scraped_modules/" + language + "/" + file
-            init_module_from_file(module_path, module_name, version, date, language, cursor)
+            init_module_from_file(module_path, module_name, version, date, language, cursor, connection)
 
     # init data science tasks
     ds_folders = [f.name for f in os.scandir("knowledge_base/ds_annotation/") if f.is_dir()]
     for language in ds_folders:
         init_ds_tasks(language, cursor)
-    assign_ds_tasks(cursor)
+    assign_ds_tasks(cursor, connection)
 
     # init rules
-    init_rules_from_file()
+    init_rules_from_file(cursor, connection)
 
     connection.close()
+
+
+if __name__ == "__main__":
+    reset_db()

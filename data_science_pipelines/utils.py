@@ -192,18 +192,21 @@ def draw_rule(num, extractor):
 
 
 def jsonify_finite_set(param):
-    if len(param.to_json()["data"]) > 1:
-        result_list = list()
-        for element in param.to_json()["data"]:
-            if isinstance(element, (bytes, bytearray)):
-                result_list.append(element.decode("utf-8"))
-            else:
-                result_list.append(element)
-        return result_list
-    data = param.to_json()["data"][0]
-    if isinstance(data, (bytes, bytearray)):
-        data = data.decode("utf-8")
-    return data
+    if type(param) !=  str:
+        if len(param.to_json()["data"]) > 1:
+            result_list = list()
+            for element in param.to_json()["data"]:
+                if isinstance(element, (bytes, bytearray)):
+                    result_list.append(element.decode("utf-8"))
+                else:
+                    result_list.append(element)
+            return result_list
+        data = param.to_json()["data"][0]
+        if isinstance(data, (bytes, bytearray)):
+            data = data.decode("utf-8")
+        return data
+    else:
+        return param
 
 
 
@@ -287,7 +290,7 @@ def convert_graph_to_json(G: NXGraph):
         i += 1
     with open('../graph.json', 'w') as fp:
         json.dump(graph_dict, fp, indent=4)
-    # print(graph_dict)
+    print(graph_dict)
     return graph_dict
 
 
@@ -304,11 +307,13 @@ def convert_graph_to_json_new_frontend(G: NXGraph):
     for n, attrs in G.nodes(data=True):
         type = str(attrs["type"]).replace("{'", "").replace("'}", "")
         if type not in conversion_maping.keys():
-            metadata = {"id": str(n), "type": "util", "targetPosition": "top",
-                        "position": {"x": 0, "y": 0}, "data": {}}
+            #"targetPosition": "top", "position": {"x": 0, "y": 0},
+            metadata = {"id": str(n), "type": "util",
+                         "data": {}}
         else:
-            metadata = {"id": str(n), "type": conversion_maping[type], "targetPosition": "top",
-                        "position": {"x": 0, "y": 0}, "data": {}}
+            # "targetPosition": "top","position": {"x": 0, "y": 0},
+            metadata = {"id": str(n), "type": conversion_maping[type],
+                        "data": {}}
         # node_attrs = {}
         node_raw_attrs = G.get_node(n)
         for key in node_raw_attrs:
@@ -320,11 +325,38 @@ def convert_graph_to_json_new_frontend(G: NXGraph):
         # graph_dict["nodes"].append(graph_data)
     i = 1
     for s, t, attrs in G.edges(data=True):
-        edge_id = "edge-" + str(i)
-        edge_attrs = {"id": edge_id, "source": str(s), "target": str(t), 'type': 'smoothstep'}
+        #, 'type': 'smoothstep'
+        edge_id = str(i)
+        edge_attrs = {"id": edge_id, "source": str(s), "target": str(t)}
         graph_dict["edges"].append(edge_attrs)
         i += 1
     with open('../graph.json', 'w') as fp:
         json.dump(graph_dict, fp, indent=4)
-    # print(graph_dict)
+    print(graph_dict)
     return graph_dict
+
+
+def nxgraph_to_json(G):
+    graph_dict = {"nodes": [], "edges": []}
+    for n, attrs in G.nodes(data=True):
+        json_attrs = {"id": n}
+        for attr in attrs:
+            json_attrs.update({attr: jsonify_finite_set(attrs[attr])})
+        graph_dict["nodes"].append(json_attrs)
+    for s, t in G.edges():
+        edge_attrs = {"source": s, "target": t}
+        graph_dict["edges"].append(edge_attrs)
+
+    return graph_dict
+
+
+def json_to_nxgraph(graph_dict):
+    graph = NXGraph()
+    for node in graph_dict["nodes"]:
+        node_id = node.pop("id")
+        graph.add_node(node_id, node)
+    for edge in graph_dict["edges"]:
+        graph.add_edge(edge["source"], edge["target"])
+    return graph
+
+

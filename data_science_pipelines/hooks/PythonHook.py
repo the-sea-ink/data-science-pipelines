@@ -1,9 +1,11 @@
 from regraph import NXGraph
+
+from hooks.LanguageHook import LanguageHook
 from rule_executioner import find_matching_optimised
 import utils
 
 
-class LanguageHook:
+class PythonHook (LanguageHook):
     def __init__(self):
         print("Creating python hook")
         self.aliases_dict = {}

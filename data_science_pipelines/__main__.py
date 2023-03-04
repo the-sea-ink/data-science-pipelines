@@ -3,8 +3,10 @@ import os
 import sys
 import datetime
 import test_scripts
+import json
 from rule_manager import RuleManager
 from graph_extractor import GraphExtractor
+from dsp_api import DSP_API
 
 
 def print_info():
@@ -44,58 +46,69 @@ def is_date_valid(parser, arg):
     return arg
 
 
-def is_valid_date_type(parser, arg):
+def process_init_db(api, args):
+    api.init_db()
     pass
 
 
-def process_init_db(args):
+def process_create_pipeline(api, args):
+    # do return
+    # get code from file
+    api.create_pipeline(args.code, args.language, args.hook, args.write_to_file, args.output_path)
     pass
 
 
-def process_create_pipeline(args):
+def process_extract_rule(api, args):
+    # do return
+    # get graphs from files
+    api.extract_rule(args.g1, args.g2, args.type)
     pass
-
-
-def process_extract_rule(args):
-    print(args.g1)
-    print(args.g2)
-    print(args.type)
 
 
 def process_confirm_rule(args):
-
     pass
 
 
-def process_list_rules(args):
+def process_list_rules(api, args):
+    rule_list = api.list_rules(args.language)
+    return rule_list
+
+
+def process_visualize_rule(api, args):
+    # do return
+    api.visualize_rule(args.rule_name)
     pass
 
 
-def process_visualize_rule(args):
+def process_delete_rule(api, args):
+    api.delete_rule(args.rule_name)
     pass
 
 
-def process_delete_rule(args):
+def process_add_rule(api, args):
+    f = open(args.rule_path, "r")
+    rule_dict = json.loads(f.read())
+    api.add_rule(rule_dict)
     pass
 
 
-def process_add_rule(args):
+def process_add_module(api, args):
+    api.add_module(args.module_name, args.module_version, args.module_date, args.module_language)
     pass
 
 
-def process_add_module(args):
+def process_add_function(api, args):
+    api.add_function(args.module_name, args.function_title, description=args.description, link=args.link, language=args.language, data_science_task=args.data_science_task, args=args.args)
     pass
 
 
-def process_add_function(args):
-    pass
-
-
-def process_add_ds_task(args):
+def process_add_ds_task(api, args):
+    api.add_ds_task(args.module_name, args.function_title, args.language, args.ds_task)
     pass
 
 
 def process_cli(argv):
+    api = DSP_API()
     parser = argparse.ArgumentParser()
     cmd_parser = parser.add_subparsers(dest='command')
 
@@ -114,14 +127,21 @@ def process_cli(argv):
 
     # configuring create pipeline
     cmd_create_pipeline.add_argument("script_path",
-                                  help="path to a script to be transformed into a pipeline", metavar="path to script file",
-                                  type=lambda x: is_valid_file(parser, x))
+                                     help="path to a script to be transformed into a pipeline",
+                                     metavar="path to script file",
+                                     type=lambda x: is_valid_file(parser, x))
     cmd_create_pipeline.add_argument("script_language",
                                      help="script language", metavar="script language",
                                      type=str)
     cmd_create_pipeline.add_argument("hook", dest="hook_path", required=False,
-                                    help="path to an external hook for pre and post transformations of the pipeline", metavar="hook",
-                                    type=lambda x: is_valid_file(parser, x))
+                                     help="path to an external hook for pre and post transformations of the pipeline",
+                                     metavar="hook",
+                                     type=lambda x: is_valid_file(parser, x))
+
+    cmd_create_pipeline.add_argument("write_to_file", dest="w_to_file", required=False,
+                                     help="should the graph be written to a json file?",
+                                     metavar="w_to_file",
+                                     type=str)
 
     cmd_create_pipeline.add_argument("-o", dest="output_path", required=False,
                                      help="path to the file with the output graph",
@@ -158,28 +178,28 @@ def process_cli(argv):
 
     # configuring list rules
     cmd_list_rules.add_argument("language",
-                                  help="list rules by language", metavar="language",
-                                  type=str)
+                                help="list rules by language", metavar="language",
+                                type=str)
 
     # configuring visualize rule
     cmd_visualize_rule.add_argument("rule_name",
-                                  help="creates a visualisation of a rule by rule name", metavar="rule_name",
-                                  type=str)
+                                    help="creates a visualisation of a rule by rule name", metavar="rule_name",
+                                    type=str)
 
     # configuring delete rule
     cmd_delete_rule.add_argument("rule_name",
-                                  help="removes a rule by rule name", metavar="rule_name",
-                                  type=str)
+                                 help="removes a rule by rule name", metavar="rule_name",
+                                 type=str)
 
     # configuring add rule
-    cmd_add_rule.add_argument("path to PaT rule",
-                                  help="path to PaT rule", metavar="PaT",
-                                  type=lambda x: is_valid_file(parser, x))
+    cmd_add_rule.add_argument("rule_path",
+                              help="path to PaT rule", metavar="rule_path",
+                              type=lambda x: is_valid_file(parser, x))
 
     # configuring add module
     cmd_add_module.add_argument("module_name",
-                                  help="module name", metavar="module_name",
-                                  type=str)
+                                help="module name", metavar="module_name",
+                                type=str)
 
     cmd_add_module.add_argument("module_version",
                                 help="module version", metavar="module_version",
@@ -200,8 +220,8 @@ def process_cli(argv):
     cmd_add_function.add_argument("function_language", type=str)
     cmd_add_function.add_argument("ds_task", type=str)
     cmd_add_function.add_argument("link", dest="doc_link", required=False,
-                                    help="link to documentation", metavar="link",
-                                    type=str)
+                                  help="link to documentation", metavar="link",
+                                  type=str)
     cmd_add_function.add_argument("args", dest="func_args", required=False,
                                   help="function arguments in a string format, comma separated", metavar="args",
                                   type=str)
@@ -212,21 +232,28 @@ def process_cli(argv):
     cmd_add_ds_task.add_argument("language", type=str)
     cmd_add_ds_task.add_argument("ds_task", type=str)
 
-
-
-
-
-
-
-
-
-
-
     args = parser.parse_args()
     if args.command == 'init_db':
-        process_init_db(args)
+        process_init_db(api, args)
+    elif args.command == 'create_pipeline':
+        process_create_pipeline(api, args)
     elif args.command == 'extract_rule':
-        process_extract_rule(args)
+        process_extract_rule(api, args)
+    elif args.command == 'list_rules':
+        process_list_rules(api, args)
+    elif args.command == 'visualize_rule':
+        process_visualize_rule(api, args)
+    elif args.command == 'delete_rule':
+        process_delete_rule(api, args)
+    elif args.command == 'add_rule':
+        process_add_rule(api, args)
+    elif args.command == 'add_module':
+        process_add_module(api, args)
+    elif args.command == 'add_function':
+        process_add_function(api, args)
+    elif args.command == 'add_ds_task':
+        process_add_ds_task(api, args)
+
     return
 
 
