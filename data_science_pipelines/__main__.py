@@ -92,7 +92,7 @@ def process_add_rule(api, args):
     pass
 
 
-def process_add_module(api, args):
+def process_add_module_name(api, args):
     api.add_module(args.module_name, args.module_version, args.module_date, args.module_language)
     pass
 

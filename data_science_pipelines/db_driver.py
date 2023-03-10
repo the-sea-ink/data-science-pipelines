@@ -57,9 +57,12 @@ def init_tables(cursor, connection):
     connection.commit()
 
 
-def init_module_from_file(filename, module_name, version, date, language, cursor, connection):
-    with open(filename, newline='') as csvfile:
-        csvreader = csv.reader(csvfile)
+def init_module_from_file(module_name, version, date, language, cursor, connection, filename="", file=None):
+    if filename != "":
+        with open(filename, newline='') as csvfile:
+            csvreader = csv.reader(csvfile)
+    else:
+        csvreader = file
         header = next(csvreader)
         cursor.execute(
             "SELECT COUNT(*) "
@@ -85,6 +88,7 @@ def init_module_from_file(filename, module_name, version, date, language, cursor
                         "VALUES(?, ?, ?, ?, ?)",
                         [added_function_id, arg.name, arg.type, arg.position, arg.default_value])
     connection.commit()
+    return f"Module {module_name} has been added to the knowledge base."
 
 
 def init_ds_tasks(language, cursor):
@@ -185,7 +189,7 @@ def reset_db():
             date_format = "%Y-%m-%d"
             date = datetime.datetime.strptime(date, date_format).date()
             module_path = "knowledge_base/scraped_modules/" + language + "/" + file
-            init_module_from_file(module_path, module_name, version, date, language, cursor, connection)
+            init_module_from_file(module_name, version, date, language, cursor, connection, filename=module_path)
 
     # init data science tasks
     ds_folders = [f.name for f in os.scandir("knowledge_base/ds_annotation/") if f.is_dir()]

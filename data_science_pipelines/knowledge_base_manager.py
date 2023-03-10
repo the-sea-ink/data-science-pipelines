@@ -1,6 +1,6 @@
 import sqlite3
 from models.Function import Function
-
+from db_driver import init_module_from_file
 
 class KnowledgeBaseManager:
 
@@ -8,7 +8,7 @@ class KnowledgeBaseManager:
         self.connection = sqlite3.connect("../knowledge_base.db")
         self.cursor = self.connection.cursor()
 
-    def add_module_to_kb(self, name, version, date, language):
+    def add_module_name_to_kb(self, name, version, date, language):
         # check if module in db
         self.cursor.execute("SELECT * FROM modules WHERE module_name = ? AND language = ?", (name, language))
         module_list = self.cursor.fetchall()
@@ -26,6 +26,9 @@ class KnowledgeBaseManager:
             [module_id, name, version, language, date])
         self.connection.commit()
         return f"Module {name} has been created."
+
+    def add_module_to_kb(self, module_name, version, date, language, file):
+        return init_module_from_file(module_name, version, date, language, self.cursor, self.connection, file=file, filename="")
 
     def add_function_to_kb(self, module_name, function_title, description="", link="", language="", data_science_task="", args=""):
         self.cursor.execute("SELECT * FROM modules WHERE module_name=? and language = ?", (module_name, language))
