@@ -36,7 +36,7 @@ def init_tables(cursor, connection):
         "link, "
         "language, "
         "data_science_task, "
-        "FOREIGN KEY(module_name) REFERENCES scraped_modules(module_name))")
+        "FOREIGN KEY(module_name, language) REFERENCES scraped_modules(module_name, language))")
     cursor.execute(
         "CREATE TABLE arguments("
         "function_id, "
@@ -58,11 +58,8 @@ def init_tables(cursor, connection):
 
 
 def init_module_from_file(module_name, version, date, language, cursor, connection, filename="", file=None):
-    if filename != "":
-        with open(filename, newline='') as csvfile:
-            csvreader = csv.reader(csvfile)
-    else:
-        csvreader = file
+    with open(filename, newline='') as csvfile:
+        csvreader = csv.reader(csvfile)
         header = next(csvreader)
         cursor.execute(
             "SELECT COUNT(*) "
