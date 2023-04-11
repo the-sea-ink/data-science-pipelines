@@ -24,8 +24,8 @@ class TransformationPipeline:
         self.language = language
 
     def knowledge_base_lookup(self, G: NXGraph, module_node_attr="module",
-                              full_function_call_attr="full_function_name"):
-        # search for nodes with "full_function_name" attribute
+                              full_function_call_attr="full_function_call"):
+        # search for nodes with "full_function_call" attribute
         for node, attrs in G.nodes(True):
             if full_function_call_attr in attrs.keys() and module_node_attr in attrs.keys():
                 title_to_lookup = next(iter(attrs[full_function_call_attr]))
@@ -85,6 +85,7 @@ def process_wildcard_attributes(rule: NXGraph, G: NXGraph, rule_string):
     pattern = rule.lhs
     wildcards = {}
 
+    # 1
     for node, attrs in pattern.nodes(True):
         for attribute in attrs:
             for elem in attrs[attribute]:
@@ -97,31 +98,39 @@ def process_wildcard_attributes(rule: NXGraph, G: NXGraph, rule_string):
     generalized_pattern = pattern.copy(pattern)
     if len(wildcards) == 0:
         return [rule]
+
+    # 2
     for wildcard, wildcard_occurrances in wildcards.items():
         for occurance in wildcard_occurrances:
             generalized_pattern.remove_node_attrs(occurance[0],
                                                   {occurance[1]: wildcard})
-    instances = find_matching_optimised(G, generalized_pattern)
 
+    # 3
+    instances = find_matching_optimised(G, generalized_pattern)
     wildcard_answers = []
 
     for generalized_instance in instances:
         wildcard_matches = {}
+        # 4
         for wildcard, wildcard_occurrances in wildcards.items():
-            node_id_with_wildcard = wildcard_occurrances[0][0]
+            pattern_node_id_with_wildcard = wildcard_occurrances[0][0]
             attribute_name_with_wildcard = wildcard_occurrances[0][1]
-            mached_node_id = generalized_instance[node_id_with_wildcard]
+            mached_node_id = generalized_instance[pattern_node_id_with_wildcard]
             wildcard_value = G.get_node_attrs(mached_node_id)[attribute_name_with_wildcard]
             wildcard_value = next(iter(wildcard_value))
             wildcard_matches[wildcard] = wildcard_value
+        # 5.1
+        if len(wildcard_matches) != len(set(wildcard_matches.values())):
+            continue
+        # 5.2
         correct = True
         for wildcard, wildcard_occurrances in wildcards.items():
             if not correct:
                 break
             for occurance in wildcard_occurrances:
-                node_id_with_wildcard = occurance[0]
+                pattern_node_id_with_wildcard = occurance[0]
                 attribute_name_with_wildcard = occurance[1]
-                mached_node_id = generalized_instance[node_id_with_wildcard]
+                mached_node_id = generalized_instance[pattern_node_id_with_wildcard]
                 node_attrs = G.get_node_attrs(mached_node_id)
                 expected_value = node_attrs[attribute_name_with_wildcard]
                 if next(iter(expected_value)) != wildcard_matches[wildcard]:
@@ -129,7 +138,7 @@ def process_wildcard_attributes(rule: NXGraph, G: NXGraph, rule_string):
                     break
         if not correct:
             continue
-
+        # 6
         duplicate = False
         for rule_answer in wildcard_answers:
             shared_wildcard_values = {k: rule_answer[k] for k in rule_answer if
@@ -199,7 +208,7 @@ def apply_rule(G, rule_string: str):
     for rule in rules:
         pattern = rule.lhs
         instances = find_matching_optimised(G, pattern)
-
+        #instances = G.find_matching(pattern)
         if instances:
             # print(instances)
 
@@ -212,12 +221,83 @@ def test_func(G):
         # search for all calls or attributes
         for node, attrs in G.nodes(True):
             if (next(iter(attrs["type"])) == "call" or next(
-                    iter(attrs["type"])) == "attribute") and "full_function_name" not in attrs.keys():
+                    iter(attrs["type"])) == "attribute") and "full_function_call" not in attrs.keys():
                 new_node_attrs = attrs.copy()
-                new_node_attrs["full_function_name"] = attrs["text"]
+                new_node_attrs["full_function_call"] = attrs["text"]
                 new_node_attrs["module"] = "built-in"
                 G.update_node_attrs(node, new_node_attrs)
         return G
+
+def propagate(G:NXGraph, node_id):
+    visited = set()
+    to_visit = set()
+    to_visit.add(node_id)
+    while len(to_visit) > 0:
+        visiting = to_visit.pop()
+        visited.add(visiting)
+        for neighbour in G.ancestors(node_id).union(G.descendants(node_id)):
+            if neighbour not in visited and neighbour not in to_visit:
+                to_visit.add(neighbour)
+    return list(visited)
+
+
+
+
+def establish_connections(G):
+    # find pairs of variables
+    instances = list()
+
+    pattern = NXGraph()
+    pattern.add_node(1, {'type': 'output_variable', 'text': '%unknown_value1'})
+    pattern.add_node(2, {'type': 'identifier', 'text': '%unknown_value1'})
+    pattern.add_node(3)
+    pattern.add_edge(2, 3)
+
+    rule = Rule.from_transform(pattern)
+    rules = process_wildcard_attributes(rule, G, str(rule.to_json()))
+
+    for rule in rules:
+        instances.extend(find_matching_optimised(G, rule.lhs))
+
+    #print(instances)
+    output_variables = list(set([instance[1] for instance in instances]))
+    identifiers = list(set([instance[2] for instance in instances]))
+    priorities = {}
+    for node in output_variables + identifiers:
+        cloud_ids = propagate(G, node)
+        priorities[node] = min(cloud_ids)
+    #print(priorities)
+    new_instances = list()
+    for identifier in identifiers:
+        new_instance = {}
+        #find all output variables that have lower priority than current identifier
+        # AND represent the same variable
+        lover_ovs = [ov for ov in output_variables if priorities[ov] < priorities[identifier] and G.get_node_attrs(ov)['text']==G.get_node_attrs(identifier)['text']]
+        ov_with_highest_prio = lover_ovs[0]
+        for ov in lover_ovs:
+            if priorities[ov] > priorities[ov_with_highest_prio]:
+                ov_with_highest_prio = ov
+        #OV with the highest priority is our OV
+        old_instance_identifier_output = [instance for instance in instances if instance[2] == identifier][0][3]
+        new_instance[1] = ov_with_highest_prio
+        new_instance[2] = identifier
+        new_instance[3] = old_instance_identifier_output
+        new_instances.append(new_instance)
+    #print(new_instances)
+
+    rule = Rule.from_transform(pattern)
+    rule.inject_add_edge(1, 3)
+    rule.inject_remove_node(2)
+
+    for instance in new_instances:
+        G.rewrite(rule, instance)
+
+    save_idents = "{'priority' :100,'language': 'python', 'lhs': {'edges': [{'from': 1, 'to': 2, 'attrs': {}}], 'nodes': [{'id': 1, 'attrs': {'type': {'type': 'FiniteSet', 'data': ['identifier']}, 'text': {'type': 'FiniteSet', 'data': ['%unknown_value1']}}}, {'id': 2, 'attrs': {}}]}, 'p': {'edges': [], 'nodes': [{'id': 2, 'attrs': {}}]}, 'rhs': {'edges': [], 'nodes': [{'id': 2, 'attrs': {'identifier': {'type': 'FiniteSet', 'data': ['%unknown_value1']}}}]}, 'p_lhs': {2: 2}, 'p_rhs': {2: 2}, 'name': 'save_leftover_idents', 'description': '', 'rule_type': 'syntactic', 'by_user': False}"
+    remove_idents = "{'lhs': {'edges': [], 'nodes': [{'id': 1, 'attrs': {'type': {'type': 'FiniteSet', 'data': ['identifier']}}}]}, 'p': {'edges': [], 'nodes': []}, 'rhs': {'edges': [], 'nodes': []}, 'p_lhs': {}, 'p_rhs': {}, 'name': 'rm_leftover_idents', 'description': 'removes leftover identifiers without connections', 'rule_type': 'syntactic', 'by_user': False}"
+    apply_rule(G, save_idents)
+    apply_rule(G, remove_idents)
+
+    return G
 
 def transform_graph(G: NXGraph, language, language_specific_hook:LanguageHook):
     """
@@ -226,6 +306,7 @@ def transform_graph(G: NXGraph, language, language_specific_hook:LanguageHook):
     :param G: an NXGraph object
     :return: graph in a json format
     """
+
     pipeline = TransformationPipeline(language)
     #hook = language_specific_hook()
     start_iner = time.time()
@@ -235,17 +316,22 @@ def transform_graph(G: NXGraph, language, language_specific_hook:LanguageHook):
     connection = sqlite3.connect(db_path)
     cursor = connection.cursor()
 
+    #utils.draw_graph(G, "text")
+
     # initial graph transformation
     flip_tree(G)
-    utils.print_graph(G)
 
-    language_specific_hook
+    #utils.draw_graph(G, "text")
+
+    #utils.print_graph(G)
+
+    #language_specific_hook
     if language_specific_hook:
         language_specific_hook.pre_hooks(G)
 
 
     end_iner = time.time()
-    print(f'pre transformations done in {end_iner - start_iner}')
+    #print(f'pre transformations done in {end_iner - start_iner}')
     start_outer = time.time()
 
     # apply rules from rule base one by one
@@ -253,12 +339,14 @@ def transform_graph(G: NXGraph, language, language_specific_hook:LanguageHook):
     for counter, rule in enumerate(rules, 1):
         start_iner = time.time()
         json_rule = read_rule_from_string(rule[0])
-        print(f'Applying rule #{counter}')
+        #print(f'Applying rule #{counter}')
         # utils.draw_rule()
         # print(rule)
         # utils.draw_rule(counter)
+        #if counter == 33:
+            #print("yo")
         G = apply_rule(G, rule[0])
-        print_graph(G)
+        #print_graph(G)
         # print_graph(G)
         end_iner = time.time()
         #if end_iner - start_iner > 3:
@@ -268,26 +356,33 @@ def transform_graph(G: NXGraph, language, language_specific_hook:LanguageHook):
     # print(f'apply rule  done in {end_outer - start_outer}')
     start_iner = time.time()
 
+    #utils.draw_graph(G, "text")
+
+    establish_connections(G)
     #test_func(G)
 
     if language_specific_hook:
         language_specific_hook.post_hooks(G)
+
+
     pipeline.knowledge_base_lookup(G)
 
     end_iner = time.time()
-    print(f'post transformations done in {end_iner - start_iner}')
-    print_graph(G)
+    #print(f'post transformations done in {end_iner - start_iner}')
+    #print_graph(G)
     #draw_graph(G)
     graph_dict = nxgraph_to_json(G)
-    print(graph_dict)
+    #print(graph_dict)
 
     pseudo_graph = utils.json_to_nxgraph(graph_dict)
-    print_graph(pseudo_graph)
+    #print_graph(pseudo_graph)
 
+    #utils.draw_graph(G, "text")
     connection.close()
     return graph_dict
 
 
 if __name__ == "__main__":
-    utils.draw_rule(15, RuleExtractor())
+    for i in [66]:
+        utils.draw_rule(i, RuleExtractor())
     pass

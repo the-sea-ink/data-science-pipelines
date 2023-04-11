@@ -60,6 +60,11 @@ def print_graph(G):
     print("List of nodes: ")
     for n, attrs in G.nodes(data=True):
         print("\t", n, attrs)
+        continue
+        if 'text' in attrs.keys():
+            print(f"{n} type:'{attrs['type']}', text:'{attrs['text']}'")
+        else:
+            print(f"{n} type:'{attrs['type']}'")
     print()
     print("List of edges: ")
     for s, t, attrs in G.edges(data=True):
@@ -139,29 +144,32 @@ def nxraph_to_digraph(nxgraph: NXGraph):
     return digraph
 
 
-def draw_graph(G, attribute="type", id=False, fig_num=1):
+def draw_graph(G, attribute="text", id=False, fig_num=1):
     fig = plt.figure(fig_num)
     if type(G) is NXGraph:
         G = nxraph_to_digraph(G)
     # set graph structure to tree
     pos = graphviz_layout(G, prog="dot")
+    width = 2
+    plt.figure(figsize=(10, 5))
     if not id:
+        labels = {}
         ids = G.nodes()
-        labels = nx.get_node_attributes(G, attribute)
+        labels_type = nx.get_node_attributes(G, "type")
+        labels_text = nx.get_node_attributes(G, "text")
         # transform labels from finite set to strings
-        for id, k in zip(ids, labels):
-            for value in labels[k]:
-                if isinstance(value, str):
-                    labels[k] = id, value.replace("'", "")
-                else:
-                    labels[k] = id, value.decode("utf-8").replace("'", "")
+        for id, k, n in zip(ids, labels_type, labels_text): #):
+            for ttype, ttext in zip(labels_type[k], labels_text[n]): # ,
+                labels[k] = str(str(id) + "\n" + ttype + "\n" + ttext) #  .replace("'", "") str(id) + "\n" +  + "\n" + text.replace("'", "")
+                #else:
+                    #labels[k] = str(id, "\n",  value.decode("utf-8").replace("'", ""))
         nx.draw(G, pos=pos,
                 with_labels=True,
                 node_color="lightgrey",
                 edge_color="lightgrey",
                 labels=labels,
                 alpha=0.9,
-                width=2,
+                width=width,
                 node_size=2200,
                 arrowsize=20)
     else:
@@ -170,10 +178,10 @@ def draw_graph(G, attribute="type", id=False, fig_num=1):
                 node_color="lightgrey",
                 edge_color="lightgrey",
                 alpha=0.9,
-                width=2,
+                width=width,
                 node_size=2200,
                 arrowsize=20)
-    plt.figure(figsize=(20, 20))
+    #plt.figure(figsize=(20, 20))
     plt.show()
     return fig
 
@@ -215,11 +223,14 @@ def draw_diffgraph(Gdiff, attribute="text"):
     if type(Gdiff) is NXGraph:
         Gdiff = nxraph_to_digraph(Gdiff)
     ids = Gdiff.nodes()
-    labels = nx.get_node_attributes(Gdiff, attribute)
+    labels = {}
+    ids = Gdiff.nodes()
+    labels_type = nx.get_node_attributes(Gdiff, "type")
+    labels_text = nx.get_node_attributes(Gdiff, "text")
     # transform labels from finite set to strings
-    for id, k in zip(ids, labels):
-        for value in labels[k]:
-            labels[k] = id, value.replace("'", "")
+    for id, k, n in zip(ids, labels_type, labels_text):
+        for ttype, text in zip(labels_type[k], labels_text[n]):
+            labels[k] = str(str(id) + "\n" + ttype.replace("'", "") + "\n" + text.replace("'", ""))
     pos = graphviz_layout(Gdiff, prog="dot")
     # color different nodes depending on the labels
     val_map = {"both": "lightgrey",
@@ -261,7 +272,7 @@ def draw_diffgraph(Gdiff, attribute="text"):
             width=2,
             node_size=2200,
             arrowsize=20)
-    # plt.show()
+    plt.show()
 
 
 def convert_graph_to_json(G: NXGraph):
