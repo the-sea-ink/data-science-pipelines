@@ -1,8 +1,10 @@
 from regraph import NXGraph
 
 from hooks.LanguageHook import LanguageHook
-from rule_executioner import find_matching_optimised
+from rule_executioner import find_matching_optimised, apply_rule
 import utils
+import json
+from regraph import NXGraph, Rule
 
 
 class PythonHook (LanguageHook):
@@ -30,9 +32,10 @@ class PythonHook (LanguageHook):
         self.add_attributes_from_functions_dict(G, self.functions_dict)
         self.add_attributes_from_module_list(G, self.imported_modules)
         # when no module name is present, append "built-in"
-        self.add_full_names_to_nodes_without_modules(G)
+        #self.add_full_names_to_nodes_without_modules(G)
         # return node name where module name and full function name are stored
         return G, mapping
+
 
     def remove_import_statements(self, G: NXGraph):
         """
@@ -210,9 +213,9 @@ class PythonHook (LanguageHook):
         # search for all calls or attributes
         for node, attrs in G.nodes(True):
             if (next(iter(attrs["type"])) == "call" or next(
-                    iter(attrs["type"])) == "attribute") and "full_function_name" not in attrs.keys():
+                    iter(attrs["type"])) == "attribute") and "full_function_call" not in attrs.keys():
                 new_node_attrs = attrs.copy()
-                new_node_attrs["full_function_name"] = attrs["text"]
-                new_node_attrs["module"] = "built-in"
+                #new_node_attrs["full_function_name"] = attrs["text"]
+                #new_node_attrs["module"] = "built-in"
                 G.update_node_attrs(node, new_node_attrs)
         return G

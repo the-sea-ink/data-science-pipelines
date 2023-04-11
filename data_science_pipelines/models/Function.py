@@ -16,7 +16,7 @@ class Function:
         def __repr__(self):
             return self.__str__()
 
-    def __init__(self, name, description, link, args, module_name="", language="", ds_task=""):
+    def __init__(self, name, description, link, args="", module_name="", language="", ds_task=""):
         self.module_name = module_name
         self.name = name
         self.description = description
@@ -68,7 +68,7 @@ class Function:
         if name:
             # get function id to get its arguments
             cursor.execute(
-                "SELECT function_id, module_name, function_title, description, link, language FROM functions WHERE module_name = ? AND function_title =? AND language =?",
+                "SELECT function_id, module_name, function_title, description, link, language, data_science_task FROM functions WHERE module_name = ? AND function_title =? AND language =?",
                 (module_name, title, language))
             func = cursor.fetchall()
             if func:
@@ -79,7 +79,8 @@ class Function:
                     (func_id,))
                 args = cursor.fetchall()
                 if len(args) == 0 and len(func) != 0:
-                    return Function(func[0][2], func[0][3], func[0][4], func[0][5])
+                    #name, description, link, args, module_name="", language="", ds_task=""
+                    return Function(func[0][2], func[0][3], func[0][4], module_name=func[0][1], language=func[0][5], ds_task=func[0][6])
                 elif len(func) != 0:
                     arguments = []
                     for arg in args:
@@ -88,7 +89,8 @@ class Function:
                         else:
                             arguments.append(str({"argument_name": arg[0], "argument_type": arg[1], "argument_position": arg[2]}))
                 if len(func) != 0:
-                    function = Function(func[0][2], func[0][3], func[0][4], arguments)
+                    # name, description, link, args, module_name="", language="", ds_task=""
+                    function = Function(func[0][2], func[0][3], func[0][4], args=args, module_name=func[0][1], language=func[0][5], ds_task=func[0][6])
                     return function
         return None
 
