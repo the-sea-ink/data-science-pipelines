@@ -1,5 +1,6 @@
 import os
 
+from evaluation.stat_collector import StatCollector
 from hooks.PythonHook import PythonHook
 from rule_executioner import transform_graph
 from tree_sitter import Language, Parser
@@ -35,6 +36,7 @@ class GraphExtractor:
 
         # let tree-sitter parse code into a tree
         tree = parser.parse(b)
+        StatCollector.getStatCollector().append_script_data({'code lines': tree.root_node.child_count})
         nxgraph = self.bfs_tree_traverser(tree)
 
         # transform tree into a data science pipeline

@@ -88,7 +88,7 @@ class RuleManager:
 
 
 def get_rules_from_db(cursor):
-    cursor.execute("SELECT rule FROM rules ORDER BY priority, rule_id")
+    cursor.execute("SELECT rule, rule_id, rule_name, rule_type FROM rules ORDER BY priority, rule_id")
     rules = cursor.fetchall()
     return rules
 

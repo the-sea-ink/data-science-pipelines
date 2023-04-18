@@ -15,7 +15,6 @@ class RuleExtractor:
             by_text = False
 
 
-
         Gdiff, nodes_to_add, nodes_to_update, nodes_to_delete, edges_to_add, edges_to_delete = self.calculate_diff_graph(
             G1, G2)
 
@@ -26,7 +25,7 @@ class RuleExtractor:
         # transform NXGraph into an nx DiGraph
         #utils.draw_graph(G1)
         #utils.draw_graph(G2)
-        #utils.draw_diffgraph(Gdiff)
+        utils.draw_diffgraph(Gdiff)
 
         pattern = self.find_subgraph_from_node_list(Gdiff, nodes_to_add, nodes_to_update, nodes_to_delete, edges_to_add,
                                                     edges_to_delete)
@@ -40,7 +39,8 @@ class RuleExtractor:
         result = self.get_transformation_result(pattern_nxgraph, rule)
         #utils.print_graph(G1)
         #utils.print_graph(pattern_nxgraph)
-        #utils.print_graph(result)
+        #utils.draw_graph(pattern_nxgraph)
+        utils.draw_graph(result)
         dict_pattern = utils.nxgraph_to_json(pattern_nxgraph)
         dict_result = utils.nxgraph_to_json(result)
         return dict_pattern, dict_result
@@ -127,6 +127,8 @@ class RuleExtractor:
     def calculate_diff_graph(self, G1: NXGraph, G2: NXGraph):
         # add G1 nodes to Gdiff, label them as of G1 origin, add nodes to hash table
         Gdiff = NXGraph()
+        utils.draw_graph(G1)
+        utils.draw_graph(G2)
         hash_table_nodes, nodes_to_add, nodes_to_delete, nodes_to_update = {}, {}, {}, {}
         hash_table_edges, edges_to_add, edges_to_delete = [], [], []
         for g1_node, g1_attr in G1.nodes(data=True):
@@ -183,11 +185,13 @@ class RuleExtractor:
                 Gdiff.add_edge(s, t, {"origin": "G2"})
                 edges_to_add.append((s, t))
 
-        # print_graph(Gdiff)
+        utils.print_graph(Gdiff)
+        utils.draw_diffgraph(Gdiff)
         return Gdiff, nodes_to_add, nodes_to_update, nodes_to_delete, edges_to_add, edges_to_delete
 
     def find_subgraph_from_node_list(self, G, nodes_to_add, nodes_to_update, nodes_to_delete, edges_to_add,
                                      edges_to_delete):
+        # add all nodes related to changes
         changed_nodes, new_nodes = [], []
         changed_nodes.extend(list(nodes_to_delete.keys()))
         changed_nodes.extend(list(nodes_to_update.keys()))
@@ -360,9 +364,9 @@ class RuleExtractor:
         for instance in instances:
             result.rewrite(rule, instance)
         print("pattern:")
-        utils.print_graph(pattern)
+        #utils.print_graph(pattern)
         print("result:")
-        utils.print_graph(result)
+       # utils.print_graph(result)
         return result
 
 
@@ -395,9 +399,9 @@ if __name__ == "__main__":
     g1_json = utils.nxgraph_to_json(G1)
     g2_json = utils.nxgraph_to_json(G2)
 
-    out_file1 = open('tests/g1.json', "w")
+    out_file1 = open('evaluation/g1.json', "w")
     json.dump(g1_json, out_file1, indent=2)
-    out_file2 = open('tests/g2.json', "w")
+    out_file2 = open('evaluation/g2.json', "w")
     json.dump(g2_json, out_file2, indent=2)
 
     rule_extractor = RuleExtractor()

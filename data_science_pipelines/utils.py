@@ -144,23 +144,22 @@ def nxraph_to_digraph(nxgraph: NXGraph):
     return digraph
 
 
-def draw_graph(G, attribute="text", id=False, fig_num=1):
+def draw_graph_by_attr(G, attribute="type", id=False, fig_num=1):
     fig = plt.figure(fig_num)
     if type(G) is NXGraph:
         G = nxraph_to_digraph(G)
     # set graph structure to tree
     pos = graphviz_layout(G, prog="dot")
     width = 2
-    plt.figure(figsize=(10, 5))
+    plt.figure(figsize=(8, 5))
     if not id:
         labels = {}
         ids = G.nodes()
-        labels_type = nx.get_node_attributes(G, "type")
-        labels_text = nx.get_node_attributes(G, "text")
+        labels_type = nx.get_node_attributes(G, attribute)
         # transform labels from finite set to strings
-        for id, k, n in zip(ids, labels_type, labels_text): #):
-            for ttype, ttext in zip(labels_type[k], labels_text[n]): # ,
-                labels[k] = str(str(id) + "\n" + ttype + "\n" + ttext) #  .replace("'", "") str(id) + "\n" +  + "\n" + text.replace("'", "")
+        for id, k in zip(ids, labels_type): #):
+            for ttype in labels_type[k]: # ,
+                labels[k] = str(str(id) + "\n" + ttype ) #  .replace("'", "") str(id) + "\n" +  + "\n" + text.replace("'", "")
                 #else:
                     #labels[k] = str(id, "\n",  value.decode("utf-8").replace("'", ""))
         nx.draw(G, pos=pos,
@@ -181,7 +180,53 @@ def draw_graph(G, attribute="text", id=False, fig_num=1):
                 width=width,
                 node_size=2200,
                 arrowsize=20)
-    #plt.figure(figsize=(20, 20))
+    plt.show()
+    return fig
+
+
+def draw_graph(G, attribute="text", id=False, fig_num=1, title='', figsize = (50,10)):
+    fig = plt.figure(fig_num)
+    if type(G) is NXGraph:
+        G = nxraph_to_digraph(G)
+    # set graph structure to tree
+    pos = graphviz_layout(G, prog="dot")
+    width = 2
+    plt.figure(figsize=figsize)
+    plt.title(title)
+    if not id:
+        labels = {}
+        ids = G.nodes()
+        labels_type = nx.get_node_attributes(G, "type")
+        labels_text = nx.get_node_attributes(G, "text")
+        # transform labels from finite set to strings
+        for id in ids:
+            ttype = ''
+            ttext = ''
+            if id in labels_type.keys():
+                ttype = next(iter(labels_type[id]))
+            if id in labels_text.keys():
+                ttext = next(iter(labels_text[id]))
+            labels[id] = str(str(id) + "\n" + ttype + "\n" + ttext) #  .replace("'", "") str(id) + "\n" +  + "\n" + text.replace("'", "")
+                #else:
+                    #labels[k] = str(id, "\n",  value.decode("utf-8").replace("'", ""))
+        nx.draw(G, pos=pos,
+                with_labels=True,
+                node_color="lightgrey",
+                edge_color="lightgrey",
+                labels=labels,
+                alpha=0.9,
+                width=width,
+                node_size=2200,
+                arrowsize=20)
+    else:
+        nx.draw(G, pos=pos,
+                with_labels=True,
+                node_color="lightgrey",
+                edge_color="lightgrey",
+                alpha=0.9,
+                width=width,
+                node_size=2200,
+                arrowsize=20)
     plt.show()
     return fig
 
@@ -194,8 +239,8 @@ def draw_rule(num, extractor):
                 rule = Rule.from_json(rule_dict)
                 pattern = rule.lhs
                 result = extractor.get_transformation_result(pattern, rule_dict)
-                pattern_fig = draw_graph(pattern, fig_num=2)
-                result_fig = draw_graph(result, fig_num=3)
+                pattern_fig = draw_graph_by_attr(pattern, fig_num=2)
+                result_fig = draw_graph_by_attr(result, fig_num=3)
                 plt.show()
 
 
@@ -215,7 +260,6 @@ def jsonify_finite_set(param):
         return data
     else:
         return param
-
 
 
 def draw_diffgraph(Gdiff, attribute="text"):
