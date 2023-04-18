@@ -8,7 +8,7 @@ __pycache__/
 
 # Distribution / packaging
 .Python
-build/
+data_science_pipelines/build/
 develop-eggs/
 downloads/
 eggs/
@@ -165,7 +165,7 @@ bower_components
 .lock-wscript
 
 # Compiled binary addons (https://nodejs.org/api/addons.html)
-build/Release
+data_science_pipelines/build/Release
 
 # Dependency directories
 node_modules/
