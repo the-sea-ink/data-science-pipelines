@@ -74,7 +74,6 @@ def test_add_ds_task(api):
 
 
 def evaluate_script_collection(api):
-
     code = test_scripts.Python.code_0
     language = 'python'
     hook = PythonHook()
@@ -84,16 +83,21 @@ def evaluate_script_collection(api):
     stat = StatCollector.getStatCollector()
     stat.collecting_data = True
     counter = 0
-    for scr in scripts:
-        print(scr)
-        if not scr == 'kaggle10':
-            continue
-        stat.new_script()
-        stat.append_script_data({'script name': scr})
-        api.create_pipeline(scripts[scr]["script"], language, hook, write_to_file)
-        stat.store_script_and_rule_dataframe()
-        stat.export_data()
-    stat.print()
+    for i in range(10):
+        for scr in scripts:
+            #if scr not in ["short1", "short2", "short3", "short4", "short5", "short8", "short9", "short11", "short12", "sklearn5", "sklearn9]:
+             #  continue
+            if scr not in ["sklearn13"]:
+                continue
+            #if scr in ["short7", "short6", "short10", "sklearn1","kaggle1", "kaggle2", "kaggle3", "kaggle4", "kaggle5", "kaggle6", "kaggle7", "kaggle8", "kaggle10", "kaggle9", "kaggle11", "kaggle12", "kaggle13", "kaggle14", "kaggle415", "kaggle16"]:
+                #continue
+            print(scr)
+            stat.new_script()
+            stat.append_script_data({'script name': scr})
+            api.create_pipeline(scripts[scr]["script"], language, hook, write_to_file)
+            stat.store_script_and_rule_dataframe()
+        stat.export_data("evaluation/results/data/regraph_matching2.csv")
+    #stat.print()
 
 
 if __name__ == '__main__':
