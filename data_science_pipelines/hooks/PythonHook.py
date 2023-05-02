@@ -2,6 +2,7 @@ from regraph import NXGraph
 
 from hooks.LanguageHook import LanguageHook
 from rule_executioner import find_matching_optimised, apply_rule
+from regraph import find_matching
 import utils
 import json
 from regraph import NXGraph, Rule
@@ -9,7 +10,6 @@ from regraph import NXGraph, Rule
 
 class PythonHook (LanguageHook):
     def __init__(self):
-        print("Creating python hook")
         self.aliases_dict = {}
         self.functions_dict = {}
         self.imported_modules = []
@@ -53,10 +53,12 @@ class PythonHook (LanguageHook):
         pattern = NXGraph()
         pattern.add_node(1, {'type': 'import_statement'})
         instances.extend(find_matching_optimised(G, pattern))
+        #instances.extend(find_matching(G, pattern))
 
         pattern = NXGraph()
         pattern.add_node(1, {'type': 'import_from_statement'})
         instances.extend(find_matching_optimised(G, pattern))
+        #instances.extend(find_matching(G, pattern))
         if instances:
             for instance in instances:
                 nodes = utils.get_ancestors_nodes(G, instance[1])
@@ -79,6 +81,7 @@ class PythonHook (LanguageHook):
         pattern.add_edge(3, 1)
 
         instances = find_matching_optimised(G, pattern)
+        #instances = find_matching(G, pattern)
 
         aliases_dict = {}
 
@@ -114,6 +117,7 @@ class PythonHook (LanguageHook):
         pattern.add_edge(3, 2)
 
         instances = find_matching_optimised(G, pattern)
+        #instances = find_matching(G, pattern)
 
         functions_dict = {}
         if instances:
@@ -144,6 +148,7 @@ class PythonHook (LanguageHook):
         instances = []
 
         instances = find_matching_optimised(G, pattern)
+        #instances = find_matching(G, pattern)
 
         imported_modules = []
         if instances:
@@ -173,6 +178,9 @@ class PythonHook (LanguageHook):
                 #    G.add_node_attrs(node_id, {"description": kb_function.description})
 
     def add_attributes_from_functions_dict(self, G: NXGraph, functions_dict: dict):
+        """
+        from numpy import function
+        """
         for key in functions_dict:
             pattern = NXGraph()
             pattern.add_node(1, {'text': key})

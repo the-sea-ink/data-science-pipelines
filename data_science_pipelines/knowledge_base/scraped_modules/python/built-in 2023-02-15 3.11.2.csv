@@ -1,3 +1,0 @@
-title,description,link,parameters
-print,Print objects to the text stream file﹐ separated by sep and followed by end. sep﹐ end﹐ file﹐ and flush﹐ if present﹐ must be given as keyword arguments.,https://docs.python.org/3/library/functions.html#print,"*objects,sep=' ',end='\n',file=None,flush=False"
-type,With one argument﹐ return the type of an object.,https://docs.python.org/3/library/functions.html#type,"name,bases,dict,**kwds"

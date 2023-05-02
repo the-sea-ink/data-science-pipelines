@@ -25,11 +25,12 @@ class DSP_API():
     def create_pipeline(self, code, language, hook: LanguageHook = None, write_to_file=True,
                         output_path="outputs/ds_pipeline.json"):
         graph = self.graph_extractor.extract_pipeline(code, language, hook)
+        #print(graph)
         if write_to_file:
             out_file = open(output_path, "w")
             json.dump(graph, out_file, indent=4)
             out_file.close()
-            return graph
+            #return graph
         else:
             return graph
 

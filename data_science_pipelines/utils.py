@@ -5,6 +5,9 @@ import ast
 import json
 from regraph import NXGraph, Rule
 
+USING_OPTIMIZED_MATCHING = True
+COLLECTING_RULE_DATA = True
+COLLECTING_SCRIPT_STAT = True
 
 def get_root_node_id(G: NXGraph):
     # TODO: rewrite to search for a real root node
@@ -184,7 +187,7 @@ def draw_graph_by_attr(G, attribute="type", id=False, fig_num=1):
     return fig
 
 
-def draw_graph(G, attribute="text", id=False, fig_num=1, title='', figsize = (50,10)):
+def draw_graph(G, attribute="text", id=False, fig_num=1, title='', figsize = (15,10)):
     fig = plt.figure(fig_num)
     if type(G) is NXGraph:
         G = nxraph_to_digraph(G)
@@ -242,6 +245,10 @@ def draw_rule(num, extractor):
                 pattern_fig = draw_graph_by_attr(pattern, fig_num=2)
                 result_fig = draw_graph_by_attr(result, fig_num=3)
                 plt.show()
+
+#def draw_rule(rule):
+ #   draw_graph(rule.lhs)
+  #  draw_graph(rule.rhs)
 
 
 def jsonify_finite_set(param):
@@ -401,7 +408,7 @@ def nxgraph_to_json(G):
     for s, t in G.edges():
         edge_attrs = {"source": s, "target": t}
         graph_dict["edges"].append(edge_attrs)
-
+    #print(graph_dict)
     return graph_dict
 
 

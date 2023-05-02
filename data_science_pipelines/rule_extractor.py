@@ -29,6 +29,7 @@ class RuleExtractor:
 
         pattern = self.find_subgraph_from_node_list(Gdiff, nodes_to_add, nodes_to_update, nodes_to_delete, edges_to_add,
                                                     edges_to_delete)
+
         pattern, transformations = self.translate_changes_into_rule(pattern, nodes_to_add, nodes_to_update,
                                                                     nodes_to_delete,
                                                                     edges_to_add,
@@ -81,7 +82,6 @@ class RuleExtractor:
         rule_dict = create_rule(pattern_nxgraph, transformations)
 
         # add db entry attributes
-        
 
         result = self.get_transformation_result(pattern_nxgraph, rule_dict)
         """
@@ -123,7 +123,6 @@ class RuleExtractor:
             trimmed_G.add_edge(s, t)
         return trimmed_G
 
-    # TODO type and text or just type comparison
     def calculate_diff_graph(self, G1: NXGraph, G2: NXGraph):
         # add G1 nodes to Gdiff, label them as of G1 origin, add nodes to hash table
         Gdiff = NXGraph()

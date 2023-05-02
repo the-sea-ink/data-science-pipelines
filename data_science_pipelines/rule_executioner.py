@@ -85,10 +85,10 @@ def add_labels(G: NXGraph):
         G.add_node_attrs(node_id, {"label": node_text})
 
 
-def process_wildcard_attributes(rule: NXGraph, G: NXGraph, rule_string):
+def process_wildcard_attributes(rule: NXGraph, G: NXGraph, rule_string:str):
     pattern = rule.lhs
     wildcards = {}
-
+    stats = {}
     # 1
     for node, attrs in pattern.nodes(True):
         for attribute in attrs:
@@ -98,10 +98,10 @@ def process_wildcard_attributes(rule: NXGraph, G: NXGraph, rule_string):
                     if elem not in wildcards.keys():
                         wildcards[elem] = []
                     wildcards[elem].append((node, attribute))
-    #StatCollector.getStatCollector().append_rule_data({'wildcard amount': len(wildcards)})
+    stats['wildcard amount']= len(wildcards)
     generalized_pattern = pattern.copy(pattern)
     if len(wildcards) == 0:
-        return [rule]
+        return ([rule], stats)
 
     # 2
     for wildcard, wildcard_occurrances in wildcards.items():
@@ -110,9 +110,10 @@ def process_wildcard_attributes(rule: NXGraph, G: NXGraph, rule_string):
                                                   {occurance[1]: wildcard})
 
     # 3
+    #instances = find_matching(G, generalized_pattern)
     instances = find_matching_optimised(G, generalized_pattern)
     wildcard_answers = []
-    #StatCollector.getStatCollector().append_rule_data({'generalized instances': len(instances)})
+    stats['generalized instances'] = len(instances)
 
     instances_without_needed_attributes = list()
     for instance in instances:
@@ -176,8 +177,8 @@ def process_wildcard_attributes(rule: NXGraph, G: NXGraph, rule_string):
             new_rule_string = new_rule_string.replace(wildcard, wildcard_value)
         json_rule = read_rule_from_string(new_rule_string)
         rules.append(Rule.from_json(json_rule))
-    #StatCollector.getStatCollector().append_rule_data({'wildcard rules': len(rules)})
-    return rules
+    stats['wildcard rules'] = len(rules)
+    return (rules, stats)
 
 
 def node_comparator(graph_node_attrs, pattern_node_attrs):
@@ -210,19 +211,17 @@ def find_connected_graph(G, pattern):
     return instances
 
 
-def apply_rule(G, rule_string: str):
+def apply_rule(G, rule_string: str, rule = None):
     """
     Applies given rule on a graph.
 
     :param G: an NXGraph object
     :param rule_string: rule instance
     """
-
-    json_rule = read_rule_from_string(rule_string)
-
-    rule = Rule.from_json(json_rule)
-
-    rules = process_wildcard_attributes(rule, G, rule_string)
+    statistic = {}
+    if not rule:
+        rule = get_rule_from_rule_string(rule_string)
+    (rules, wildcard_stats) = process_wildcard_attributes(rule=rule, G=G, rule_string=rule_string)
     # check for wild card in pattern nodes
     instances_found = 0
     for rule in rules:
@@ -234,8 +233,9 @@ def apply_rule(G, rule_string: str):
             # print(instances)
             for instance in instances:
                 G.rewrite(rule, instance)
-    #StatCollector.getStatCollector().append_rule_data({'instances': instances_found})
-    return G
+    statistic['instances'] = instances_found
+    statistic.update(wildcard_stats)
+    return (G, statistic)
 
 
 def test_func(G):
@@ -274,9 +274,10 @@ def establish_connections(G):
     pattern.add_edge(2, 3)
 
     rule = Rule.from_transform(pattern)
-    rules = process_wildcard_attributes(rule, G, str(rule.to_json()))
+    (rules, stats) = process_wildcard_attributes(rule=rule, G=G, rule_string=str(rule.to_json()))
 
     for rule in rules:
+        #instances.extend(find_matching(G, rule.lhs))
         instances.extend(find_matching_optimised(G, rule.lhs))
 
     # print(instances)
@@ -336,6 +337,7 @@ def establish_connections(G):
 
     return G
 
+
 def deconstruct_forest_into_trees(G:NXGraph):
     trees = list()
     visited = set()
@@ -346,40 +348,98 @@ def deconstruct_forest_into_trees(G:NXGraph):
             trees.append(G.subgraph(same_tree_nodes))
     return trees
 
-def apply_rules_to_tree(tree, rules):
-    for rule in rules:
+
+def apply_rules_to_tree(tree, rules, rule_strings:list):
+    collecting_data = StatCollector.getStatCollector().collecting_data
+    #print(f'applying rule to {tree}')
+    rule_stat_per_tree = list()
+    for i in range(len(rules)):
         rule_start = time.time()
-        tree = apply_rule(tree, rule[0])
+        (tree, statistic) = apply_rule(G=tree, rule=rules[i], rule_string=rule_strings[i][0])
+        statistic['rule_id'] = i+1
         if len(tree.nodes(False)) == 0:
+            rule_end = time.time()
+            #if collecting_data:
+                #statistic['rule exec time'] = round(rule_end - rule_start, 5)
+            #rule_stat_per_tree.append(statistic)
             break
+        rule_end = time.time()
+        # print(f'#{counter} {round(rule_end - rule_start, 5)}')
+        #if collecting_data:
+            #statistic['rule exec time'] = round(rule_end - rule_start, 5)
+            #rule_stat_per_tree.append(statistic)
+    return (tree, rule_stat_per_tree)
+
+
+def process_trees_concurrently(trees, rules, rule_strings):
+    unconnected_rule = list()
+    check_rules = True
+    if check_rules:
+        for counter, rule in enumerate(rules):
+            pattern = rule.lhs
+            if len(pattern.nodes()) == 1:
+                continue
+            if not set(pattern.nodes()) == set(propagate(pattern, pattern.nodes(True)[0][0])):
+                unconnected_rule.append(rule)
+            if len(unconnected_rule) > 0:
+                raise Exception(f'Unconnected rule, can not process concurrently. Rule:{rule}')
+    new_trees = None
+    G = NXGraph()
+    concurrent_append = True
+    # todo depending on amount of cores
+    rule_stats = list()
+    collecting_data = StatCollector.getStatCollector().collecting_data
+
+    with Pool(processes=4) as pool:
+        if concurrent_append:
+            for (processed_tree, rule_stats_tree) in pool.imap(partial(apply_rules_to_tree, rules=rules, rule_strings=rule_strings), trees):
+                #print(f'concatenating tree{processed_tree}')
+                concatenate_two_graphs(G, processed_tree)
+                #if collecting_data:
+                    #rule_stats.append(rule_stats_tree)
+        else:
+            new_trees = pool.map(partial(apply_rules_to_tree, rules=rules), trees)
+
+            new_trees = [tree[0] for tree in new_trees if not len(tree[0].nodes(False)) == 0]
+            rule_stats = [tree[1] for tree in new_trees]
+            G = new_trees[0]
+            for tree in new_trees[1:]:
+                concatenate_two_graphs(G, tree)
+    pool.close()
+    #print('Rule stats ', rule_stats)
+    return (G, rule_stats)
+
+
+def concatenate_two_graphs(G1:NXGraph, G2:NXGraph):
+    G1.add_nodes_from(G2.nodes(True))
+    G1.add_edges_from(G2.edges(True))
+
+
+def apply_rules_unconcurrently(G, rules, rule_strings):
+    rules_to_skip = []
+    for counter, rule in enumerate(rules, 1):
+        if counter in rules_to_skip:
+            continue
+        #stats = StatCollector.getStatCollector()
+        #stats.new_rule()
+        rule_string = rule_strings[counter-1]
+        #stats.append_rule_data({'rule id': rule_string[1], 'rule name': rule_string[2], 'rule type': rule_string[3]})
+        rule_start = time.time()
+        if counter in []:
+            utils.draw_graph(G)
+        (G, statistic) = apply_rule(G=G, rule=rule, rule_string=rule_string[0])
         # if counter in []:
         #   utils.draw_graph(G, title=f'After rule {counter}')
         rule_end = time.time()
+        #stats.append_rule_data({'time': round(rule_end - rule_start, 5)})
         # print(f'#{counter} {round(rule_end - rule_start, 5)}')
-    return tree
+        #stats.store_rule_data()
 
-def process_trees_concurrently(trees, rules):
-    unconnected_rule = list()
-    for counter, rule in enumerate(rules):
-        pattern = Rule.from_json(read_rule_from_string(rule[0])).lhs
-        if not set(pattern.nodes()) == set(propagate(pattern, pattern.nodes(True)[0][0])):
-            unconnected_rule.append(rule)
-        if len(unconnected_rule) > 0:
-            raise Exception(f'Unconnected rule, can not process concurrently. Rule:{rule}')
-        new_trees = None
-    with Pool(processes=6) as pool:
-        new_trees = pool.map(partial(apply_rules_to_tree, rules=rules), trees)
-        #new_trees = pool.map(apply_rules_to_tree, map(lambda x: (x, rules) ,trees))
-    new_trees = [tree for tree in new_trees if not len(tree.nodes(False)) == 0]
-    return new_trees
 
-def concatenate_two_graphs(G1:NXGraph, G2:NXGraph):
-    G3 = NXGraph()
-    G3.add_nodes_from(G1.nodes(True))
-    G3.add_edges_from(G1.edges(True))
-    G3.add_nodes_from(G2.nodes(True))
-    G3.add_edges_from(G2.edges(True))
-    return G3
+def get_rule_from_rule_string(rule_string):
+    json_rule = read_rule_from_string(rule_string)
+    return Rule.from_json(json_rule)
+
 
 def transform_graph(G: NXGraph, language, language_specific_hook: LanguageHook):
     """
@@ -397,49 +457,52 @@ def transform_graph(G: NXGraph, language, language_specific_hook: LanguageHook):
     connection = sqlite3.connect(db_path)
     cursor = connection.cursor()
 
-    flip_timer_start = time.time()
+    preproceesing_start = time.time()
     # initial graph transformation
     flip_tree(G)
-    #print_graph(G)
-    #utils.draw_graph(G)
-    flip_timer_end = time.time()
 
+    #utils.draw_graph(G, figsize=(20, 10))
+    #utils.draw_graph(G, figsize=(40, 10))
     # language_specific_hook
     if language_specific_hook:
         language_specific_hook.pre_hooks(G)
 
     # apply rules from rule base one by one
-    rules = get_rules_from_db(cursor)
-    rules_to_skip = []
+    rule_strings = get_rules_from_db(cursor)
 
-    new_G = G.copy(G)
-    new_G.remove_node(0)
-    trees = deconstruct_forest_into_trees(new_G)
-    rule_start = time.time()
-    result = process_trees_concurrently(trees, rules)
-    new_G:NXGraph = result[0]
-    for tree in result[1:]:
-        new_G = concatenate_two_graphs(tree, new_G)
-    rule_end = time.time()
-    print('concurrent result :', rule_end - rule_start)
+    G.remove_node(0)
+
+    rules = list()
+    for rule_string in rule_strings:
+        rules.append(get_rule_from_rule_string(rule_string[0]))
+
+    preprocessing_end = time.time()
+
+    concurrent_rules_start = time.time()
+
+    concurrent_execution = True
+    ##################################################
+    if concurrent_execution:
+        trees = deconstruct_forest_into_trees(G)
+        (G, rule_stats) = process_trees_concurrently(trees, rules, rule_strings)
+        #rule_data_collector = StatCollector.getStatCollector()
+        #if rule_data_collector.collecting_data:
+         #   for subtree in rule_stats:
+          #      for rule_dict in subtree:
+           #         rule_data_collector.append_rule_data(rule_dict)
+            #        rule_data_collector.store_rule_data()
+             #       rule_data_collector.new_rule()
+            #rule_data_collector.store_rule_dataframe()
+        #concurrent_rules_end = time.time()
+    else:
+        apply_rules_unconcurrently(G, rules, rule_strings)
+    #################################################
+
+
+    #print('result :', concurrent_rules_end - concurrent_rules_start)
     rules_timer_start = time.time()
-    for counter, rule in enumerate(rules, 1):
-        if counter in rules_to_skip:
-            continue
-        stats = StatCollector.getStatCollector()
-        stats.new_rule()
-        stats.append_rule_data({'rule id': rule[1], 'rule name': rule[2], 'rule type': rule[3]})
-        rule_start = time.time()
-        json_rule = read_rule_from_string(rule[0])
-        G = apply_rule(G, rule[0])
-        #if counter in []:
-         #   utils.draw_graph(G, title=f'After rule {counter}')
-        rule_end = time.time()
-        stats.append_rule_data({'time': round(rule_end - rule_start, 5)})
-        #print(f'#{counter} {round(rule_end - rule_start, 5)}')
-        stats.store_rule_data()
     rules_timer_end = time.time()
-    print('unconcurrent result :', rules_timer_end - rules_timer_start)
+    #print('unconcurrent result :', rules_timer_end - rules_timer_start)
     #utils.draw_graph(G, title='After rules')
 
 
@@ -448,8 +511,12 @@ def transform_graph(G: NXGraph, language, language_specific_hook: LanguageHook):
     pipeline_end = time.time()
     # test_func(G)
 
+    postprocessing_start = time.time()
+
     if language_specific_hook:
         language_specific_hook.post_hooks(G)
+
+    postprocessing_end = time.time()
 
     kb_lookup_start = time.time()
     pipeline.knowledge_base_lookup(G)
@@ -457,29 +524,21 @@ def transform_graph(G: NXGraph, language, language_specific_hook: LanguageHook):
 
     graph_dict = nxgraph_to_json(G)
 
-    pseudo_graph = utils.json_to_nxgraph(graph_dict)
+    #pseudo_graph = utils.json_to_nxgraph(graph_dict)
 
     end_iner = time.time()
 
     nodes_end_amount = len(G.nodes())
-    if False:
-        print(f'nodes start: {start_nodes_amount} | '
-              f'total: {round(end_iner - start_iner, 2)} | '
-              f'flip: {round(flip_timer_end - flip_timer_start, 5)} | '
-              f'rules: {round(rules_timer_end - rules_timer_start, 5)} | '
-              f'kb_lookup: {round(kb_lookup_end - kb_lookup_start, 5)} | '
-              f'pipeline: {round(pipeline_end - pipeline_start, 5)} | '
-              f'nodes end: {nodes_end_amount}')
     script_stats = {'nodes at start': start_nodes_amount,
-                    'total time': round(end_iner - start_iner, 2),
-                    'rules time': round(rules_timer_end - rules_timer_start, 5),
+                    'preprocessing time': round(preprocessing_end - preproceesing_start, 5),
+                    #'rules time': round(concurrent_rules_end - concurrent_rules_start, 5),
                     'kb_lookup time': round(kb_lookup_end - kb_lookup_start, 5),
+                    'postprocessing time': round(postprocessing_end - postprocessing_start, 5),
                     'pipeline time': round(pipeline_end - pipeline_start, 5),
                     'nodes at end': nodes_end_amount}
-    stats = StatCollector.getStatCollector()
-    stats.append_script_data(script_stats)
-
-    #utils.draw_graph(G)
+    #stats = StatCollector.getStatCollector()
+    #stats.append_script_data(script_stats)
+    utils.draw_graph(G, figsize=(20, 10))
     #print_graph(G)
     connection.close()
     #print(len(G.nodes()), len(G.edges()), len(G.nodes())/len(G.edges()))
@@ -487,6 +546,6 @@ def transform_graph(G: NXGraph, language, language_specific_hook: LanguageHook):
 
 
 if __name__ == "__main__":
-    for i in [17]:
+    for i in [33]:
         utils.draw_rule(i, RuleExtractor())
     pass

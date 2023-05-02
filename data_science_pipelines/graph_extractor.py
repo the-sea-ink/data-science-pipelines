@@ -26,21 +26,25 @@ class GraphExtractor:
 
     def extract_pipeline(self, code, language, hook):
         code_language = language
-
+        start_time = time.time()
         # set language for the parser
         assert language != '', 'language is not set'
         language = Language('build/my-languages.so', language)
         parser = Parser()
         parser.set_language(language)
         b = bytes(code, "utf8")
-
+        ast_start = time.time()
         # let tree-sitter parse code into a tree
         tree = parser.parse(b)
-        StatCollector.getStatCollector().append_script_data({'code lines': tree.root_node.child_count})
         nxgraph = self.bfs_tree_traverser(tree)
-
+        ast_end = time.time()
         # transform tree into a data science pipeline
         G = transform_graph(nxgraph, code_language, hook)
+        end_time = time.time()
+        StatCollector.getStatCollector().append_script_data({'code lines': tree.root_node.child_count})
+        StatCollector.getStatCollector().append_script_data({'total time': round(end_time - start_time, 2)})
+        StatCollector.getStatCollector().append_script_data({'ast time': round(ast_end - ast_start, 2)})
+        #print(round(end_time - start_time, 2))
         return G
 
     def bfs_tree_traverser(self, tree):
