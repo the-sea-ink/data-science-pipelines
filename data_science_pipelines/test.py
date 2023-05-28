@@ -1,18 +1,11 @@
 import json
-import unittest
+
 import test_scripts
 from evaluation.stat_collector import StatCollector
 from hooks.PythonHook import PythonHook
 from dsp_api import DSP_API
 import utils
 from evaluation.scripts import scripts
-
-
-class MyTestCase(unittest.TestCase):
-
-    def test_something(self):
-        self.assertEqual(True, False)  # add assertion here
-
 
 def test_graph_extractor(api):
     code = test_scripts.Python.code_0
@@ -28,8 +21,8 @@ def test_extract_rule(api):
     g1 = json.load(f1)
     f2 = open("evaluation/g2.json")
     g2 = json.load(f2)
-    G1 = utils.json_to_nxgraph(g1)
-    G2 = utils.json_to_nxgraph(g2)
+    G1 = utils.json_to_nxgraph_for_gdiff(g1)
+    G2 = utils.json_to_nxgraph_for_gdiff(g2)
 
     pattern, result = api.extract_rule(G1, G2, "semantic")
     print(pattern)
@@ -74,31 +67,36 @@ def test_add_ds_task(api):
 
 
 def evaluate_script_collection(api):
-    code = test_scripts.Python.code_0
     language = 'python'
     hook = PythonHook()
-    write_to_file = False
-    #print(len(scripts))
-    #api.create_pipeline(scripts["sklearn12"]["script"], language, hook, write_to_file)
+    write_to_file = True
     stat = StatCollector.getStatCollector()
     stat.collecting_data = True
-    counter = 0
-    for i in range(10):
-        for scr in scripts:
-            #if scr not in ["short1", "short2", "short3", "short4", "short5", "short8", "short9", "short11", "short12", "sklearn5", "sklearn9]:
-             #  continue
-            if scr not in ["sklearn13"]:
-                continue
-            #if scr in ["short7", "short6", "short10", "sklearn1","kaggle1", "kaggle2", "kaggle3", "kaggle4", "kaggle5", "kaggle6", "kaggle7", "kaggle8", "kaggle10", "kaggle9", "kaggle11", "kaggle12", "kaggle13", "kaggle14", "kaggle415", "kaggle16"]:
-                #continue
-            print(scr)
-            stat.new_script()
-            stat.append_script_data({'script name': scr})
-            api.create_pipeline(scripts[scr]["script"], language, hook, write_to_file)
-            stat.store_script_and_rule_dataframe()
-        stat.export_data("evaluation/results/data/regraph_matching2.csv")
+
+    stat.new_script()
+    # stat.append_script_data({'script name': scr})
+    # api.create_pipeline(scripts[scr]["script"], language, hook, write_to_file)
+
+    for scr in scripts:
+        #if scr not in ["short5"]:
+            #continue
+        if scr not in ["short1", "short2", "short4", "short5", "short6", "short7", "short10", "sklearn1", "sklearn2",
+                       "sklearn3", "sklearn4", "sklearn5", "sklearn6", "sklearn7", "sklearn9", "sklearn10", "sklearn12",
+                       "kaggle7", "kaggle9", "kaggle12"]:
+            continue
+        for i in range(1):
+            #print(scr)
+            #stat.new_script()
+            #stat.append_script_data({'script name': scr})
+            api.create_pipeline(scripts[scr]["script"], language, hook, write_to_file, output_path="outputs/"+scr+".json")
+
+            #stat.store_script_and_rule_dataframe()
+            #stat.export_script_data("evaluation/results/data/graph_diff_data/" + scr + ".csv")
     #stat.print()
 
+
+def eval_graph_diff(api):
+    test_extract_rule(api)
 
 if __name__ == '__main__':
     api = DSP_API()
@@ -111,4 +109,5 @@ if __name__ == '__main__':
     # test_add_module(api)
     # test_add_function(api)
     # test_add_ds_task(api)
-    evaluate_script_collection(api)
+    #evaluate_script_collection(api)
+    #eval_graph_diff(api)
