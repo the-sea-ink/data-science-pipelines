@@ -248,7 +248,7 @@ def process_cli(argv):
     elif args.command == 'add_rule':
         process_add_rule(api, args)
     elif args.command == 'add_module':
-        process_add_module(api, args)
+        process_add_module_name(api, args)
     elif args.command == 'add_function':
         process_add_function(api, args)
     elif args.command == 'add_ds_task':
