@@ -1,7 +1,7 @@
 import os
 
 from evaluation.stat_collector import StatCollector
-from hooks.PythonHook import PythonHook
+import hooks
 from rule_executioner import transform_graph
 from tree_sitter import Language, Parser
 import test_scripts
@@ -88,5 +88,5 @@ if __name__ == "__main__":
     code = test_scripts.Python.code_0
     start = time.time()
     extractor = GraphExtractor()
-    extractor.extract_pipeline(code, language, PythonHook())
+    extractor.extract_pipeline(code, language, hooks.PythonHook.PythonHook())
     print("--- %s seconds ---" % (time.time() - start_time))
