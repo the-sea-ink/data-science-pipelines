@@ -31,7 +31,7 @@
   "sklearn.preprocessing.StandardScaler": "model",
   "sklearn.model_selection.train_test_split": "data-splitting",
   "sklearn.svm.SVC": "estimator",
-  "sklearn.pipeline.Pipeline": "transformer",
+  "sklearn.pipeline.Pipeline": "composite-estimator",
   "sklearn.datasets.make_classification": "dataset-generator",
   "str": "string",
   "complex": "complex",
