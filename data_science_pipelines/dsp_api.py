@@ -35,6 +35,7 @@ class DSP_API():
             return graph
 
     def extract_rule(self, g1, g2, rule_type):
+        #TODO change both graphs to json
         pattern, result = self.rule_extractor.extract_rule(g1, g2, rule_type)
         return pattern, result  # viz
 
