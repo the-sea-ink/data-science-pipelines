@@ -10,7 +10,6 @@ COLLECTING_RULE_DATA = True
 COLLECTING_SCRIPT_STAT = True
 
 def get_root_node_id(G: NXGraph):
-    # TODO: rewrite to search for a real root node
     root_node = 0
     return root_node
 
@@ -44,7 +43,6 @@ def create_pattern(id, attr_name, node_type):
     return pattern
 
 
-# TODO restrict subgraph deepness
 def get_ancestors_nodes(G: NXGraph, node_id):
     subg_nodes = list(G.ancestors(node_id))
     subg_nodes.append(node_id)
@@ -187,15 +185,17 @@ def draw_graph_by_attr(G, attribute="type", id=False, fig_num=1):
     return fig
 
 
-def draw_graph(G, attribute="text", id=False, fig_num=1, title='', figsize = (15,10)):
-    fig = plt.figure(fig_num)
+def draw_graph(G, attribute="text", id=False, title='', figsize = (15,10), ax=None):
     if type(G) is NXGraph:
         G = nxraph_to_digraph(G)
     # set graph structure to tree
     pos = graphviz_layout(G, prog="dot")
     width = 2
-    plt.figure(figsize=figsize)
-    plt.title(title)
+    if ax:
+        ax.set_title(title)
+    else:
+        plt.title(title)
+        plt.figure(figsize=figsize)
     if not id:
         labels = {}
         ids = G.nodes()
@@ -212,7 +212,9 @@ def draw_graph(G, attribute="text", id=False, fig_num=1, title='', figsize = (15
             labels[id] = str(str(id) + "\n" + ttype + "\n" + ttext) #  .replace("'", "") str(id) + "\n" +  + "\n" + text.replace("'", "")
                 #else:
                     #labels[k] = str(id, "\n",  value.decode("utf-8").replace("'", ""))
-        nx.draw(G, pos=pos,
+        nx.draw(G,
+                ax=ax,
+                pos=pos,
                 with_labels=True,
                 node_color="lightgrey",
                 edge_color="lightgrey",
@@ -222,7 +224,9 @@ def draw_graph(G, attribute="text", id=False, fig_num=1, title='', figsize = (15
                 node_size=2200,
                 arrowsize=20)
     else:
-        nx.draw(G, pos=pos,
+        nx.draw(G,
+                ax=ax,
+                pos=pos,
                 with_labels=True,
                 node_color="lightgrey",
                 edge_color="lightgrey",
@@ -230,8 +234,9 @@ def draw_graph(G, attribute="text", id=False, fig_num=1, title='', figsize = (15
                 width=width,
                 node_size=2200,
                 arrowsize=20)
-    plt.show()
-    return fig
+    if not ax:
+        plt.show()
+    return
 
 
 def draw_rule(num, extractor):
@@ -242,8 +247,9 @@ def draw_rule(num, extractor):
                 rule = Rule.from_json(rule_dict)
                 pattern = rule.lhs
                 result = extractor.get_transformation_result(pattern, rule_dict)
-                pattern_fig = draw_graph_by_attr(pattern, fig_num=2)
-                result_fig = draw_graph_by_attr(result, fig_num=3)
+                fig, axes = plt.subplots(1,2, figsize=(20,10))
+                pattern_fig = draw_graph(pattern, title='Pattern', ax=axes[0])
+                result_fig = draw_graph(result, title='Result', ax=axes[1])
                 plt.show()
 
 #def draw_rule(rule):
@@ -313,6 +319,7 @@ def draw_diffgraph(Gdiff, attribute="text"):
                     edge_colors.append(val_map["G2"])
     # add labels=labels, for different labeling
     # add node_color='lightblue' for one colored nodes
+    plt.figure(figsize= (20,10))
     nx.draw(Gdiff, pos=pos,
             with_labels=True,
             cmap=plt.get_cmap('inferno'),
@@ -421,4 +428,16 @@ def json_to_nxgraph(graph_dict):
         graph.add_edge(edge["source"], edge["target"])
     return graph
 
+
+def json_to_nxgraph_for_gdiff(graph_dict):
+    graph = NXGraph()
+    for node in graph_dict["nodes"]:
+        node_id = node.pop("id")
+        node_attrs = {"type" : node["type"]}
+        if "text" in node.keys():
+            node_attrs["text"] = node["text"]
+        graph.add_node(node_id, node_attrs)
+    for edge in graph_dict["edges"]:
+        graph.add_edge(edge["source"], edge["target"])
+    return graph
 
