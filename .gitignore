@@ -263,3 +263,5 @@ graph.json
 graph.json
 data_science_pipelines/test_scripts.py
 *.db
+third_party/*
+third_party
