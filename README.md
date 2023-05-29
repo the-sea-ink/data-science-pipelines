@@ -1,3 +1,5 @@
+This is a TU-Berlin Master's Thesis. It is created and implemented for research and educational purposes only, not for commercial use.
+
 To begin with, install the requirements:
 ```
 python -m pip install -r requirements.txt
