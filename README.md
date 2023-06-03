@@ -9,16 +9,30 @@ Switch to virtual environment and install Regraph by executing following command
 python setup.py install
 ```
 
-To initialize database:
+To use CLI:
+1. start virtual environment
+2. cd into the project folder data-science-pipelines
+3. run commands
+
+Commands: 
 ```
-python db_driver.py
+initialize database:    python data_science_pipelines init_db
+create pipeline:        python data_science_pipelines create_pipeline path_to_script language --path_to_hook --write_to_file --output_path
+extract rule:           python data_science_pipelines extract_rule path_to_g1 path_to_g2 rule_type
+confirm rule:           python data_science_pipelines path_to_rule rule_name rule_description language
+list rules by language: python data_science_pipelines list_rules language
+visualize rule:         python data_science_pipelines visualize_rule rule_name
+delete a rule:          python data_science_pipelines delete_rule rule_name
+add a rule:             python data_science_pipelines add_rule path_to_rule
+add new module to kb:   python data_science_pipelines add_module module_name module_version date(yyyy-mm-dd) language
+add function to kb:     python data_science_pipelines add_function module_name function_title function_description function_language ds_task --doc_link --func_args
+add data science dask:  python data_science_pipelines add_ds_task module_name function_title language ds_task
 ```
 
 
-To use CLI: 
-```
-coming soon
-```
+
+
+
 
 To populate our knowledge base, we used publicly available information from [Pandas](https://pandas.pydata.org/docs/) (BSD-3-Clause license) and [Scikit-learn](https://scikit-learn.org/stable/modules/classes.html) (BSD-3-Clause license) documentation. We also used some of the data provided by the [Data Science Ontology](https://github.com/IBM/datascienceontology) project (CC-BY-4.0 license). 
 
