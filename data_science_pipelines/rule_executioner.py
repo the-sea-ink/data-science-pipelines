@@ -263,7 +263,7 @@ def propagate(G: NXGraph, node_id):
     return list(visited)
 
 
-def establish_connections(G):
+def establish_connections(G: NXGraph):
     # find pairs of variables
     instances = list()
 
@@ -323,13 +323,16 @@ def establish_connections(G):
         new_instances.append(new_instance)
     # print(new_instances)
 
-    rule = Rule.from_transform(pattern)
-    rule.inject_add_edge(1, 3)
-    rule.inject_remove_node(2)
+
+    #rule.inject_remove_node(2)
 
     for instance in new_instances:
+        identifier_id = instance[2]
+        identifier_text = next(iter(G.get_node_attrs(identifier_id)['text']))
+        rule = Rule.from_transform(pattern)
+        rule.inject_add_edge(1, 2)
+        rule.inject_update_node_attrs(2, {'type': 'input', 'text': identifier_text})
         G.rewrite(rule, instance)
-
     save_idents = "{'priority' :100,'language': 'python', 'lhs': {'edges': [{'from': 1, 'to': 2, 'attrs': {}}], 'nodes': [{'id': 1, 'attrs': {'type': {'type': 'FiniteSet', 'data': ['identifier']}, 'text': {'type': 'FiniteSet', 'data': ['%unknown_value1']}}}, {'id': 2, 'attrs': {}}]}, 'p': {'edges': [], 'nodes': [{'id': 2, 'attrs': {}}]}, 'rhs': {'edges': [], 'nodes': [{'id': 2, 'attrs': {'identifier': {'type': 'FiniteSet', 'data': ['%unknown_value1']}}}]}, 'p_lhs': {2: 2}, 'p_rhs': {2: 2}, 'name': 'save_leftover_idents', 'description': '', 'rule_type': 'syntactic', 'by_user': False}"
     remove_idents = "{'lhs': {'edges': [], 'nodes': [{'id': 1, 'attrs': {'type': {'type': 'FiniteSet', 'data': ['identifier']}}}]}, 'p': {'edges': [], 'nodes': []}, 'rhs': {'edges': [], 'nodes': []}, 'p_lhs': {}, 'p_rhs': {}, 'name': 'rm_leftover_idents', 'description': 'removes leftover identifiers without connections', 'rule_type': 'syntactic', 'by_user': False}"
     apply_rule(G, save_idents)
@@ -504,7 +507,7 @@ def transform_graph(G: NXGraph, language, language_specific_hook: LanguageHook):
     rules_timer_end = time.time()
     #print('unconcurrent result :', rules_timer_end - rules_timer_start)
     #utils.draw_graph(G, title='After rules')
-
+    #utils.draw_graph(G)
 
     pipeline_start = time.time()
     establish_connections(G)
@@ -526,19 +529,7 @@ def transform_graph(G: NXGraph, language, language_specific_hook: LanguageHook):
 
     #pseudo_graph = utils.json_to_nxgraph(graph_dict)
 
-    end_iner = time.time()
-
-    nodes_end_amount = len(G.nodes())
-    script_stats = {'nodes at start': start_nodes_amount,
-                    'preprocessing time': round(preprocessing_end - preproceesing_start, 5),
-                    #'rules time': round(concurrent_rules_end - concurrent_rules_start, 5),
-                    'kb_lookup time': round(kb_lookup_end - kb_lookup_start, 5),
-                    'postprocessing time': round(postprocessing_end - postprocessing_start, 5),
-                    'pipeline time': round(pipeline_end - pipeline_start, 5),
-                    'nodes at end': nodes_end_amount}
-    #stats = StatCollector.getStatCollector()
-    #stats.append_script_data(script_stats)
-    utils.draw_graph(G, figsize=(40, 10))
+    utils.draw_graph(G, figsize=(20, 10))
     #print_graph(G)
     connection.close()
     #print(len(G.nodes()), len(G.edges()), len(G.nodes())/len(G.edges()))
