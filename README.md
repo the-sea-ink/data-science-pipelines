@@ -16,17 +16,18 @@ To use CLI:
 
 Commands: 
 ```
-initialize database:    python data_science_pipelines init_db
-create pipeline:        python data_science_pipelines create_pipeline path_to_script language --path_to_hook --write_to_file --output_path
-extract rule:           python data_science_pipelines extract_rule path_to_g1 path_to_g2 rule_type
-confirm rule:           python data_science_pipelines path_to_rule rule_name rule_description language
-list rules by language: python data_science_pipelines list_rules language
-visualize rule:         python data_science_pipelines visualize_rule rule_name
+initialize database:    python data_science_pipelines init_db 
+create pipeline:        python data_science_pipelines create_pipeline path_to_script language --hpath hook_path --wtfile True --opath output_file_path 
+extract rule:           python data_science_pipelines extract_rule path_to_g1 path_to_g2 rule_type 
+confirm rule:           python data_science_pipelines path_to_pattern path_to_result rule_name rule_description language rule_type rule_priority
+list rules by language: python data_science_pipelines list_rules language 
+visualize rule:         python data_science_pipelines visualize_rule rule_name 
 delete a rule:          python data_science_pipelines delete_rule rule_name
 add a rule:             python data_science_pipelines add_rule path_to_rule
 add new module to kb:   python data_science_pipelines add_module module_name module_version date(yyyy-mm-dd) language
-add function to kb:     python data_science_pipelines add_function module_name function_title function_description function_language ds_task --doc_link --func_args
-add data science dask:  python data_science_pipelines add_ds_task module_name function_title language ds_task
+add function to kb:     python data_science_pipelines add_function module_name function_title function_description function_language ds_task --dlink "link to documentation"
+add data science dask:  python data_science_pipelines add_ds_task module_name function_title language ds_task 
+add description:        python data_science_pipelines add_description module_name function_title language description 
 ```
 
 
