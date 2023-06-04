@@ -6,3 +6,6 @@ class LanguageHook:
 
     def post_hooks(self, G: NXGraph):
         pass
+
+def get_hook() -> LanguageHook:
+    pass

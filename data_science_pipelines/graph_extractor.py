@@ -17,9 +17,9 @@ class GraphExtractor:
             'build/my-languages.so',
             # Include one or more languages
             [
-                os.path.join(os.path.dirname(__file__), '../third_party/parsers/tree-sitter-python'),
-                os.path.join(os.path.dirname(__file__), '../third_party/parsers/tree-sitter-r'),
-                os.path.join(os.path.dirname(__file__), '../third_party/parsers/tree-sitter-snakemake-pure')
+                os.path.normpath(os.path.join(os.path.dirname(__file__), '../third_party/parsers/tree-sitter-python')),
+                os.path.normpath(os.path.join(os.path.dirname(__file__), '../third_party/parsers/tree-sitter-r')),
+                os.path.normpath(os.path.join(os.path.dirname(__file__), '../third_party/parsers/tree-sitter-snakemake-pure'))
 
             ]
         )

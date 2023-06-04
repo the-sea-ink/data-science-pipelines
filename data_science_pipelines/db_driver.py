@@ -125,9 +125,9 @@ def init_ds_tasks(language, cursor):
 
 def assign_ds_tasks(cursor, connection):
     # assign data science task to a respective function from knowledge base
-    task_dirs = [f.name for f in os.scandir("knowledge_base/ds_tasks/") if f.is_dir()]
+    task_dirs = [f.name for f in os.scandir("data_science_pipelines/knowledge_base/ds_tasks/") if f.is_dir()]
     for language in task_dirs:
-        f = open("knowledge_base/ds_tasks/" + language + "/ds_tasks.json")
+        f = open("data_science_pipelines/knowledge_base/ds_tasks/" + language + "/ds_tasks.json")
         data = json.load(f)
         for key in data:
             function = Function.parse_from_db_by_name_and_language(cursor, key, language)
@@ -143,7 +143,7 @@ def init_rules_from_file(cursor, connection):
         "SELECT COUNT(*) "
         "FROM rules")
     added_rule_id = cursor.fetchall()[0][0] + 1
-    with open("knowledge_base/rules/rule_base.txt") as file:
+    with open("data_science_pipelines/knowledge_base/rules/rule_base.txt") as file:
         for counter, line in enumerate(file, 0):
             json_rule = read_rule_from_string(line)
             if "name" in json_rule:
@@ -171,25 +171,25 @@ def init_rules_from_file(cursor, connection):
 
 def reset_db():
     # establish connection
-    connection = sqlite3.connect("../knowledge_base.db")
+    connection = sqlite3.connect("knowledge_base.db")
     cursor = connection.cursor()
 
     # init database
     init_tables(cursor, connection)
-
+    #print(os.getcwdb())
     # init modules and functions
-    folders = os.listdir("knowledge_base/scraped_modules/")
+    folders = os.listdir("data_science_pipelines/knowledge_base/scraped_modules/")
     for language in folders:
-        files = os.listdir("knowledge_base/scraped_modules/" + language)
+        files = os.listdir("data_science_pipelines/knowledge_base/scraped_modules/" + language)
         for file in files:
             module_name, date, version = file.replace(".csv", "").split(" ")
             date_format = "%Y-%m-%d"
             date = datetime.datetime.strptime(date, date_format).date()
-            module_path = "knowledge_base/scraped_modules/" + language + "/" + file
+            module_path = "data_science_pipelines/knowledge_base/scraped_modules/" + language + "/" + file
             init_module_from_file(module_name, version, date, language, cursor, connection, filename=module_path)
 
     # init data science tasks
-    ds_folders = [f.name for f in os.scandir("knowledge_base/ds_annotation/") if f.is_dir()]
+    ds_folders = [f.name for f in os.scandir("data_science_pipelines/knowledge_base/ds_annotation/") if f.is_dir()]
     for language in ds_folders:
         init_ds_tasks(language, cursor)
     assign_ds_tasks(cursor, connection)
@@ -198,6 +198,7 @@ def reset_db():
     init_rules_from_file(cursor, connection)
 
     connection.close()
+    return "Database initialized successfully"
 
 
 if __name__ == "__main__":

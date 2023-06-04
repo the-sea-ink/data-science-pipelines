@@ -1,10 +1,6 @@
-from regraph import NXGraph
-
 from hooks.LanguageHook import LanguageHook
-from rule_executioner import find_matching_optimised, apply_rule
-from regraph import find_matching
+from rule_executioner import find_matching_optimised
 import utils
-import json
 from regraph import NXGraph, Rule
 
 
@@ -227,3 +223,6 @@ class PythonHook (LanguageHook):
                 #new_node_attrs["module"] = "built-in"
                 G.update_node_attrs(node, new_node_attrs)
         return G
+
+def get_hook() -> LanguageHook:
+    return PythonHook()

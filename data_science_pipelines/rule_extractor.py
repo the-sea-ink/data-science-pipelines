@@ -6,6 +6,7 @@ import regraph.backends.networkx.graphs
 from regraph import NXGraph, Rule
 import utils
 from rule_manager import create_rule, create_pattern, RuleManager
+import matplotlib.pyplot as plt
 from evaluation.stat_collector import StatCollector
 
 
@@ -17,45 +18,20 @@ class RuleExtractor:
         else:
             by_text = False
 
-
-        nodes_g1 = len(G1.nodes())
-        nodes_g2 = len(G2.nodes())
-
-        total_time_start = time.time()
-
-        diff_start = time.time()
         Gdiff, nodes_to_add, nodes_to_update, nodes_to_delete, edges_to_add, edges_to_delete = self.calculate_diff_graph(
             G1, G2)
-        diff_end = time.time()
-        nodes_gdiff = len(Gdiff.nodes())
 
         # trim not relevant attributes
         G1 = self.trim_attributes(G1, by_text)
         G2 = self.trim_attributes(G2, by_text)
 
-        # transform NXGraph into an nx DiGraph
-        #utils.draw_graph(G1)
-        #utils.draw_graph(G2)
-        utils.draw_diffgraph(Gdiff)
-
-        subgraph_start = time.time()
-
         pattern = self.find_subgraph_from_node_list(Gdiff, nodes_to_add, nodes_to_update, nodes_to_delete, edges_to_add,
                                                     edges_to_delete)
-
-        nodes_to_add_stat = len(nodes_to_add.keys())
-        nodes_to_del_stat = len(nodes_to_delete.keys())
-        nodes_to_update_stat = len(nodes_to_update.keys())
-
-        subgraph_end = time.time()
-
-        rule_start = time.time()
 
         pattern, transformations = self.translate_changes_into_rule(pattern, nodes_to_add, nodes_to_update,
                                                                     nodes_to_delete,
                                                                     edges_to_add,
                                                                     edges_to_delete)
-
 
         pattern_nxgraph = create_pattern(pattern)
         rule = create_rule(pattern_nxgraph, transformations)
@@ -64,39 +40,20 @@ class RuleExtractor:
 
         result = self.get_transformation_result(pattern_nxgraph, rule)
 
-
-        #utils.print_graph(G1)
-        #utils.print_graph(pattern_nxgraph)
-        #utils.draw_graph(pattern_nxgraph)
-        #utils.draw_graph(result)
         dict_pattern = utils.nxgraph_to_json(pattern_nxgraph)
         dict_result = utils.nxgraph_to_json(result)
 
-        rule_end = time.time()
-
-        total_time_end = time.time()
-
-        script_stats = {"nodes g1": int(nodes_g1),
-                        "nodes g2": int(nodes_g2),
-                        "nodes gdiff": int(nodes_gdiff),
-                        "nodes to add": int(nodes_to_add_stat),
-                        "nodes to delete": int(nodes_to_del_stat),
-                        "nodes to update": int(nodes_to_update_stat),
-                        #"edges to add": len(edges_to_add),
-                        #"edges to delete": len(edges_to_delete)
-                        #"nodes in pattern": nodes_in_pattern,
-                        #"time diff": round(diff_end - diff_start, 5),
-                        #"time subgraph": round(subgraph_end - subgraph_start, 5),
-                        #"time rule creation": round(rule_end - rule_start, 5),
-                        #"total time": round(total_time_end - total_time_start, 5)
-                        }
-        stats = StatCollector.getStatCollector()
-        stats.append_script_data(script_stats)
-        print("total time ", round(total_time_end - total_time_start, 5))
+        fig, axes = plt.subplots(1, 2, figsize=(20, 10))
+        pattern_fig = utils.draw_graph_rule(pattern_nxgraph, title='Pattern', ax=axes[0])
+        result_fig = utils.draw_graph_rule(result, title='Result', ax=axes[1])
+        plt.show()
 
         return dict_pattern, dict_result
 
-    def adapt_rule(self, pattern, result, rule_name, rule_description, language, rule_type="semantic", priority=50):
+    def adapt_rule(self, pattern, result, rule_name, rule_description, language, rule_type="semantic",
+                   priority=50):
+        #pattern = utils.json_to_nxgraph(pattern_dict)
+        #result = utils.json_to_nxgraph(result_dict)
         if rule_type == "semantic":
             by_text = True
         else:
@@ -112,7 +69,7 @@ class RuleExtractor:
                                                                     nodes_to_delete,
                                                                     edges_to_add,
                                                                     edges_to_delete)
-        #pattern_nxgraph = create_pattern(pattern)
+        # pattern_nxgraph = create_pattern(pattern)
         rule_dict = {}
         rule_dict["name"] = rule_name
         rule_dict["description"] = rule_description
@@ -176,8 +133,8 @@ class RuleExtractor:
     def calculate_diff_graph(self, G1: NXGraph, G2: NXGraph):
         # add G1 nodes to Gdiff, label them as of G1 origin, add nodes to hash table
         Gdiff = NXGraph()
-        #utils.draw_graph(G1)
-        #utils.draw_graph(G2)
+        # utils.draw_graph(G1)
+        # utils.draw_graph(G2)
         hash_table_nodes, nodes_to_add, nodes_to_delete, nodes_to_update = {}, {}, {}, {}
         hash_table_edges, edges_to_add, edges_to_delete = [], [], []
         for g1_node, g1_attr in G1.nodes(data=True):
@@ -234,10 +191,9 @@ class RuleExtractor:
                 Gdiff.add_edge(s, t, {"origin": "G2"})
                 edges_to_add.append((s, t))
 
-        #utils.print_graph(Gdiff)
-        #utils.draw_diffgraph(Gdiff)
+        # utils.print_graph(Gdiff)
+        # utils.draw_diffgraph(Gdiff)
         return Gdiff, nodes_to_add, nodes_to_update, nodes_to_delete, edges_to_add, edges_to_delete
-
 
     def find_subgraph_from_node_list(self, G, nodes_to_add, nodes_to_update, nodes_to_delete, edges_to_add,
                                      edges_to_delete):
@@ -365,8 +321,8 @@ class RuleExtractor:
             for key in nodes_to_add:
                 if "text" in nodes_to_add[key]:
                     for type, text in zip(nodes_to_add[key]["type"], nodes_to_add[key]["text"]):
-                            transformations["add_nodes_with_attributes"].append(
-                                {"node_id": key, "type": type, "text": text})
+                        transformations["add_nodes_with_attributes"].append(
+                            {"node_id": key, "type": type, "text": text})
                 else:
                     for type in nodes_to_add[key]["type"]:
                         transformations["add_nodes_with_attributes"].append(
@@ -406,7 +362,7 @@ class RuleExtractor:
 
         pattern_dict = {"pattern": pattern}
         transformation_dict = {"transformations": transformations}
-        #print(transformation_dict)
+        # print(transformation_dict)
 
         return pattern_dict, transformation_dict
 
@@ -426,10 +382,10 @@ class RuleExtractor:
         instances = result.find_matching(pattern)
         for instance in instances:
             result.rewrite(rule, instance)
-        print("pattern:")
-        #utils.print_graph(pattern)
-        print("result:")
-       # utils.print_graph(result)
+        # print("pattern:")
+        # utils.print_graph(pattern)
+        # print("result:")
+        # utils.print_graph(result)
         return result
 
 
@@ -470,9 +426,5 @@ if __name__ == "__main__":
     rule_extractor = RuleExtractor()
     rule_extractor.extract_rule(G1, G2, "semantic")
 
-
-
-
-
-    #rule_manager = RuleManager()
-    #rule_manager.visualize_rule("string_assignment")
+    # rule_manager = RuleManager()
+    # rule_manager.visualize_rule("string_assignment")

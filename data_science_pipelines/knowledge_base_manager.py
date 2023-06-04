@@ -5,7 +5,7 @@ from db_driver import init_module_from_file
 class KnowledgeBaseManager:
 
     def __init__(self):
-        self.connection = sqlite3.connect("../knowledge_base.db")
+        self.connection = sqlite3.connect("knowledge_base.db")
         self.cursor = self.connection.cursor()
 
     def add_module_name_to_kb(self, name, version, date, language):
@@ -59,7 +59,19 @@ class KnowledgeBaseManager:
         self.cursor.execute(
             "UPDATE functions SET data_science_task = ? WHERE function_title=? and module_name = ? and language=?", (ds_task, function_name, module_name, language))
         self.connection.commit()
+        print(f"Data science task {ds_task} successfully added to function {function_name}.")
         return f"Data science task {ds_task} was added to function {function_name}."
+
+    def add_description(self, module_name, function_name, language, description):
+        self.cursor.execute("SELECT * FROM functions WHERE function_title=? and module_name = ? and language=?", (function_name, module_name, language))
+        function_exists = self.cursor.fetchall()
+        if len(function_exists) == 0:
+            return "This function doesn't exist!"
+        self.cursor.execute(
+            "UPDATE functions SET description = ? WHERE function_title=? and module_name = ? and language=?", (description, function_name, module_name, language))
+        self.connection.commit()
+        print(f"Description {description} successfully added to function {function_name}.")
+        return f"Description {description} successfully added to function {function_name}."
 
 
 if __name__ == "__main__":

@@ -23,7 +23,7 @@ STR_ATTR_VALUE = "attr_value"
 class TransformationPipeline:
 
     def __init__(self, language):
-        self.connection = sqlite3.connect("../knowledge_base.db")
+        self.connection = sqlite3.connect("knowledge_base.db")
         self.cursor = self.connection.cursor()
         self.language = language
 
@@ -538,7 +538,7 @@ def transform_graph(G: NXGraph, language, language_specific_hook: LanguageHook):
                     'nodes at end': nodes_end_amount}
     #stats = StatCollector.getStatCollector()
     #stats.append_script_data(script_stats)
-    utils.draw_graph(G, figsize=(20, 10))
+    utils.draw_graph(G, figsize=(40, 10))
     #print_graph(G)
     connection.close()
     #print(len(G.nodes()), len(G.edges()), len(G.nodes())/len(G.edges()))

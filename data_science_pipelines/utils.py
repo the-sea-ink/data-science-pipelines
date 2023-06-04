@@ -185,7 +185,7 @@ def draw_graph_by_attr(G, attribute="type", id=False, fig_num=1):
     return fig
 
 
-def draw_graph(G, attribute="text", id=False, title='', figsize = (15,10), ax=None):
+def draw_graph_rule(G, attribute="text", id=False, title='', figsize = (15,10), ax=None):
     if type(G) is NXGraph:
         G = nxraph_to_digraph(G)
     # set graph structure to tree
@@ -239,18 +239,62 @@ def draw_graph(G, attribute="text", id=False, title='', figsize = (15,10), ax=No
     return
 
 
-def draw_rule(num, extractor):
-    with open("knowledge_base/rules/rule_base.txt") as file:
-        for counter, line in enumerate(file, 1):
-            rule_dict = read_rule_from_string(line)
-            if counter == num:
-                rule = Rule.from_json(rule_dict)
-                pattern = rule.lhs
-                result = extractor.get_transformation_result(pattern, rule_dict)
-                fig, axes = plt.subplots(1,2, figsize=(20,10))
-                pattern_fig = draw_graph(pattern, title='Pattern', ax=axes[0])
-                result_fig = draw_graph(result, title='Result', ax=axes[1])
-                plt.show()
+def draw_graph(G, attribute="text", id=False, title='', figsize = (20,10)):
+    if type(G) is NXGraph:
+        G = nxraph_to_digraph(G)
+    # set graph structure to tree
+    pos = graphviz_layout(G, prog="dot")
+    width = 2
+    plt.figure(figsize=figsize)
+    plt.title(title)
+    if not id:
+        labels = {}
+        ids = G.nodes()
+        labels_type = nx.get_node_attributes(G, "type")
+        labels_text = nx.get_node_attributes(G, "text")
+        # transform labels from finite set to strings
+        for id in ids:
+            ttype = ''
+            ttext = ''
+            if id in labels_type.keys():
+                ttype = next(iter(labels_type[id]))
+            if id in labels_text.keys():
+                ttext = next(iter(labels_text[id]))
+            labels[id] = str(str(id) + "\n" + ttype + "\n" + ttext) #  .replace("'", "") str(id) + "\n" +  + "\n" + text.replace("'", "")
+                #else:
+                    #labels[k] = str(id, "\n",  value.decode("utf-8").replace("'", ""))
+        nx.draw(G,
+                pos=pos,
+                with_labels=True,
+                node_color="lightgrey",
+                edge_color="lightgrey",
+                labels=labels,
+                alpha=0.9,
+                width=width,
+                node_size=2200,
+                arrowsize=20)
+    else:
+        nx.draw(G,
+                pos=pos,
+                with_labels=True,
+                node_color="lightgrey",
+                edge_color="lightgrey",
+                alpha=0.9,
+                width=width,
+                node_size=2200,
+                arrowsize=20)
+    plt.show()
+    return
+
+
+def draw_rule(rule_dict, extractor):
+    rule = Rule.from_json(rule_dict)
+    pattern = rule.lhs
+    result = extractor.get_transformation_result(pattern, rule_dict)
+    fig, axes = plt.subplots(1,2, figsize=(20,10))
+    pattern_fig = draw_graph_rule(pattern, title='Pattern', ax=axes[0])
+    result_fig = draw_graph_rule(result, title='Result', ax=axes[1])
+    plt.show()
 
 #def draw_rule(rule):
  #   draw_graph(rule.lhs)
@@ -359,7 +403,7 @@ def convert_graph_to_json(G: NXGraph):
         i += 1
     with open('../graph.json', 'w') as fp:
         json.dump(graph_dict, fp, indent=4)
-    print(graph_dict)
+    #print(graph_dict)
     return graph_dict
 
 
@@ -417,6 +461,7 @@ def nxgraph_to_json(G):
         graph_dict["edges"].append(edge_attrs)
     #print(graph_dict)
     return graph_dict
+
 
 
 def json_to_nxgraph(graph_dict):

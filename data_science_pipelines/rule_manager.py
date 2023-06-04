@@ -10,7 +10,7 @@ class RuleManager:
     RULE_TYPE_SEMANT = 'semantic'
 
     def __init__(self):
-        self.connection = sqlite3.connect("../knowledge_base.db")
+        self.connection = sqlite3.connect("knowledge_base.db")
         self.cursor = self.connection.cursor()
 
     def delete_rule_by_name(self, rule_name):
@@ -20,11 +20,13 @@ class RuleManager:
         self.connection.commit()
         return rule
 
-    def visualize_rule(self, rule_name):
+    def visualize_rule(self, rule_name, extractor):
         # needs testing and prettier visualisation
-        self.cursor.execute("SELECT FROM rules WHERE rule_name=?", (rule_name,))
-        rule_string = self.cursor.fetchall()
+        self.cursor.execute("SELECT rule, rule_id FROM rules WHERE rule_name=?", (rule_name,))
+        rule_string, rule_id = self.cursor.fetchall()[0]
+        #print(rule_string)
         rule_dict = utils.read_rule_from_string(rule_string)
+        utils.draw_rule(rule_dict, extractor)
         rule = Rule.from_json(rule_dict)
         pattern = rule.lhs
         result = rule.rhs
@@ -76,14 +78,14 @@ class RuleManager:
         if rule_exists(rule):
             raise ValueError('This rule already exists!')
 
-        out_file = open("knowledge_base/rules/rule_base.txt", "a")
+        out_file = open("data_science_pipelines/knowledge_base/rules/rule_base.txt", "a")
         out_file.write(str(rule) + "\n")
         out_file.close()
 
         self.connection.commit()
 
-        print(rule)
-        print("Rule created successfully!")
+        #print(rule)
+        print(f'Rule {rule["name"]} created successfully!')
         return rule
 
 
@@ -94,7 +96,7 @@ def get_rules_from_db(cursor):
 
 
 def rule_exists(rule):
-    with open("knowledge_base/rules/rule_base.txt") as file:
+    with open("data_science_pipelines/knowledge_base/rules/rule_base.txt") as file:
         for line in file:
             if str(rule) == line.strip():
                 return True
@@ -184,7 +186,7 @@ def create_rule(pattern, rule_dict):
     if "add_node_attributes" in rule_dict["transformations"]:
         attributes_to_add = rule_dict["transformations"]["add_node_attributes"]
         # parse input
-        print("yes")
+        #print("yes")
         for node in attributes_to_add:
             node_id = node.pop("node_id")
             node_attrs = node

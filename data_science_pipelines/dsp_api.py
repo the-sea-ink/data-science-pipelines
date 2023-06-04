@@ -18,26 +18,22 @@ class DSP_API():
         self.kb_manager = KnowledgeBaseManager()
 
     def init_db(self):
-        # adapt so that we pass connection?
-        db_driver.reset_db()
-        pass
+        return db_driver.reset_db()
 
     def create_pipeline(self, code, language, hook: LanguageHook = None, write_to_file=True,
                         output_path="outputs/ds_pipeline.json"):
         graph = self.graph_extractor.extract_pipeline(code, language, hook)
-        #print(graph)
+        # print(graph)
         if write_to_file:
             out_file = open(output_path, "w")
             json.dump(graph, out_file, indent=4)
             out_file.close()
-            #return graph
+            # return graph
         else:
             return graph
 
     def extract_rule(self, g1, g2, rule_type):
-        #TODO change both graphs to json
-        pattern, result = self.rule_extractor.extract_rule(g1, g2, rule_type)
-        return pattern, result  # viz
+        return self.rule_extractor.extract_rule(g1, g2, rule_type)
 
     def confirm_rule(self, pattern, result, rule_name, rule_description, language, rule_type="semantic", priority=50):
         pattern_g = utils.json_to_nxgraph(pattern)
@@ -50,7 +46,8 @@ class DSP_API():
         return self.rule_manager.list_all_rules(language)
 
     def visualize_rule(self, rule_name):
-        self.rule_manager.visualize_rule(rule_name)
+        extractor = RuleExtractor()
+        self.rule_manager.visualize_rule(rule_name, extractor)
         pass
 
     def delete_rule(self, rule_name):
@@ -76,3 +73,6 @@ class DSP_API():
 
     def add_ds_task(self, module_name, function_name, language, ds_task):
         return self.kb_manager.add_ds_task_to_kb(module_name, function_name, language, ds_task)
+
+    def add_description(self, module_name, function_name, language, description):
+        return self.kb_manager.add_description(module_name, function_name, language, description)
