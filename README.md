@@ -25,7 +25,7 @@ visualize rule:         python data_science_pipelines visualize_rule rule_name
 delete a rule:          python data_science_pipelines delete_rule rule_name
 add a rule:             python data_science_pipelines add_rule path_to_rule
 add new module to kb:   python data_science_pipelines add_module module_name module_version date(yyyy-mm-dd) language
-add function to kb:     python data_science_pipelines add_function module_name function_title function_description function_language ds_task --dlink "link to documentation"
+add function to kb:     python data_science_pipelines add_function module_name function_title function_description function_language ds_task --dlink link_to_documentation
 add data science dask:  python data_science_pipelines add_ds_task module_name function_title language ds_task 
 add description:        python data_science_pipelines add_description module_name function_title language description 
 ```

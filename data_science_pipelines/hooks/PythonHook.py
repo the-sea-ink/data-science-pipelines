@@ -164,7 +164,9 @@ class PythonHook (LanguageHook):
         for alias, module in aliases_dict.items():
             nodes_to_change = [x for x in G.nodes(True) if next(iter(x[1]['text'])).startswith(alias + '.')]
             for node in nodes_to_change:
-                G.add_node_attrs(node[0], {"full_function_call": next(iter(node[1]['text'])).replace(alias, module, 1)})
+                G.update_node_attrs(node[0], {"text": next(iter(node[1]['text'])).replace(alias, module, 1),
+                                              "type": node[1]["type"]})
+                G.add_node_attrs(node[0], {"full_function_call": next(iter(node[1]["text"])).partition("(")[0]})
                 G.add_node_attrs(node[0], {"module": module})
                 G.add_node_attrs(node[0], {"alias": alias})
 
