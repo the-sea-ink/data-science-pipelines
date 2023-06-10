@@ -40,10 +40,14 @@ class RuleExtractor:
 
         result = self.get_transformation_result(pattern_nxgraph, rule)
 
+        utils.draw_graph(G1)
+        utils.draw_graph(G2)
+        utils.draw_diffgraph(Gdiff, "type")
+
         dict_pattern = utils.nxgraph_to_json(pattern_nxgraph)
         dict_result = utils.nxgraph_to_json(result)
 
-        fig, axes = plt.subplots(1, 2, figsize=(20, 10))
+        fig, axes = plt.subplots(1, 2, figsize=(10, 5))
         pattern_fig = utils.draw_graph_rule(pattern_nxgraph, title='Pattern', ax=axes[0])
         result_fig = utils.draw_graph_rule(result, title='Result', ax=axes[1])
         plt.show()
@@ -336,12 +340,19 @@ class RuleExtractor:
 
         # update nodes
         if nodes_to_update:
-            transformations["update_node_attributes"] = []
-            for key in nodes_to_update:
-                for type, text in zip(nodes_to_update[key]["old"]["type"], nodes_to_update[key]["old"]["text"]):
-                    transformations["update_node_attributes"].append(
-                        {"node_id": key, "type": type,
-                         "text": text})
+                transformations["update_node_attributes"] = []
+                for key in nodes_to_update:
+                    if "text" in nodes_to_update[key]["new"].keys():
+                        for type, text in zip(nodes_to_update[key]["new"]["type"], nodes_to_update[key]["new"]["text"]):
+                            transformations["update_node_attributes"].append(
+                                {"node_id": key, "type": type,
+                                 "text": text})
+                    else:
+                        for type in nodes_to_update[key]["new"]["type"]:
+                            transformations["update_node_attributes"].append(
+                                {"node_id": key, "type": type})
+
+
 
         # remove edges
         if edges_to_delete:
